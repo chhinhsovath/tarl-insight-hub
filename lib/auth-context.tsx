@@ -1,8 +1,9 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { getPermissions, savePermissions, type RolePermissions } from "./permissions"
 
-export type UserRole = "Admin" | "Teacher" | "Coordinator" | "Staff"
+export type UserRole = "Admin" | "Teacher" | "Coordinator" | "Collector" | "Staff"
 
 export type User = {
   id: string
@@ -58,7 +59,9 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<boolean>
   logout: () => void
   switchUser: (userId: string) => void
-  isAllowed: (allowedRoles: UserRole[]) => boolean
+  permissions: RolePermissions
+  updatePermissions: (perms: RolePermissions) => void
+  isAllowed: (path?: string) => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -66,6 +69,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [permissions, setPermissions] = useState<RolePermissions>({})
 
   useEffect(() => {
     // Check for stored user session or set default admin user
@@ -82,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Set default admin user for demo
       setUser(mockUsers[0])
     }
+    setPermissions(getPermissions())
     setLoading(false)
   }, [])
 
@@ -118,13 +123,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const isAllowed = (allowedRoles: UserRole[]): boolean => {
+  const updatePermissions = (perms: RolePermissions) => {
+    setPermissions(perms)
+    savePermissions(perms)
+  }
+
+  const isAllowed = (path?: string): boolean => {
     if (!user) return false
-    return allowedRoles.includes(user.role)
+    const roles = permissions[path || ""]
+    if (!roles || roles.length === 0) return true
+    return roles.map((r) => r.toLowerCase()).includes(user.role.toLowerCase())
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, switchUser, isAllowed }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, switchUser, permissions, updatePermissions, isAllowed }}>
       {children}
     </AuthContext.Provider>
   )
