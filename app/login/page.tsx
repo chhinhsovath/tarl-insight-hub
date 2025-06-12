@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth, mockUsers } from "@/lib/auth-context"
+import { useAuth } from "@/lib/auth-context" // Removed mockUsers
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -81,7 +81,7 @@ export default function LoginPage() {
                 description="Complete system oversight and management"
                 icon={<Users className="h-12 w-12 text-blue-600" />}
                 features={["User Management", "School Administration", "System Analytics", "Report Generation"]}
-                email={mockUsers[0].email}
+                email="kosal.vann@tarl.edu.kh" // Hardcoded Admin email
                 onLogin={handleQuickLogin}
                 isLoading={isLoading}
               />
@@ -92,7 +92,7 @@ export default function LoginPage() {
                 description="Classroom and student management"
                 icon={<User className="h-12 w-12 text-green-600" />}
                 features={["Student Progress", "Classroom Data", "Learning Materials", "Assessment Tools"]}
-                email={mockUsers[1].email}
+                email="sophea.lim@tarl.edu.kh" // Hardcoded Teacher email
                 onLogin={handleQuickLogin}
                 isLoading={isLoading}
               />
@@ -103,7 +103,7 @@ export default function LoginPage() {
                 description="Regional oversight and school coordination"
                 icon={<School className="h-12 w-12 text-purple-600" />}
                 features={["School Monitoring", "Teacher Support", "Regional Analytics", "Training Management"]}
-                email={mockUsers[2].email}
+                email="bopha.keo@tarl.edu.kh" // Hardcoded Coordinator email
                 onLogin={handleQuickLogin}
                 isLoading={isLoading}
               />
@@ -153,14 +153,20 @@ export default function LoginPage() {
                 </form>
               </CardContent>
               <CardFooter className="flex flex-col items-start">
-                <p className="text-sm text-gray-500 mb-2">Demo Accounts:</p>
+                <p className="text-sm text-gray-500 mb-2">Demo Accounts (password: "password"):</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2 w-full text-xs">
-                  {mockUsers.map((user) => (
-                    <div key={user.id} className="flex items-center space-x-1">
-                      <span className="font-medium">{user.role}:</span>
-                      <span className="text-gray-600">{user.email}</span>
-                    </div>
-                  ))}
+                  <div>
+                    <span className="font-medium">Admin:</span>
+                    <span className="text-gray-600"> kosal.vann@tarl.edu.kh</span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Teacher:</span>
+                    <span className="text-gray-600"> sophea.lim@tarl.edu.kh</span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Coordinator:</span>
+                    <span className="text-gray-600"> bopha.keo@tarl.edu.kh</span>
+                  </div>
                 </div>
               </CardFooter>
             </Card>

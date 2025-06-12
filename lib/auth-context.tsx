@@ -1,11 +1,15 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { supabase } from "../lib/supabase" // Adjusted path
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js"
 
 export type UserRole = "Admin" | "Teacher" | "Coordinator" | "Staff"
 
+// Updated User type
 export type User = {
-  id: string
+  id: string // Supabase auth user ID (auth.users.id)
+  app_id: number // tnr_users.id (SERIAL PRIMARY KEY)
   full_name: string
   email: string
   role: UserRole
@@ -15,50 +19,16 @@ export type User = {
   phone?: string
   gender?: string
   years_of_experience?: number
+  profile_picture_url?: string
 }
-
-// Mock users for each role - keeping the name as mockUsers to avoid breaking imports
-export const mockUsers: User[] = [
-  {
-    id: "12",
-    full_name: "Mr. Kosal Vann",
-    email: "kosal.vann@tarl.edu.kh",
-    role: "Admin",
-    phone: "012-345-689",
-    gender: "Male",
-    years_of_experience: 20,
-  },
-  {
-    id: "1",
-    full_name: "Ms. Sophea Lim",
-    email: "sophea.lim@tarl.edu.kh",
-    role: "Teacher",
-    school_id: 1,
-    province_id: 1,
-    district_id: 1,
-    phone: "012-345-678",
-    gender: "Female",
-    years_of_experience: 8,
-  },
-  {
-    id: "9",
-    full_name: "Ms. Bopha Keo",
-    email: "bopha.keo@tarl.edu.kh",
-    role: "Coordinator",
-    province_id: 1,
-    phone: "012-345-686",
-    gender: "Female",
-    years_of_experience: 15,
-  },
-]
 
 type AuthContextType = {
   user: User | null
   loading: boolean
   login: (email: string, password: string) => Promise<boolean>
-  logout: () => void
-  switchUser: (userId: string) => void
+  logout: () => Promise<void> // Updated to Promise<void>
   isAllowed: (allowedRoles: UserRole[]) => boolean
+  // switchUser is removed
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -68,54 +38,138 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Check for stored user session or set default admin user
-    const storedUser = localStorage.getItem("tarl-user")
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser))
-      } catch (error) {
-        localStorage.removeItem("tarl-user")
-        // Set default admin user for demo
-        setUser(mockUsers[0])
+    setLoading(true)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
+      if (event === "SIGNED_OUT") {
+        setUser(null)
+        setLoading(false)
+      } else if (session && (event === "SIGNED_IN" || event === "USER_UPDATED" || event === "INITIAL_SESSION")) {
+        const { data: profile, error } = await supabase
+          .from("tnr_users")
+          .select("*")
+          .eq("auth_user_id", session.user.id)
+          .single()
+
+        if (error) {
+          console.error("Error fetching user profile:", error)
+          setUser(null) // Or handle more gracefully, maybe sign out
+          setLoading(false)
+          // Potentially sign out the user if profile is essential and not found
+          // await supabase.auth.signOut();
+        } else if (profile) {
+          const fullUser: User = {
+            id: session.user.id, // Supabase auth user ID
+            app_id: profile.id, // tnr_users.id, renamed to app_id for clarity
+            full_name: profile.full_name,
+            email: session.user.email || profile.email, // Prefer session email
+            role: profile.role as UserRole, // Ensure role is correctly typed
+            school_id: profile.school_id,
+            province_id: profile.province_id,
+            district_id: profile.district_id,
+            phone: profile.phone,
+            gender: profile.gender,
+            years_of_experience: profile.years_of_experience,
+            profile_picture_url: profile.profile_picture_url,
+          }
+          setUser(fullUser)
+          setLoading(false)
+        } else {
+          // No profile found, but user is signed in. This might be an error condition.
+          console.warn("User signed in but no profile found in tnr_users for auth_user_id:", session.user.id)
+          // Decide how to handle: sign out, set partial user, etc.
+          // For now, treating as if not fully logged in:
+          setUser(null)
+          setLoading(false)
+          // Optionally sign them out:
+          // await supabase.auth.signOut();
+        }
+      } else if (event === "INITIAL_SESSION" && !session) {
+        // No active session on initial load
+        setUser(null)
+        setLoading(false)
       }
-    } else {
-      // Set default admin user for demo
-      setUser(mockUsers[0])
+      // Consider other events if necessary: TOKEN_REFRESHED, USER_DELETED, PASSWORD_RECOVERY
+    })
+
+    // Check initial session explicitly in case onAuthStateChange doesn't fire INITIAL_SESSION immediately with a session
+    // or if there's a race condition.
+    const checkInitialSession = async () => {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError) {
+        console.error("Error getting initial session:", sessionError)
+        setLoading(false)
+        return
+      }
+
+      if (session) {
+        // If session exists, and onAuthStateChange hasn't set the user yet, fetch profile
+        // This logic is similar to SIGNED_IN, ensure it doesn't cause duplicate fetches if onAuthStateChange is reliable
+        // For safety, only proceed if user is not yet set by onAuthStateChange
+        if (!user) { // Check if user is already set to avoid race condition / re-fetch
+          const { data: profile, error } = await supabase
+            .from("tnr_users")
+            .select("*")
+            .eq("auth_user_id", session.user.id)
+            .single()
+
+          if (error) {
+            console.error("Error fetching user profile on initial check:", error)
+            setUser(null)
+          } else if (profile) {
+            const fullUser: User = {
+              id: session.user.id,
+              app_id: profile.id,
+              full_name: profile.full_name,
+              email: session.user.email || profile.email,
+              role: profile.role as UserRole,
+              school_id: profile.school_id,
+              province_id: profile.province_id,
+              district_id: profile.district_id,
+              phone: profile.phone,
+              gender: profile.gender,
+              years_of_experience: profile.years_of_experience,
+              profile_picture_url: profile.profile_picture_url,
+            }
+            setUser(fullUser)
+          } else {
+            setUser(null) // No profile found
+          }
+        }
+      } else {
+        setUser(null) // No session
+      }
+      setLoading(false) // Ensure loading is set to false after initial check
     }
-    setLoading(false)
-  }, [])
+
+    checkInitialSession();
+
+
+    return () => {
+      subscription?.unsubscribe()
+    }
+  }, [user]) // Added user to dependency array to re-evaluate if user changes elsewhere, though primarily driven by auth events.
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setLoading(true)
-
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // Find user by email (password is ignored for demo)
-    const foundUser = mockUsers.find((u) => u.email === email)
-
-    if (foundUser && password === "password") {
-      setUser(foundUser)
-      localStorage.setItem("tarl-user", JSON.stringify(foundUser))
-      setLoading(false)
-      return true
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    setLoading(false) // onAuthStateChange will handle setting user and final loading state
+    if (error) {
+      console.error("Login error:", error.message)
+      return false
     }
-
-    setLoading(false)
-    return false
+    return true // User state will be updated by onAuthStateChange
   }
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem("tarl-user")
-  }
-
-  const switchUser = (userId: string) => {
-    const foundUser = mockUsers.find((u) => u.id === userId)
-    if (foundUser) {
-      setUser(foundUser)
-      localStorage.setItem("tarl-user", JSON.stringify(foundUser))
+  const logout = async (): Promise<void> => {
+    setLoading(true) // Optional: set loading true during sign out
+    const { error } = await supabase.auth.signOut()
+    if (error) {
+      console.error("Logout error:", error.message)
+      // setLoading(false) // if error, ensure loading is reset
     }
+    // User state will be set to null by onAuthStateChange, which also sets loading to false.
   }
 
   const isAllowed = (allowedRoles: UserRole[]): boolean => {
@@ -124,7 +178,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, switchUser, isAllowed }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, isAllowed }}>
       {children}
     </AuthContext.Provider>
   )
