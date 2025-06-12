@@ -7,10 +7,10 @@ import { useAuth, type UserRole } from "@/lib/auth-context"
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  allowedRoles: UserRole[]
+  allowedRoles?: UserRole[] // ignored but kept for backward compatibility
 }
 
-export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading, isAllowed } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
@@ -18,14 +18,12 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        // For demo purposes, we'll just show a message instead of redirecting
         console.log("User not authenticated")
-      } else if (!isAllowed(allowedRoles)) {
-        // For demo purposes, we'll just show a message instead of redirecting
+      } else if (!isAllowed(pathname)) {
         console.log("User not authorized for this page")
       }
     }
-  }, [user, loading, isAllowed, allowedRoles, router, pathname])
+  }, [user, loading, isAllowed, router, pathname])
 
   // Show loading spinner while checking authentication
   if (loading) {
@@ -52,13 +50,12 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     )
   }
 
-  if (!isAllowed(allowedRoles)) {
+  if (!isAllowed(pathname)) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-gradient-to-br from-yellow-50 to-gray-100">
         <div className="text-center">
           <h2 className="text-xl font-semibold text-yellow-600 mb-2">Access Denied</h2>
           <p className="text-gray-600">You don't have permission to access this page.</p>
-          <p className="text-sm text-gray-500 mt-2">Required roles: {allowedRoles.join(", ")}</p>
           <p className="text-sm text-gray-500">Your role: {user.role}</p>
         </div>
       </div>

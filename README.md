@@ -28,3 +28,17 @@ Continue building your app on:
 2. Deploy your chats from the v0 interface
 3. Changes are automatically pushed to this repository
 4. Vercel deploys the latest version from this repository
+
+## Database configuration
+
+The application can connect to a MySQL database when the following environment variables are provided:
+
+```
+MYSQL_HOST=<host>
+MYSQL_PORT=<port>
+MYSQL_USER=<user>
+MYSQL_PASSWORD=<password>
+MYSQL_DATABASE=<database>
+```
+
+If these variables are not set, the app falls back to the built-in static demo data.

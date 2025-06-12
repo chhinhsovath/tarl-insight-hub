@@ -27,10 +27,12 @@ interface SidebarNavProps {
   setOpen: (open: boolean) => void
 }
 
-const adminNavItems = [
+const baseNavItems = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
   { name: "Schools", href: "/schools", icon: School },
   { name: "Users", href: "/users", icon: Users },
+  { name: "Students", href: "/students", icon: Users },
+  { name: "Data Collection", href: "/collection", icon: ClipboardList },
   {
     name: "Observations",
     icon: Eye,
@@ -43,8 +45,13 @@ const adminNavItems = [
   { name: "Progress", href: "/progress", icon: TrendingUp },
   { name: "Training", href: "/training", icon: GraduationCap },
   { name: "Reports", href: "/reports", icon: FileText },
+  { name: "Results", href: "/results", icon: BarChart3 },
+  { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  { name: "Visits", href: "/visits", icon: ClipboardList },
   { name: "Settings", href: "/settings", icon: Settings },
 ]
+
+const adminNavItems = [...baseNavItems, { name: "Page Management", href: "/page-management", icon: List }]
 
 const teacherNavItems = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
@@ -83,16 +90,8 @@ export function SidebarNav({ open, setOpen }: SidebarNavProps) {
   const { user, logout } = useAuth()
 
   const getNavItems = () => {
-    switch (user?.role) {
-      case "admin":
-        return adminNavItems
-      case "teacher":
-        return teacherNavItems
-      case "collector":
-        return collectorNavItems
-      default:
-        return []
-    }
+    if (user?.role === "Admin") return adminNavItems
+    return baseNavItems
   }
 
   const navItems = getNavItems()
