@@ -4,7 +4,7 @@ import type { UserRole } from "./auth-context"
 export const staticData = {
   // Dashboard stats by role
   dashboardStats: {
-    admin: {
+    Admin: {
       totalSchools: 1247,
       totalTeachers: 8934,
       totalStudents: 156789,
@@ -18,7 +18,7 @@ export const staticData = {
         { id: 4, type: "training", message: "Teacher training completed in Eastern Cape", time: "2 days ago" },
       ],
     },
-    teacher: {
+    Teacher: {
       myStudents: 34,
       completedObservations: 12,
       upcomingTrainings: 3,
@@ -30,7 +30,19 @@ export const staticData = {
         { id: 4, type: "assessment", message: "Submitted monthly assessment report", time: "3 days ago" },
       ],
     },
-    collector: {
+    Coordinator: {
+      schoolsManaged: 15,
+      teachersSupervised: 89,
+      observationsThisMonth: 28,
+      completionRate: 94,
+      recentActivity: [
+        { id: 1, type: "visit", message: "Completed school visit at Hillview Primary", time: "30 minutes ago" },
+        { id: 2, type: "training", message: "Conducted teacher training session", time: "2 hours ago" },
+        { id: 3, type: "report", message: "Monthly progress report submitted", time: "5 hours ago" },
+        { id: 4, type: "meeting", message: "District coordination meeting attended", time: "1 day ago" },
+      ],
+    },
+    Staff: {
       observationsThisMonth: 28,
       schoolsVisited: 15,
       dataPointsCollected: 456,
@@ -46,7 +58,7 @@ export const staticData = {
 
   // Quick actions by role
   quickActions: {
-    admin: [
+    Admin: [
       {
         title: "Manage Schools",
         description: "Add, edit, or view school information",
@@ -55,14 +67,14 @@ export const staticData = {
       },
       { title: "User Management", description: "Manage teachers and data collectors", icon: "Users", href: "/users" },
       {
-        title: "View Reports",
-        description: "Access comprehensive system reports",
+        title: "View Analytics",
+        description: "Access comprehensive system analytics",
         icon: "BarChart3",
-        href: "/reports",
+        href: "/analytics",
       },
       { title: "System Settings", description: "Configure system preferences", icon: "Settings", href: "/settings" },
     ],
-    teacher: [
+    Teacher: [
       { title: "My Students", description: "View and manage student progress", icon: "Users", href: "/students" },
       { title: "New Observation", description: "Record classroom observation", icon: "Eye", href: "/observations/new" },
       {
@@ -78,37 +90,22 @@ export const staticData = {
         href: "/training",
       },
     ],
-    collector: [
+    Coordinator: [
+      { title: "School Visits", description: "Schedule and manage school visits", icon: "MapPin", href: "/visits" },
+      { title: "Teacher Support", description: "Support and mentor teachers", icon: "Users", href: "/teachers" },
+      {
+        title: "Progress Reports",
+        description: "View district progress reports",
+        icon: "TrendingUp",
+        href: "/progress",
+      },
+      { title: "Analytics Dashboard", description: "Access district analytics", icon: "BarChart3", href: "/analytics" },
+    ],
+    Staff: [
       { title: "New Collection", description: "Start new data collection session", icon: "Plus", href: "/collection" },
       { title: "My Observations", description: "View completed observations", icon: "Eye", href: "/observations" },
       { title: "School Visits", description: "Schedule and manage school visits", icon: "MapPin", href: "/visits" },
       { title: "Upload Data", description: "Upload collected assessment data", icon: "Upload", href: "/upload" },
-    ],
-  },
-
-  // Navigation items by role
-  navigation: {
-    admin: [
-      { name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
-      { name: "Schools", href: "/schools", icon: "School" },
-      { name: "Users", href: "/users", icon: "Users" },
-      { name: "Reports", href: "/reports", icon: "BarChart3" },
-      { name: "Analytics", href: "/analytics", icon: "PieChart" },
-      { name: "Settings", href: "/settings", icon: "Settings" },
-    ],
-    teacher: [
-      { name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
-      { name: "My Students", href: "/students", icon: "Users" },
-      { name: "Observations", href: "/observations", icon: "Eye" },
-      { name: "Progress", href: "/progress", icon: "TrendingUp" },
-      { name: "Training", href: "/training", icon: "BookOpen" },
-    ],
-    collector: [
-      { name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
-      { name: "Collection", href: "/collection", icon: "Database" },
-      { name: "Observations", href: "/observations", icon: "Eye" },
-      { name: "School Visits", href: "/visits", icon: "MapPin" },
-      { name: "Reports", href: "/reports", icon: "FileText" },
     ],
   },
 
@@ -141,24 +138,6 @@ export const staticData = {
       teachers: 16,
       status: "Active",
     },
-    {
-      id: 4,
-      name: "Valley Primary",
-      district: "Port Elizabeth",
-      province: "Eastern Cape",
-      students: 298,
-      teachers: 12,
-      status: "Active",
-    },
-    {
-      id: 5,
-      name: "Riverside School",
-      district: "Bloemfontein",
-      province: "Free State",
-      students: 367,
-      teachers: 15,
-      status: "Active",
-    },
   ],
 
   students: [
@@ -179,33 +158,6 @@ export const staticData = {
       mathLevel: "Grade 3",
       readingLevel: "Grade 4",
       progress: 72,
-    },
-    {
-      id: 3,
-      name: "Zara Patel",
-      grade: "Grade 2",
-      school: "Greenfield Primary",
-      mathLevel: "Grade 2",
-      readingLevel: "Grade 3",
-      progress: 91,
-    },
-    {
-      id: 4,
-      name: "Liam van der Merwe",
-      grade: "Grade 5",
-      school: "Greenfield Primary",
-      mathLevel: "Grade 4",
-      readingLevel: "Grade 5",
-      progress: 68,
-    },
-    {
-      id: 5,
-      name: "Fatima Al-Rashid",
-      grade: "Grade 3",
-      school: "Greenfield Primary",
-      mathLevel: "Grade 3",
-      readingLevel: "Grade 4",
-      progress: 88,
     },
   ],
 
@@ -230,35 +182,15 @@ export const staticData = {
       status: "Completed",
       studentsPresent: 32,
     },
-    {
-      id: 3,
-      school: "Mountain View School",
-      teacher: "Mrs. Patel",
-      grade: "Grade 2",
-      subject: "Mathematics",
-      date: "2024-12-08",
-      status: "In Progress",
-      studentsPresent: 25,
-    },
-    {
-      id: 4,
-      school: "Valley Primary",
-      teacher: "Mr. Brown",
-      grade: "Grade 5",
-      subject: "Reading",
-      date: "2024-12-07",
-      status: "Completed",
-      studentsPresent: 29,
-    },
   ],
 
   users: [
-    { id: 1, name: "Sarah Johnson", email: "admin@tarl.org", role: "admin", status: "Active", lastLogin: "2024-12-10" },
+    { id: 1, name: "Sarah Johnson", email: "admin@tarl.org", role: "Admin", status: "Active", lastLogin: "2024-12-10" },
     {
       id: 2,
       name: "Michael Chen",
       email: "teacher@school.edu",
-      role: "teacher",
+      role: "Teacher",
       school: "Greenfield Primary",
       status: "Active",
       lastLogin: "2024-12-10",
@@ -266,24 +198,19 @@ export const staticData = {
     {
       id: 3,
       name: "Priya Patel",
-      email: "collector@tarl.org",
-      role: "collector",
+      email: "coordinator@tarl.org",
+      role: "Coordinator",
       district: "Johannesburg",
       status: "Active",
       lastLogin: "2024-12-09",
-    },
-    {
-      id: 4,
-      name: "David Wilson",
-      email: "teacher2@school.edu",
-      role: "teacher",
-      school: "Sunrise Elementary",
-      status: "Active",
-      lastLogin: "2024-12-08",
     },
   ],
 }
 
 export function getStaticData(role: UserRole, dataType: string) {
-  return staticData[dataType as keyof typeof staticData]?.[role] || staticData[dataType as keyof typeof staticData]
+  const roleData = staticData[dataType as keyof typeof staticData]
+  if (typeof roleData === "object" && roleData !== null && role in roleData) {
+    return roleData[role as keyof typeof roleData]
+  }
+  return staticData[dataType as keyof typeof staticData] || []
 }

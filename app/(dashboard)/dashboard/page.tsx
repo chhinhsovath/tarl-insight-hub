@@ -46,22 +46,23 @@ export default function DashboardPage() {
 
   if (!user) return null
 
-  const stats = getStaticData(user.role, "dashboardStats")
-  const quickActions = getStaticData(user.role, "quickActions")
+  const stats = getStaticData(user.role, "dashboardStats") || {}
+  const quickActions = getStaticData(user.role, "quickActions") || []
 
   const getWelcomeMessage = () => {
     const timeOfDay = new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"
-    return `Good ${timeOfDay}, ${user.name.split(" ")[0]}!`
+    const firstName = user.full_name ? user.full_name.split(" ")[0] : "User"
+    return `Good ${timeOfDay}, ${firstName}!`
   }
 
   const getRoleDescription = () => {
     switch (user.role) {
-      case "admin":
+      case "Admin":
         return "System Administrator Dashboard - Complete oversight of the TaRL program"
-      case "teacher":
+      case "Teacher":
         return "Teacher Dashboard - Track your students and classroom progress"
-      case "collector":
-        return "Data Collector Dashboard - Manage field visits and data collection"
+      case "Coordinator":
+        return "Coordinator Dashboard - Manage field visits and data collection"
       default:
         return "Welcome to TaRL Insight Hub"
     }
@@ -102,25 +103,25 @@ export default function DashboardPage() {
             <p className="text-blue-100 text-lg mb-4">{getRoleDescription()}</p>
             <div className="flex items-center gap-4">
               <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                {user.role}
               </Badge>
-              {user.school && (
+              {user.school_id && (
                 <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                  {user.school}
+                  School ID: {user.school_id}
                 </Badge>
               )}
-              {user.district && (
+              {user.district_id && (
                 <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
-                  {user.district}
+                  District ID: {user.district_id}
                 </Badge>
               )}
             </div>
           </div>
           <div className="hidden md:block">
             <div className="w-24 h-24 bg-white/20 rounded-2xl flex items-center justify-center">
-              {user.role === "admin" && <BarChart3 className="w-12 h-12 text-white" />}
-              {user.role === "teacher" && <BookOpen className="w-12 h-12 text-white" />}
-              {user.role === "collector" && <Database className="w-12 h-12 text-white" />}
+              {user.role === "Admin" && <BarChart3 className="w-12 h-12 text-white" />}
+              {user.role === "Teacher" && <BookOpen className="w-12 h-12 text-white" />}
+              {user.role === "Coordinator" && <Database className="w-12 h-12 text-white" />}
             </div>
           </div>
         </div>
@@ -231,7 +232,12 @@ export default function DashboardPage() {
                   </div>
                 </div>
               )
-            })}
+            }) || (
+              <div className="text-center py-8 text-gray-500">
+                <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No recent activity to display</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

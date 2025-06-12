@@ -2,43 +2,53 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 
-export type UserRole = "admin" | "teacher" | "collector"
+export type UserRole = "Admin" | "Teacher" | "Coordinator" | "Staff"
 
 export type User = {
   id: string
-  name: string
+  full_name: string
   email: string
   role: UserRole
-  school?: string
-  district?: string
-  province?: string
+  school_id?: number
+  province_id?: number
+  district_id?: number
+  phone?: string
+  gender?: string
+  years_of_experience?: number
 }
 
-// Mock users for each role
+// Mock users for each role - keeping the name as mockUsers to avoid breaking imports
 export const mockUsers: User[] = [
   {
+    id: "12",
+    full_name: "Mr. Kosal Vann",
+    email: "kosal.vann@tarl.edu.kh",
+    role: "Admin",
+    phone: "012-345-689",
+    gender: "Male",
+    years_of_experience: 20,
+  },
+  {
     id: "1",
-    name: "Sarah Johnson",
-    email: "admin@tarl.org",
-    role: "admin",
-    province: "Western Cape",
+    full_name: "Ms. Sophea Lim",
+    email: "sophea.lim@tarl.edu.kh",
+    role: "Teacher",
+    school_id: 1,
+    province_id: 1,
+    district_id: 1,
+    phone: "012-345-678",
+    gender: "Female",
+    years_of_experience: 8,
   },
   {
-    id: "2",
-    name: "Michael Chen",
-    email: "teacher@school.edu",
-    role: "teacher",
-    school: "Greenfield Primary School",
-    district: "Cape Town Metro",
-    province: "Western Cape",
-  },
-  {
-    id: "3",
-    name: "Priya Patel",
-    email: "collector@tarl.org",
-    role: "collector",
-    district: "Johannesburg",
-    province: "Gauteng",
+    id: "9",
+    full_name: "Ms. Bopha Keo",
+    email: "bopha.keo@tarl.edu.kh",
+    role: "Coordinator",
+    province_id: 1,
+    phone: "012-345-686",
+    gender: "Female",
+    years_of_experience: 15,
   },
 ]
 
@@ -47,6 +57,7 @@ type AuthContextType = {
   loading: boolean
   login: (email: string, password: string) => Promise<boolean>
   logout: () => void
+  switchUser: (userId: string) => void
   isAllowed: (allowedRoles: UserRole[]) => boolean
 }
 
@@ -57,14 +68,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Check for stored user session
+    // Check for stored user session or set default admin user
     const storedUser = localStorage.getItem("tarl-user")
     if (storedUser) {
       try {
         setUser(JSON.parse(storedUser))
       } catch (error) {
         localStorage.removeItem("tarl-user")
+        // Set default admin user for demo
+        setUser(mockUsers[0])
       }
+    } else {
+      // Set default admin user for demo
+      setUser(mockUsers[0])
     }
     setLoading(false)
   }, [])
@@ -94,12 +110,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("tarl-user")
   }
 
+  const switchUser = (userId: string) => {
+    const foundUser = mockUsers.find((u) => u.id === userId)
+    if (foundUser) {
+      setUser(foundUser)
+      localStorage.setItem("tarl-user", JSON.stringify(foundUser))
+    }
+  }
+
   const isAllowed = (allowedRoles: UserRole[]): boolean => {
     if (!user) return false
     return allowedRoles.includes(user.role)
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, logout, isAllowed }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, loading, login, logout, switchUser, isAllowed }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {

@@ -4,7 +4,6 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
-import { getStaticData } from "@/lib/static-data"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -40,6 +39,38 @@ const iconMap = {
   PieChart,
 }
 
+// Static navigation items by role
+const navigationItems = {
+  Admin: [
+    { name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
+    { name: "Schools", href: "/schools", icon: "School" },
+    { name: "Users", href: "/users", icon: "Users" },
+    { name: "Analytics", href: "/analytics", icon: "BarChart3" },
+    { name: "Reports", href: "/reports", icon: "FileText" },
+    { name: "Settings", href: "/settings", icon: "Settings" },
+  ],
+  Teacher: [
+    { name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
+    { name: "Students", href: "/students", icon: "Users" },
+    { name: "Observations", href: "/observations", icon: "Eye" },
+    { name: "Progress", href: "/progress", icon: "TrendingUp" },
+    { name: "Training", href: "/training", icon: "BookOpen" },
+  ],
+  Coordinator: [
+    { name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
+    { name: "Schools", href: "/schools", icon: "School" },
+    { name: "Visits", href: "/visits", icon: "MapPin" },
+    { name: "Progress", href: "/progress", icon: "TrendingUp" },
+    { name: "Analytics", href: "/analytics", icon: "BarChart3" },
+    { name: "Reports", href: "/reports", icon: "FileText" },
+  ],
+  Staff: [
+    { name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
+    { name: "Data Collection", href: "/collection", icon: "Database" },
+    { name: "Reports", href: "/reports", icon: "FileText" },
+  ],
+}
+
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
@@ -47,7 +78,8 @@ export function Sidebar() {
 
   if (!user) return null
 
-  const navigation = getStaticData(user.role, "navigation")
+  // Get navigation items for the current user role with fallback
+  const navigation = navigationItems[user.role] || navigationItems.Admin
 
   return (
     <div
@@ -60,7 +92,7 @@ export function Sidebar() {
             <div>
               <h2 className="text-lg font-bold text-gray-800">TaRL Hub</h2>
               <Badge variant="secondary" className="text-xs mt-1">
-                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                {user.role}
               </Badge>
             </div>
           )}
@@ -73,7 +105,7 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 p-4">
         <ul className="space-y-2">
-          {navigation.map((item: any) => {
+          {navigation.map((item) => {
             const Icon = iconMap[item.icon as keyof typeof iconMap] || BarChart3
             const isActive = pathname === item.href
 
@@ -100,7 +132,7 @@ export function Sidebar() {
       <div className="p-4 border-t border-gray-200">
         {!collapsed && (
           <div className="mb-3">
-            <p className="text-sm font-medium text-gray-800">{user.name}</p>
+            <p className="text-sm font-medium text-gray-800">{user.full_name}</p>
             <p className="text-xs text-gray-500">{user.email}</p>
           </div>
         )}

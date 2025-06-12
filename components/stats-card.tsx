@@ -23,6 +23,22 @@ export function StatsCard({
   iconColor = "text-blue-500",
   trend,
 }: StatsCardProps) {
+  // Safely format the value
+  const formatValue = (val: string | number) => {
+    if (val === null || val === undefined) return "0"
+    if (typeof val === "number") {
+      // Check if it's a valid number before calling toFixed
+      return isNaN(val) ? "0" : val.toString()
+    }
+    return val.toString()
+  }
+
+  // Safely format trend value
+  const formatTrend = (trendValue: number) => {
+    if (trendValue === null || trendValue === undefined || isNaN(trendValue)) return "0"
+    return trendValue.toString()
+  }
+
   return (
     <Card className="bg-white shadow-lg border-0 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 group">
       <CardContent className="p-6">
@@ -38,7 +54,7 @@ export function StatsCard({
             >
               <span>
                 {trend.isPositive ? "+" : ""}
-                {trend.value}%
+                {formatTrend(trend.value)}%
               </span>
             </div>
           )}
@@ -47,7 +63,7 @@ export function StatsCard({
         <div className="space-y-1">
           <p className="text-sm font-medium text-gray-600">{title}</p>
           <p className="text-3xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors duration-300">
-            {value}
+            {formatValue(value)}
           </p>
           {description && <p className="text-sm text-gray-500">{description}</p>}
         </div>
