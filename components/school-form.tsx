@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { DatabaseService } from "@/lib/database"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
 import type { School, Province, District } from "@/lib/types"
@@ -63,7 +62,8 @@ export function SchoolForm({ onSuccess, onCancel, initialData }: SchoolFormProps
   const loadProvinces = async () => {
     setLoadingProvinces(true)
     try {
-      const data = await DatabaseService.getProvinces()
+      const res = await fetch('/api/provinces')
+      const data: Province[] = await res.json()
       setProvinces(data)
     } catch (error) {
       console.error("Error loading provinces:", error)
@@ -75,7 +75,8 @@ export function SchoolForm({ onSuccess, onCancel, initialData }: SchoolFormProps
   const loadDistricts = async (provinceId: number) => {
     setLoadingDistricts(true)
     try {
-      const data = await DatabaseService.getDistrictsByProvince(provinceId)
+      const res = await fetch(`/api/districts?provinceId=${provinceId}`)
+      const data: District[] = await res.json()
       setDistricts(data)
     } catch (error) {
       console.error("Error loading districts:", error)
@@ -101,7 +102,12 @@ export function SchoolForm({ onSuccess, onCancel, initialData }: SchoolFormProps
         result = { ...formData, id: initialData.id }
       } else {
         // Create new school
-        result = await DatabaseService.createSchool(formData as Omit<School, "id" | "created_at" | "updated_at">)
+        const res = await fetch('/api/schools', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        })
+        result = await res.json()
       }
 
       if (result) {

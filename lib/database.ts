@@ -1,4 +1,13 @@
 import { staticData } from "./static-data"
+import type { ResultSetHeader } from "./mysql"
+
+let mysql: typeof import("./mysql") | null = null
+async function getMysql() {
+  if (!mysql) {
+    mysql = await import("./mysql")
+  }
+  return mysql
+}
 
 export class DatabaseService {
   // =====================================================
@@ -6,7 +15,13 @@ export class DatabaseService {
   // =====================================================
   static async getProvinces() {
     try {
-      // Return static province data
+      if (process.env.MYSQL_HOST) {
+        const { query } = await getMysql()
+        return await query<{ id: number; name: string }>(
+          "SELECT id, name FROM provinces"
+        )
+      }
+      // Fallback static province data
       return [
         { id: 1, name: "Western Cape" },
         { id: 2, name: "Gauteng" },
@@ -29,6 +44,12 @@ export class DatabaseService {
   // =====================================================
   static async getDistricts() {
     try {
+      if (process.env.MYSQL_HOST) {
+        const { query } = await getMysql()
+        return await query<{ id: number; name: string; province_id: number }>(
+          "SELECT id, name, province_id FROM districts"
+        )
+      }
       return [
         { id: 1, name: "Cape Town Metro", province_id: 1 },
         { id: 2, name: "West Coast", province_id: 1 },
@@ -63,6 +84,20 @@ export class DatabaseService {
   // =====================================================
   static async getSchools() {
     try {
+      if (process.env.MYSQL_HOST) {
+        const { query } = await getMysql()
+        return await query<{
+          id: number
+          name: string
+          district_id: number
+          province_id: number
+          is_active: boolean
+          students: number
+          teachers: number
+        }>(
+          "SELECT id, name, district_id, province_id, is_active, students, teachers FROM schools"
+        )
+      }
       return staticData.schools.map((school) => ({
         id: school.id,
         name: school.name,
@@ -104,6 +139,21 @@ export class DatabaseService {
 
   static async createSchool(school: any) {
     try {
+      if (process.env.MYSQL_HOST) {
+        const { query } = await getMysql()
+        const result = await query<ResultSetHeader>(
+          "INSERT INTO schools (name, district_id, province_id, is_active, students, teachers) VALUES (?, ?, ?, ?, ?, ?)",
+          [
+            school.name,
+            school.district_id,
+            school.province_id,
+            school.is_active ?? true,
+            school.students ?? 0,
+            school.teachers ?? 0,
+          ]
+        )
+        return { ...school, id: result.insertId }
+      }
       // Mock creation - just return the school with an ID
       return { ...school, id: Date.now(), created_at: new Date().toISOString() }
     } catch (error) {

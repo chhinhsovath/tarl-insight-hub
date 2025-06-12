@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { DatabaseService } from "@/lib/database"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
 import type { User } from "@/lib/types"
@@ -45,7 +44,8 @@ export function UserForm({ onSuccess, onCancel, initialData }: UserFormProps) {
 
     setLoadingSchools(true)
     try {
-      const data = await DatabaseService.getSchools()
+      const res = await fetch('/api/schools')
+      const data: any[] = await res.json()
       setSchools(data)
     } catch (error) {
       console.error("Error loading schools:", error)
@@ -71,7 +71,12 @@ export function UserForm({ onSuccess, onCancel, initialData }: UserFormProps) {
         result = { ...formData, id: initialData.id }
       } else {
         // Create new user
-        result = await DatabaseService.createUser(formData as Omit<User, "id" | "created_at" | "updated_at">)
+        const res = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        })
+        result = await res.json()
       }
 
       if (result) {
