@@ -1,4 +1,13 @@
 import { staticData } from "./static-data"
+import type { ResultSetHeader } from "./mysql"
+
+let mysql: typeof import("./mysql") | null = null
+async function getMysql() {
+  if (!mysql) {
+    mysql = await import("./mysql")
+  }
+  return mysql
+}
 
 export class DatabaseService {
   // =====================================================
@@ -6,7 +15,13 @@ export class DatabaseService {
   // =====================================================
   static async getProvinces() {
     try {
-      // Return static province data
+      if (process.env.MYSQL_HOST) {
+        const { query } = await getMysql()
+        return await query<{ id: number; name: string }>(
+          "SELECT id, name FROM provinces"
+        )
+      }
+      // Fallback static province data
       return [
         { id: 1, name: "Western Cape" },
         { id: 2, name: "Gauteng" },
@@ -29,6 +44,12 @@ export class DatabaseService {
   // =====================================================
   static async getDistricts() {
     try {
+      if (process.env.MYSQL_HOST) {
+        const { query } = await getMysql()
+        return await query<{ id: number; name: string; province_id: number }>(
+          "SELECT id, name, province_id FROM districts"
+        )
+      }
       return [
         { id: 1, name: "Cape Town Metro", province_id: 1 },
         { id: 2, name: "West Coast", province_id: 1 },
@@ -63,6 +84,20 @@ export class DatabaseService {
   // =====================================================
   static async getSchools() {
     try {
+      if (process.env.MYSQL_HOST) {
+        const { query } = await getMysql()
+        return await query<{
+          id: number
+          name: string
+          district_id: number
+          province_id: number
+          is_active: boolean
+          students: number
+          teachers: number
+        }>(
+          "SELECT id, name, district_id, province_id, is_active, students, teachers FROM schools"
+        )
+      }
       return staticData.schools.map((school) => ({
         id: school.id,
         name: school.name,
@@ -104,6 +139,21 @@ export class DatabaseService {
 
   static async createSchool(school: any) {
     try {
+      if (process.env.MYSQL_HOST) {
+        const { query } = await getMysql()
+        const result = await query<ResultSetHeader>(
+          "INSERT INTO schools (name, district_id, province_id, is_active, students, teachers) VALUES (?, ?, ?, ?, ?, ?)",
+          [
+            school.name,
+            school.district_id,
+            school.province_id,
+            school.is_active ?? true,
+            school.students ?? 0,
+            school.teachers ?? 0,
+          ]
+        )
+        return { ...school, id: result.insertId }
+      }
       // Mock creation - just return the school with an ID
       return { ...school, id: Date.now(), created_at: new Date().toISOString() }
     } catch (error) {
@@ -117,6 +167,22 @@ export class DatabaseService {
   // =====================================================
   static async getUsers() {
     try {
+      if (process.env.MYSQL_HOST) {
+        const { query } = await getMysql()
+        return await query<{
+          id: number
+          full_name: string
+          email: string | null
+          phone: string | null
+          role: string
+          school_id: number | null
+          is_active: number | boolean
+          created_at: string
+          updated_at: string
+        }>(
+          "SELECT id, full_name, email, phone, role, school_id, is_active, created_at, updated_at FROM tbl_tarl_users",
+        )
+      }
       return staticData.users.map((user) => ({
         id: user.id,
         full_name: user.name,
@@ -126,6 +192,7 @@ export class DatabaseService {
         is_active: user.status === "Active",
         last_login: user.lastLogin,
         created_at: "2024-01-01T00:00:00Z",
+        updated_at: "2024-01-01T00:00:00Z",
       }))
     } catch (error) {
       console.error("Error fetching users:", error)
@@ -135,6 +202,23 @@ export class DatabaseService {
 
   static async getUsersBySchool(schoolId: number) {
     try {
+      if (process.env.MYSQL_HOST) {
+        const { query } = await getMysql()
+        return await query<{
+          id: number
+          full_name: string
+          email: string | null
+          phone: string | null
+          role: string
+          school_id: number | null
+          is_active: number | boolean
+          created_at: string
+          updated_at: string
+        }>(
+          "SELECT id, full_name, email, phone, role, school_id, is_active, created_at, updated_at FROM tbl_tarl_users WHERE school_id = ?",
+          [schoolId],
+        )
+      }
       const users = await this.getUsers()
       return users.filter((user) => user.school_id === schoolId)
     } catch (error) {
@@ -145,7 +229,27 @@ export class DatabaseService {
 
   static async createUser(user: any) {
     try {
-      return { ...user, id: Date.now(), created_at: new Date().toISOString() }
+      if (process.env.MYSQL_HOST) {
+        const { query } = await getMysql()
+        const result = await query<ResultSetHeader>(
+          "INSERT INTO tbl_tarl_users (full_name, email, phone, role, school_id, province_id, district_id, gender, date_of_birth, years_of_experience, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [
+            user.full_name,
+            user.email ?? null,
+            user.phone ?? null,
+            user.role,
+            user.school_id ?? null,
+            user.province_id ?? null,
+            user.district_id ?? null,
+            user.gender ?? null,
+            user.date_of_birth ?? null,
+            user.years_of_experience ?? null,
+            user.is_active ?? true,
+          ],
+        )
+        return { ...user, id: result.insertId, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
+      }
+      return { ...user, id: Date.now(), created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
     } catch (error) {
       console.error("Error creating user:", error)
       return null

@@ -228,7 +228,7 @@ export default function ResultsPage() {
   const totalAssessments = resultsData.reduce((sum, item) => sum + item.total_assessments, 0)
 
   return (
-    <ProtectedRoute allowedRoles={["admin", "teacher"]}>
+    <ProtectedRoute allowedRoles={["Admin", "Teacher"]}>
       <PageLayout title="Learning Results Dashboard" description="Monitor student assessment results and performance">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Filters */}
