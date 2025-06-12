@@ -24,25 +24,32 @@ export function StatsCard({
   trend,
 }: StatsCardProps) {
   return (
-    <Card className="bg-white shadow-sm border border-slate-200 hover:shadow-md transition-shadow duration-200">
+    <Card className="bg-white shadow-lg border-0 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 group">
       <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-slate-600">{title}</p>
-            <div className="flex items-baseline space-x-2">
-              <p className="text-2xl font-bold text-slate-900">{value}</p>
-              {trend && (
-                <span className={`text-xs font-medium ${trend.isPositive ? "text-green-600" : "text-red-600"}`}>
-                  {trend.isPositive ? "+" : ""}
-                  {trend.value}%
-                </span>
-              )}
-            </div>
-            {description && <p className="text-xs text-slate-500 mt-1">{description}</p>}
-          </div>
-          <div className={`h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center`}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
             <Icon className={`h-6 w-6 ${iconColor}`} />
           </div>
+          {trend && (
+            <div
+              className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${
+                trend.isPositive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+              }`}
+            >
+              <span>
+                {trend.isPositive ? "+" : ""}
+                {trend.value}%
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-gray-600">{title}</p>
+          <p className="text-3xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors duration-300">
+            {value}
+          </p>
+          {description && <p className="text-sm text-gray-500">{description}</p>}
         </div>
       </CardContent>
     </Card>

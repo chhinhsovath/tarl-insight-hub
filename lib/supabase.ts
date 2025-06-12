@@ -1,11 +1,36 @@
-import { createClient } from "@supabase/supabase-js"
+// Supabase configuration - Currently disabled for static demo
+// This file is kept for future database integration
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+export const supabase = null
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-// Server-side client for API routes
 export const createServerSupabaseClient = () => {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  return null
+}
+
+// Mock functions for compatibility
+export const mockSupabaseClient = {
+  from: (table: string) => ({
+    select: (columns: string) => ({
+      eq: (column: string, value: any) => ({
+        order: (column: string, options?: any) => ({
+          data: [],
+          error: new Error("Static mode - no database connection"),
+        }),
+      }),
+      order: (column: string, options?: any) => ({
+        data: [],
+        error: new Error("Static mode - no database connection"),
+      }),
+      data: [],
+      error: new Error("Static mode - no database connection"),
+    }),
+    insert: (data: any) => ({
+      select: () => ({
+        single: () => ({
+          data: null,
+          error: new Error("Static mode - no database connection"),
+        }),
+      }),
+    }),
+  }),
 }

@@ -45,7 +45,7 @@ export interface User {
   full_name: string
   email?: string
   phone?: string
-  role: "Teacher" | "Coordinator" | "Admin" | "Staff"
+  role: "Admin" | "Teacher" | "Coordinator" | "Staff" // Updated to match auth context
   school_id?: number
   province_id?: number
   district_id?: number

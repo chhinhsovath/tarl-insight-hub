@@ -1,21 +1,48 @@
 "use client"
 
-import type React from "react"
-import { createContext, useContext, useState, useEffect } from "react"
-import { useRouter, usePathname } from "next/navigation"
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 
 export type UserRole = "admin" | "teacher" | "collector"
 
-export interface User {
+export type User = {
   id: string
   name: string
   email: string
   role: UserRole
-  school_id?: string
-  school_name?: string
+  school?: string
+  district?: string
+  province?: string
 }
 
-interface AuthContextType {
+// Mock users for each role
+export const mockUsers: User[] = [
+  {
+    id: "1",
+    name: "Sarah Johnson",
+    email: "admin@tarl.org",
+    role: "admin",
+    province: "Western Cape",
+  },
+  {
+    id: "2",
+    name: "Michael Chen",
+    email: "teacher@school.edu",
+    role: "teacher",
+    school: "Greenfield Primary School",
+    district: "Cape Town Metro",
+    province: "Western Cape",
+  },
+  {
+    id: "3",
+    name: "Priya Patel",
+    email: "collector@tarl.org",
+    role: "collector",
+    district: "Johannesburg",
+    province: "Gauteng",
+  },
+]
+
+type AuthContextType = {
   user: User | null
   loading: boolean
   login: (email: string, password: string) => Promise<boolean>
@@ -25,76 +52,35 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Mock users for development
-export const mockUsers: User[] = [
-  {
-    id: "1",
-    name: "Admin User",
-    email: "admin@tarl.org",
-    role: "admin",
-  },
-  {
-    id: "2",
-    name: "Teacher John",
-    email: "teacher@school.edu",
-    role: "teacher",
-    school_id: "1",
-    school_name: "Primary School A",
-  },
-  {
-    id: "3",
-    name: "Data Collector",
-    email: "collector@tarl.org",
-    role: "collector",
-  },
-]
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const router = useRouter()
-  const pathname = usePathname()
 
   useEffect(() => {
     // Check for stored user session
-    const storedUser = localStorage.getItem("tarl_user")
+    const storedUser = localStorage.getItem("tarl-user")
     if (storedUser) {
       try {
-        const parsedUser = JSON.parse(storedUser)
-        setUser(parsedUser)
+        setUser(JSON.parse(storedUser))
       } catch (error) {
-        console.error("Error parsing stored user:", error)
-        localStorage.removeItem("tarl_user")
+        localStorage.removeItem("tarl-user")
       }
     }
     setLoading(false)
   }, [])
 
-  useEffect(() => {
-    // Handle routing based on auth state
-    if (!loading) {
-      const isAuthPage = pathname === "/login" || pathname === "/unauthorized"
-      const isRootPage = pathname === "/"
-
-      if (!user && !isAuthPage && !isRootPage) {
-        router.push("/login")
-      } else if (user && (isAuthPage || isRootPage)) {
-        router.push("/dashboard")
-      }
-    }
-  }, [user, loading, pathname, router])
-
   const login = async (email: string, password: string): Promise<boolean> => {
     setLoading(true)
 
-    // Simulate API call
+    // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
+    // Find user by email (password is ignored for demo)
     const foundUser = mockUsers.find((u) => u.email === email)
 
     if (foundUser && password === "password") {
       setUser(foundUser)
-      localStorage.setItem("tarl_user", JSON.stringify(foundUser))
+      localStorage.setItem("tarl-user", JSON.stringify(foundUser))
       setLoading(false)
       return true
     }
@@ -105,12 +91,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setUser(null)
-    localStorage.removeItem("tarl_user")
-    router.push("/login")
+    localStorage.removeItem("tarl-user")
   }
 
   const isAllowed = (allowedRoles: UserRole[]): boolean => {
-    return user !== null && allowedRoles.includes(user.role)
+    if (!user) return false
+    return allowedRoles.includes(user.role)
   }
 
   return <AuthContext.Provider value={{ user, loading, login, logout, isAllowed }}>{children}</AuthContext.Provider>

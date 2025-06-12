@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
-import { Shield, BookOpen, Database, User, Mail, Lock } from "lucide-react"
+import { Shield, BookOpen, Database, User, Mail, Lock, BarChart3 } from "lucide-react"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -66,54 +66,69 @@ export default function LoginPage() {
   const roleConfigs = [
     {
       role: "admin" as UserRole,
-      title: "Admin User",
-      description: "Full system access, user management, analytics",
+      title: "System Administrator",
+      description: "Complete system oversight, user management, and comprehensive analytics",
       icon: Shield,
-      color: "bg-red-500",
+      gradient: "from-red-500 to-pink-600",
+      features: [
+        "Manage all schools and users",
+        "Access comprehensive reports",
+        "System configuration",
+        "Data analytics",
+      ],
       user: mockUsers.find((u) => u.role === "admin")!,
     },
     {
       role: "teacher" as UserRole,
       title: "Teacher",
-      description: "School-level access, observations, student data",
+      description: "Classroom management, student progress tracking, and TaRL implementation",
       icon: BookOpen,
-      color: "bg-blue-500",
+      gradient: "from-blue-500 to-cyan-600",
+      features: ["Track student progress", "Record observations", "Access training materials", "Manage classroom data"],
       user: mockUsers.find((u) => u.role === "teacher")!,
     },
     {
       role: "collector" as UserRole,
       title: "Data Collector",
-      description: "Observation creation and data collection",
+      description: "Field data collection, school visits, and assessment coordination",
       icon: Database,
-      color: "bg-green-500",
+      gradient: "from-green-500 to-emerald-600",
+      features: ["Conduct school visits", "Collect assessment data", "Record observations", "Generate field reports"],
       user: mockUsers.find((u) => u.role === "collector")!,
     },
   ]
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100 p-4">
-      <div className="w-full max-w-4xl">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">TaRL Insight Hub</h1>
-          <p className="text-gray-600">Teaching at the Right Level - Data Management System</p>
-          <Badge variant="secondary" className="mt-2">
-            Development Mode
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl mb-6 shadow-lg">
+            <BarChart3 className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent mb-4">
+            TaRL Insight Hub
+          </h1>
+          <p className="text-xl text-gray-600 mb-4">Teaching at the Right Level - Data Management System</p>
+          <Badge variant="secondary" className="text-sm px-4 py-2">
+            🚀 Static Demo Mode
           </Badge>
         </div>
 
-        <div className="flex justify-center mb-6">
-          <div className="flex bg-white rounded-lg p-1 shadow-sm">
+        {/* Mode Toggle */}
+        <div className="flex justify-center mb-8">
+          <div className="flex bg-white rounded-xl p-1 shadow-lg border">
             <Button
               variant={loginMode === "quick" ? "default" : "ghost"}
               onClick={() => setLoginMode("quick")}
-              className="rounded-md"
+              className="rounded-lg px-6"
             >
-              Quick Login
+              Quick Access
             </Button>
             <Button
               variant={loginMode === "manual" ? "default" : "ghost"}
               onClick={() => setLoginMode("manual")}
-              className="rounded-md"
+              className="rounded-lg px-6"
             >
               Manual Login
             </Button>
@@ -121,88 +136,146 @@ export default function LoginPage() {
         </div>
 
         {loginMode === "quick" ? (
-          <div className="grid md:grid-cols-3 gap-6">
-            {roleConfigs.map(({ role, title, description, icon: Icon, color, user }) => (
-              <Card key={role} className="hover:shadow-lg transition-shadow cursor-pointer">
-                <CardHeader className="text-center">
-                  <div className={`w-16 h-16 ${color} rounded-full flex items-center justify-center mx-auto mb-4`}>
-                    <Icon className="w-8 h-8 text-white" />
-                  </div>
-                  <CardTitle className="text-xl">{title}</CardTitle>
-                  <CardDescription className="text-sm">{description}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-sm text-gray-600 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      <span>{user.name}</span>
+          <div className="max-w-6xl mx-auto">
+            <div className="grid lg:grid-cols-3 gap-8">
+              {roleConfigs.map(({ role, title, description, icon: Icon, gradient, features, user }) => (
+                <Card
+                  key={role}
+                  className="group hover:shadow-2xl transition-all duration-300 border-0 shadow-lg hover:-translate-y-1"
+                >
+                  <CardHeader className="text-center pb-4">
+                    <div
+                      className={`w-20 h-20 bg-gradient-to-br ${gradient} rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300`}
+                    >
+                      <Icon className="w-10 h-10 text-white" />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      <span className="text-xs">{user.email}</span>
+                    <CardTitle className="text-2xl font-bold text-gray-800">{title}</CardTitle>
+                    <CardDescription className="text-gray-600 text-base leading-relaxed">{description}</CardDescription>
+                  </CardHeader>
+
+                  <CardContent className="space-y-6">
+                    {/* User Info */}
+                    <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <User className="w-5 h-5 text-gray-500" />
+                        <span className="font-medium text-gray-800">{user.name}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Mail className="w-5 h-5 text-gray-500" />
+                        <span className="text-sm text-gray-600">{user.email}</span>
+                      </div>
+                      {user.school && (
+                        <div className="flex items-center gap-3">
+                          <BookOpen className="w-5 h-5 text-gray-500" />
+                          <span className="text-sm text-gray-600">{user.school}</span>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <Button onClick={() => handleQuickLogin(role)} disabled={isLoading} className="w-full">
-                    {isLoading ? "Logging in..." : `Login as ${title}`}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+
+                    {/* Features */}
+                    <div className="space-y-2">
+                      <h4 className="font-semibold text-gray-800 text-sm uppercase tracking-wide">Key Features</h4>
+                      <ul className="space-y-2">
+                        {features.map((feature, index) => (
+                          <li key={index} className="flex items-center gap-2 text-sm text-gray-600">
+                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                            {feature}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* Login Button */}
+                    <Button
+                      onClick={() => handleQuickLogin(role)}
+                      disabled={isLoading}
+                      className={`w-full bg-gradient-to-r ${gradient} hover:shadow-lg transition-all duration-300 text-white font-semibold py-3 text-base`}
+                    >
+                      {isLoading ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Logging in...
+                        </div>
+                      ) : (
+                        `Access ${title} Dashboard`
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         ) : (
-          <Card className="max-w-md mx-auto">
-            <CardHeader>
-              <CardTitle className="text-2xl text-center">Manual Login</CardTitle>
-              <CardDescription className="text-center">Enter your credentials to access the system</CardDescription>
+          <Card className="max-w-md mx-auto shadow-2xl border-0">
+            <CardHeader className="text-center pb-6">
+              <CardTitle className="text-3xl font-bold text-gray-800">Manual Login</CardTitle>
+              <CardDescription className="text-gray-600 text-base">
+                Enter your credentials to access the system
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleManualLogin} className="space-y-4">
+              <form onSubmit={handleManualLogin} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
+                    Email Address
+                  </Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                     <Input
                       id="email"
                       type="email"
                       placeholder="Enter your email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
+                      className="pl-11 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                       required
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
+                    Password
+                  </Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                    <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                     <Input
                       id="password"
                       type="password"
                       placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10"
+                      className="pl-11 h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500"
                       required
                     />
                   </div>
                 </div>
                 {error && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
+                  <Alert variant="destructive" className="border-red-200 bg-red-50">
+                    <AlertDescription className="text-red-700">{error}</AlertDescription>
                   </Alert>
                 )}
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Logging in..." : "Login"}
+                <Button
+                  type="submit"
+                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-semibold text-base"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Signing In...
+                    </div>
+                  ) : (
+                    "Sign In"
+                  )}
                 </Button>
               </form>
 
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm font-medium text-gray-700 mb-2">Test Credentials:</p>
-                <div className="text-xs text-gray-600 space-y-1">
-                  <div>• Any email from the quick login cards</div>
-                  <div>
-                    • Password: <code className="bg-gray-200 px-1 rounded">password</code>
+              <div className="mt-8 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                <p className="text-sm font-semibold text-blue-800 mb-3">Demo Credentials:</p>
+                <div className="text-sm text-blue-700 space-y-2">
+                  <div className="flex justify-between">
+                    <span>Any email from above</span>
+                    <code className="bg-blue-200 px-2 py-1 rounded text-xs">password</code>
                   </div>
                 </div>
               </div>

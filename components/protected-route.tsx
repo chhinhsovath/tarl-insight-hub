@@ -18,11 +18,11 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   useEffect(() => {
     if (!loading) {
       if (!user) {
-        // Redirect to login if not authenticated
-        router.push(`/login?redirect=${encodeURIComponent(pathname)}`)
+        // For demo purposes, we'll just show a message instead of redirecting
+        console.log("User not authenticated")
       } else if (!isAllowed(allowedRoles)) {
-        // Redirect to unauthorized page if not authorized
-        router.push("/unauthorized")
+        // For demo purposes, we'll just show a message instead of redirecting
+        console.log("User not authorized for this page")
       }
     }
   }, [user, loading, isAllowed, allowedRoles, router, pathname])
@@ -39,9 +39,30 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     )
   }
 
-  // Don't render anything if user is not authenticated or not authorized
-  if (!user || !isAllowed(allowedRoles)) {
-    return null
+  // For demo purposes, we'll show content even if not properly authenticated
+  // In production, you would redirect to login/unauthorized pages
+  if (!user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-gradient-to-br from-red-50 to-gray-100">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-red-600 mb-2">Not Authenticated</h2>
+          <p className="text-gray-600">Please log in to access this page.</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAllowed(allowedRoles)) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-gradient-to-br from-yellow-50 to-gray-100">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-yellow-600 mb-2">Access Denied</h2>
+          <p className="text-gray-600">You don't have permission to access this page.</p>
+          <p className="text-sm text-gray-500 mt-2">Required roles: {allowedRoles.join(", ")}</p>
+          <p className="text-sm text-gray-500">Your role: {user.role}</p>
+        </div>
+      </div>
+    )
   }
 
   return <>{children}</>

@@ -1,329 +1,240 @@
 "use client"
 
-import { useState, useCallback } from "react"
-import { PageLayout } from "@/components/page-layout"
-import { StatsCard } from "@/components/stats-card"
-import { Filters } from "@/components/filters"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/lib/auth-context"
+import { getStaticData } from "@/lib/static-data"
+import { StatsCard } from "@/components/stats-card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
-  BookOpen,
-  FileText,
-  Users,
-  Star,
-  BarChart3,
-  TrendingUp,
-  Plus,
-  Eye,
-  Settings,
-  Download,
   School,
-  Target,
+  Users,
+  BookOpen,
+  BarChart3,
+  Eye,
+  TrendingUp,
+  MapPin,
+  FileText,
+  Plus,
+  Settings,
+  PieChart,
+  Database,
   Clock,
+  CheckCircle,
+  Activity,
 } from "lucide-react"
 
-export default function Dashboard() {
+const iconMap = {
+  School,
+  Users,
+  BookOpen,
+  BarChart3,
+  Eye,
+  TrendingUp,
+  MapPin,
+  FileText,
+  Plus,
+  Settings,
+  PieChart,
+  Database,
+  LayoutDashboard: BarChart3,
+  Upload: Plus,
+}
+
+export default function DashboardPage() {
   const { user } = useAuth()
-  const [stats, setStats] = useState({
-    total_schools: 8,
-    total_users: 10,
-    total_observations: 25,
-    completed_observations: 18,
-    completion_rate: 72,
-    total_feedback: 12,
-    avg_rating: 4.2,
-    unique_respondents: 15,
-    offline_responses: 3,
-  })
-  const [loading, setLoading] = useState(false)
-  const [filters, setFilters] = useState<any>({})
 
-  const handleFilterChange = useCallback((newFilters: any) => {
-    setFilters(newFilters)
-  }, [])
+  if (!user) return null
 
-  const getQuickActions = () => {
-    switch (user?.role) {
+  const stats = getStaticData(user.role, "dashboardStats")
+  const quickActions = getStaticData(user.role, "quickActions")
+
+  const getWelcomeMessage = () => {
+    const timeOfDay = new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"
+    return `Good ${timeOfDay}, ${user.name.split(" ")[0]}!`
+  }
+
+  const getRoleDescription = () => {
+    switch (user.role) {
       case "admin":
-        return [
-          {
-            title: "View Analytics",
-            description: "Comprehensive system analytics and insights",
-            icon: BarChart3,
-            href: "/observations",
-            color: "bg-blue-500",
-          },
-          {
-            title: "Manage Schools",
-            description: "Add and manage participating schools",
-            icon: School,
-            href: "/schools",
-            color: "bg-green-500",
-          },
-          {
-            title: "User Management",
-            description: "Manage system users and permissions",
-            icon: Users,
-            href: "/users",
-            color: "bg-purple-500",
-          },
-          {
-            title: "Generate Reports",
-            description: "Export comprehensive system reports",
-            icon: Download,
-            href: "/reports",
-            color: "bg-orange-500",
-          },
-        ]
+        return "System Administrator Dashboard - Complete oversight of the TaRL program"
       case "teacher":
-        return [
-          {
-            title: "New Observation",
-            description: "Record a new classroom observation",
-            icon: Plus,
-            href: "/observations/new",
-            color: "bg-blue-500",
-          },
-          {
-            title: "Student Progress",
-            description: "Monitor student learning progress",
-            icon: TrendingUp,
-            href: "/progress",
-            color: "bg-green-500",
-          },
-          {
-            title: "My Observations",
-            description: "View your recorded observations",
-            icon: Eye,
-            href: "/observations/list",
-            color: "bg-purple-500",
-          },
-          {
-            title: "Training Resources",
-            description: "Access training materials and feedback",
-            icon: BookOpen,
-            href: "/training",
-            color: "bg-orange-500",
-          },
-        ]
+        return "Teacher Dashboard - Track your students and classroom progress"
       case "collector":
-        return [
-          {
-            title: "Start Collection",
-            description: "Begin a new data collection session",
-            icon: Plus,
-            href: "/observations/new",
-            color: "bg-blue-500",
-          },
-          {
-            title: "My Collections",
-            description: "View and manage your data collections",
-            icon: FileText,
-            href: "/observations/list",
-            color: "bg-green-500",
-          },
-          {
-            title: "Sync Data",
-            description: "Synchronize offline data with server",
-            icon: Settings,
-            href: "/collection",
-            color: "bg-purple-500",
-          },
-        ]
+        return "Data Collector Dashboard - Manage field visits and data collection"
       default:
-        return []
+        return "Welcome to TaRL Insight Hub"
     }
   }
 
-  const getRoleSpecificStats = () => {
-    switch (user?.role) {
-      case "admin":
-        return [
-          {
-            title: "Total Schools",
-            value: stats.total_schools,
-            description: "Active schools in system",
-            icon: School,
-            iconColor: "text-blue-500",
-            trend: { value: 12, isPositive: true },
-          },
-          {
-            title: "System Users",
-            value: stats.total_users,
-            description: "Active users across all roles",
-            icon: Users,
-            iconColor: "text-green-500",
-            trend: { value: 8, isPositive: true },
-          },
-          {
-            title: "Observations",
-            value: stats.total_observations,
-            description: `${stats.completion_rate}% completion rate`,
-            icon: Eye,
-            iconColor: "text-purple-500",
-            trend: { value: 15, isPositive: true },
-          },
-          {
-            title: "Training Feedback",
-            value: `${stats.avg_rating}/5`,
-            description: `${stats.total_feedback} responses`,
-            icon: Star,
-            iconColor: "text-yellow-500",
-            trend: { value: 5, isPositive: true },
-          },
-        ]
-      case "teacher":
-        return [
-          {
-            title: "My Observations",
-            value: 8,
-            description: "Observations completed",
-            icon: Eye,
-            iconColor: "text-blue-500",
-          },
-          {
-            title: "Students Tracked",
-            value: 45,
-            description: "Active student records",
-            icon: Users,
-            iconColor: "text-green-500",
-          },
-          {
-            title: "Avg Progress",
-            value: "78%",
-            description: "Student learning progress",
-            icon: Target,
-            iconColor: "text-purple-500",
-          },
-          {
-            title: "This Week",
-            value: 3,
-            description: "New observations",
-            icon: Clock,
-            iconColor: "text-orange-500",
-          },
-        ]
-      case "collector":
-        return [
-          {
-            title: "Collections",
-            value: 12,
-            description: "Data collection sessions",
-            icon: FileText,
-            iconColor: "text-blue-500",
-          },
-          {
-            title: "Pending Sync",
-            value: stats.offline_responses,
-            description: "Offline records",
-            icon: Clock,
-            iconColor: "text-yellow-500",
-          },
-          {
-            title: "This Month",
-            value: 8,
-            description: "Completed collections",
-            icon: Target,
-            iconColor: "text-green-500",
-          },
-          {
-            title: "Success Rate",
-            value: "94%",
-            description: "Successful submissions",
-            icon: TrendingUp,
-            iconColor: "text-purple-500",
-          },
-        ]
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case "school":
+        return School
+      case "user":
+        return Users
+      case "observation":
+        return Eye
+      case "training":
+        return BookOpen
+      case "student":
+        return Users
+      case "assessment":
+        return FileText
+      case "data":
+        return Database
+      case "visit":
+        return MapPin
+      case "report":
+        return BarChart3
       default:
-        return []
+        return Activity
     }
   }
 
   return (
-    <PageLayout title="Dashboard" description={`Welcome back, ${user?.full_name || user?.name}`}>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Filters - Only for admin */}
-        {user?.role === "admin" && (
-          <div className="lg:col-span-1">
-            <Card className="bg-white shadow-sm border border-slate-200">
-              <CardHeader>
-                <CardTitle className="text-lg">Filters</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Filters onFilterChange={handleFilterChange} />
-              </CardContent>
-            </Card>
+    <div className="space-y-8">
+      {/* Welcome Header */}
+      <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-2xl p-8 text-white shadow-xl">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">{getWelcomeMessage()}</h1>
+            <p className="text-blue-100 text-lg mb-4">{getRoleDescription()}</p>
+            <div className="flex items-center gap-4">
+              <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+              </Badge>
+              {user.school && (
+                <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+                  {user.school}
+                </Badge>
+              )}
+              {user.district && (
+                <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+                  {user.district}
+                </Badge>
+              )}
+            </div>
           </div>
-        )}
-
-        {/* Main Content */}
-        <div className={user?.role === "admin" ? "lg:col-span-3" : "lg:col-span-4"}>
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            {getRoleSpecificStats().map((stat, index) => (
-              <StatsCard key={index} {...stat} />
-            ))}
+          <div className="hidden md:block">
+            <div className="w-24 h-24 bg-white/20 rounded-2xl flex items-center justify-center">
+              {user.role === "admin" && <BarChart3 className="w-12 h-12 text-white" />}
+              {user.role === "teacher" && <BookOpen className="w-12 h-12 text-white" />}
+              {user.role === "collector" && <Database className="w-12 h-12 text-white" />}
+            </div>
           </div>
-
-          {/* Quick Actions */}
-          <Card className="bg-white shadow-sm border border-slate-200 mb-6">
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {getQuickActions().map((action, index) => (
-                  <div
-                    key={index}
-                    className="group p-4 border border-slate-200 rounded-xl hover:border-slate-300 hover:shadow-md cursor-pointer transition-all duration-200"
-                  >
-                    <div className="flex items-start space-x-4">
-                      <div
-                        className={`p-3 ${action.color} rounded-lg group-hover:scale-110 transition-transform duration-200`}
-                      >
-                        <action.icon className="h-6 w-6 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
-                          {action.title}
-                        </h3>
-                        <p className="text-sm text-slate-600 mt-1">{action.description}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Recent Activity */}
-          <Card className="bg-white shadow-sm border border-slate-200">
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  { action: "New observation recorded", time: "2 hours ago", user: "Maly Sok" },
-                  { action: "Training feedback submitted", time: "4 hours ago", user: "Pisach Lim" },
-                  { action: "School data updated", time: "1 day ago", user: "Sreypov Keo" },
-                ].map((activity, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">{activity.action}</p>
-                      <p className="text-xs text-slate-500">by {activity.user}</p>
-                    </div>
-                    <span className="text-xs text-slate-400">{activity.time}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
-    </PageLayout>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {Object.entries(stats)
+          .filter(([key]) => key !== "recentActivity")
+          .map(([key, value]) => {
+            const getStatConfig = (key: string, value: any) => {
+              switch (key) {
+                case "totalSchools":
+                  return { title: "Total Schools", value, icon: School, color: "blue" }
+                case "totalTeachers":
+                  return { title: "Total Teachers", value, icon: Users, color: "green" }
+                case "totalStudents":
+                  return { title: "Total Students", value, icon: Users, color: "purple" }
+                case "activeObservations":
+                  return { title: "Active Observations", value, icon: Eye, color: "orange" }
+                case "myStudents":
+                  return { title: "My Students", value, icon: Users, color: "blue" }
+                case "completedObservations":
+                  return { title: "Completed Observations", value, icon: CheckCircle, color: "green" }
+                case "upcomingTrainings":
+                  return { title: "Upcoming Trainings", value, icon: BookOpen, color: "purple" }
+                case "averageProgress":
+                  return { title: "Average Progress", value: `${value}%`, icon: TrendingUp, color: "orange" }
+                case "observationsThisMonth":
+                  return { title: "This Month", value, icon: Eye, color: "blue" }
+                case "schoolsVisited":
+                  return { title: "Schools Visited", value, icon: MapPin, color: "green" }
+                case "dataPointsCollected":
+                  return { title: "Data Points", value, icon: Database, color: "purple" }
+                case "completionRate":
+                  return { title: "Completion Rate", value: `${value}%`, icon: CheckCircle, color: "orange" }
+                default:
+                  return { title: key, value, icon: Activity, color: "gray" }
+              }
+            }
+
+            const config = getStatConfig(key, value)
+            return (
+              <StatsCard key={key} title={config.title} value={config.value} icon={config.icon} color={config.color} />
+            )
+          })}
+      </div>
+
+      {/* Quick Actions */}
+      <div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-6">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {quickActions.map((action: any, index: number) => {
+            const Icon = iconMap[action.icon as keyof typeof iconMap] || Activity
+            return (
+              <Card
+                key={index}
+                className="group hover:shadow-lg transition-all duration-300 border-0 shadow-md hover:-translate-y-1"
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                      <Icon className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-800">{action.title}</h3>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-4">{action.description}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full group-hover:bg-blue-50 group-hover:border-blue-200 transition-colors"
+                  >
+                    Open
+                  </Button>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Recent Activity */}
+      <Card className="shadow-lg border-0">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="w-5 h-5 text-blue-600" />
+            Recent Activity
+          </CardTitle>
+          <CardDescription>Your latest actions and updates</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {stats.recentActivity?.map((activity: any) => {
+              const Icon = getActivityIcon(activity.type)
+              return (
+                <div
+                  key={activity.id}
+                  className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                >
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+                    <Icon className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-800">{activity.message}</p>
+                    <p className="text-xs text-gray-500">{activity.time}</p>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
