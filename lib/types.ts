@@ -203,3 +203,90 @@ export interface TrainingFeedbackForm {
   subjects_taught?: string
   grade_levels_taught?: string
 }
+
+// Observation Types
+export interface ObservationResponse {
+  id: number
+  visit_date: string
+  region: string
+  province: string
+  mentor_name: string
+  school_name: string
+  program_type_id: number | null
+  tarl_class_taking_place: string
+  tarl_class_not_taking_place_reason?: string
+  tarl_class_not_taking_place_other_reason?: string
+  teacher_name: string
+  observed_full_session: string
+  grade_group: string
+  grades_observed: string[]
+  subject_observed: string
+  total_class_strength: number | null
+  students_present: number | null
+  students_progressed_since_last_week: number | null
+  class_started_on_time: string
+  class_not_on_time_reason?: string
+  class_not_on_time_other_reason?: string
+  transition_time_between_subjects: number | null
+  children_grouped_appropriately: string
+  students_fully_involved: string
+  teacher_had_session_plan: string
+  teacher_no_session_plan_reason?: string
+  teacher_followed_session_plan: string
+  teacher_not_follow_plan_reason?: string
+  session_plan_appropriate_for_level: string
+  number_of_activities: string
+  suggestions_to_teacher: string
+  created_by: number
+  created_at: string
+  updated_at: string
+}
+
+export interface ObservationActivity {
+  id: number
+  observation_id: number
+  activity_number: string
+  activity_type_id_language: number | null
+  activity_type_id_numeracy: number | null
+  duration_minutes: number | null
+  teacher_gave_clear_instructions: string
+  teacher_no_clear_instructions_reason?: string
+  teacher_demonstrated_activity: string
+  teacher_made_students_practice_in_front: string
+  students_performed_in_small_groups: string
+  students_performed_individually: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ProgramType {
+  id: number
+  program_type: string
+  created_at: string
+}
+
+export interface TarlLevel {
+  id: number
+  level_name: string
+  subject: string
+  level_order: number
+  created_at: string
+}
+
+export interface ActivityType {
+  id: number
+  activity_name: string
+  subject: string
+  description: string
+  created_at: string
+}
+
+export interface Material {
+  id: number
+  material_name: string
+  description: string
+  created_at: string
+}
+
+// Remove the TarlSurveyResponse interface if it exists and replace with ObservationResponse
+export type TarlSurveyResponse = ObservationResponse

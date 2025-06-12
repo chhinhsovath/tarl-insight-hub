@@ -1,124 +1,138 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
 import { DatabaseService } from "@/lib/database"
+import { RotateCcw } from "lucide-react"
 import type { Province, District, School } from "@/lib/types"
 
 interface FiltersProps {
-  onFilterChange: (filters: {
-    provinceId?: number
-    districtId?: number
-    schoolId?: number
-  }) => void
+  onFilterChange: (filters: any) => void
+  showRoleFilter?: boolean
 }
 
-export function Filters({ onFilterChange }: FiltersProps) {
+export function Filters({ onFilterChange, showRoleFilter = false }: FiltersProps) {
   const [provinces, setProvinces] = useState<Province[]>([])
   const [districts, setDistricts] = useState<District[]>([])
   const [schools, setSchools] = useState<School[]>([])
+  const [loading, setLoading] = useState(false)
+  const [selectedProvince, setSelectedProvince] = useState<string>("all")
+  const [selectedDistrict, setSelectedDistrict] = useState<string>("all")
+  const [selectedSchool, setSelectedSchool] = useState<string>("all")
+  const [selectedRole, setSelectedRole] = useState<string>("all")
+  const [selectedSubject, setSelectedSubject] = useState<string>("all")
 
-  const [selectedProvinceId, setSelectedProvinceId] = useState<string>("all")
-  const [selectedDistrictId, setSelectedDistrictId] = useState<string>("all")
-  const [selectedSchoolId, setSelectedSchoolId] = useState<string>("all")
-
-  // Load provinces on mount
   useEffect(() => {
     loadProvinces()
   }, [])
 
-  // Load districts when province changes
   useEffect(() => {
-    if (selectedProvinceId !== "all") {
-      loadDistricts(Number.parseInt(selectedProvinceId))
+    if (selectedProvince !== "all") {
+      loadDistricts(Number.parseInt(selectedProvince))
+      loadSchoolsByProvince(Number.parseInt(selectedProvince))
     } else {
       setDistricts([])
-    }
-    // Reset dependent selections
-    setSelectedDistrictId("all")
-    setSelectedSchoolId("all")
-  }, [selectedProvinceId])
-
-  // Load schools when province or district changes
-  useEffect(() => {
-    if (selectedProvinceId !== "all") {
-      if (selectedDistrictId !== "all") {
-        loadSchoolsByDistrict(Number.parseInt(selectedDistrictId))
-      } else {
-        loadSchoolsByProvince(Number.parseInt(selectedProvinceId))
-      }
-    } else {
       setSchools([])
     }
-    // Reset school selection
-    setSelectedSchoolId("all")
-  }, [selectedProvinceId, selectedDistrictId])
+    setSelectedDistrict("all")
+    setSelectedSchool("all")
+  }, [selectedProvince])
 
-  // Notify parent of filter changes
+  useEffect(() => {
+    if (selectedDistrict !== "all") {
+      loadSchoolsByDistrict(Number.parseInt(selectedDistrict))
+    }
+    setSelectedSchool("all")
+  }, [selectedDistrict])
+
   const notifyFilterChange = useCallback(() => {
-    onFilterChange({
-      provinceId: selectedProvinceId !== "all" ? Number.parseInt(selectedProvinceId) : undefined,
-      districtId: selectedDistrictId !== "all" ? Number.parseInt(selectedDistrictId) : undefined,
-      schoolId: selectedSchoolId !== "all" ? Number.parseInt(selectedSchoolId) : undefined,
-    })
-  }, [selectedProvinceId, selectedDistrictId, selectedSchoolId, onFilterChange])
+    const filters = {
+      provinceId: selectedProvince !== "all" ? Number.parseInt(selectedProvince) : null,
+      districtId: selectedDistrict !== "all" ? Number.parseInt(selectedDistrict) : null,
+      schoolId: selectedSchool !== "all" ? Number.parseInt(selectedSchool) : null,
+      role: selectedRole !== "all" ? selectedRole : null,
+      subject: selectedSubject !== "all" ? selectedSubject : null,
+    }
+    onFilterChange(filters)
+  }, [selectedProvince, selectedDistrict, selectedSchool, selectedRole, selectedSubject, onFilterChange])
 
-  // Call filter change notification
+  // Call filter change notification when any filter changes
   useEffect(() => {
     notifyFilterChange()
   }, [notifyFilterChange])
 
   const loadProvinces = async () => {
+    setLoading(true)
     try {
       const data = await DatabaseService.getProvinces()
       setProvinces(data)
     } catch (error) {
       console.error("Error loading provinces:", error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  // Fix the loadDistricts function to handle string input
-  const loadDistricts = async (provinceId: number | string) => {
+  const loadDistricts = async (provinceId: number) => {
+    setLoading(true)
     try {
       const data = await DatabaseService.getDistrictsByProvince(provinceId)
       setDistricts(data)
     } catch (error) {
       console.error("Error loading districts:", error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  // Fix the loadSchoolsByProvince function to handle string input
-  const loadSchoolsByProvince = async (provinceId: number | string) => {
+  const loadSchoolsByProvince = async (provinceId: number) => {
+    setLoading(true)
     try {
       const data = await DatabaseService.getSchoolsByProvince(provinceId)
       setSchools(data)
     } catch (error) {
-      console.error("Error loading schools by province:", error)
+      console.error("Error loading schools:", error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  // Fix the loadSchoolsByDistrict function to handle string input
-  const loadSchoolsByDistrict = async (districtId: number | string) => {
+  const loadSchoolsByDistrict = async (districtId: number) => {
+    setLoading(true)
     try {
       const data = await DatabaseService.getSchoolsByDistrict(districtId)
       setSchools(data)
     } catch (error) {
-      console.error("Error loading schools by district:", error)
+      console.error("Error loading schools:", error)
+    } finally {
+      setLoading(false)
     }
   }
 
+  const resetFilters = () => {
+    setSelectedProvince("all")
+    setSelectedDistrict("all")
+    setSelectedSchool("all")
+    setSelectedRole("all")
+    setSelectedSubject("all")
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Filters</CardTitle>
+    <Card className="soft-card">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-base font-medium">Filters</CardTitle>
+        <Button variant="ghost" size="icon" onClick={resetFilters} className="h-8 w-8">
+          <RotateCcw className="h-4 w-4" />
+        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <label className="text-sm font-medium mb-2 block">Province</label>
-          <Select value={selectedProvinceId} onValueChange={setSelectedProvinceId}>
+          <label className="text-sm font-medium text-gray-700 mb-2 block">Province</label>
+          <Select value={selectedProvince} onValueChange={setSelectedProvince}>
             <SelectTrigger>
-              <SelectValue placeholder="Select Province" />
+              <SelectValue placeholder="All Provinces" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Provinces</SelectItem>
@@ -132,14 +146,10 @@ export function Filters({ onFilterChange }: FiltersProps) {
         </div>
 
         <div>
-          <label className="text-sm font-medium mb-2 block">District</label>
-          <Select
-            value={selectedDistrictId}
-            onValueChange={setSelectedDistrictId}
-            disabled={selectedProvinceId === "all"}
-          >
+          <label className="text-sm font-medium text-gray-700 mb-2 block">District</label>
+          <Select value={selectedDistrict} onValueChange={setSelectedDistrict} disabled={selectedProvince === "all"}>
             <SelectTrigger>
-              <SelectValue placeholder="Select District" />
+              <SelectValue placeholder="All Districts" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Districts</SelectItem>
@@ -153,10 +163,10 @@ export function Filters({ onFilterChange }: FiltersProps) {
         </div>
 
         <div>
-          <label className="text-sm font-medium mb-2 block">School</label>
-          <Select value={selectedSchoolId} onValueChange={setSelectedSchoolId} disabled={selectedProvinceId === "all"}>
+          <label className="text-sm font-medium text-gray-700 mb-2 block">School</label>
+          <Select value={selectedSchool} onValueChange={setSelectedSchool} disabled={selectedProvince === "all"}>
             <SelectTrigger>
-              <SelectValue placeholder="Select School" />
+              <SelectValue placeholder="All Schools" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Schools</SelectItem>
@@ -165,6 +175,37 @@ export function Filters({ onFilterChange }: FiltersProps) {
                   {school.name}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {showRoleFilter && (
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-2 block">Role</label>
+            <Select value={selectedRole} onValueChange={setSelectedRole}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Roles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="teacher">Teacher</SelectItem>
+                <SelectItem value="collector">Collector</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        <div>
+          <label className="text-sm font-medium text-gray-700 mb-2 block">Subject</label>
+          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+            <SelectTrigger>
+              <SelectValue placeholder="All Subjects" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Subjects</SelectItem>
+              <SelectItem value="Math">TaRL Math</SelectItem>
+              <SelectItem value="Khmer">TaRL Khmer</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -11,6 +11,8 @@ import type {
   DashboardStats,
   SurveyResponseForm,
   TrainingFeedbackForm,
+  ObservationResponse,
+  ObservationActivity,
 } from "./types"
 
 export class DatabaseService {
@@ -268,6 +270,94 @@ export class DatabaseService {
   }
 
   // =====================================================
+  // LEARNING PROGRESS
+  // =====================================================
+  static async getLearningProgressSummary(
+    filters: {
+      provinceId?: number
+      districtId?: number
+      schoolId?: number
+      subjectCode?: string
+    } = [],
+  ): Promise<any[]> {
+    try {
+      let query = supabase.from("tbl_tarl_learning_progress_summary").select(`
+          *,
+          tbl_tarl_schools!inner(name, province_id, district_id),
+          tbl_tarl_subjects!inner(subject_name_en, subject_name_kh)
+        `)
+
+      if (filters.provinceId) {
+        query = query.eq("province_id", filters.provinceId)
+      }
+      if (filters.districtId) {
+        query = query.eq("district_id", filters.districtId)
+      }
+      if (filters.schoolId) {
+        query = query.eq("school_id", filters.schoolId)
+      }
+      if (filters.subjectCode) {
+        query = query.eq("subject_code", filters.subjectCode)
+      }
+
+      const { data, error } = await query.order("student_name")
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error("Error fetching learning progress summary:", error)
+      return []
+    }
+  }
+
+  static async getStudents(): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from("tbl_tarl_students")
+        .select(`
+          *,
+          tbl_tarl_schools!inner(name, province_id, district_id)
+        `)
+        .eq("is_active", true)
+        .order("student_name")
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error("Error fetching students:", error)
+      return []
+    }
+  }
+
+  static async createStudent(student: any): Promise<any | null> {
+    try {
+      const { data, error } = await supabase.from("tbl_tarl_students").insert([student]).select().single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error creating student:", error)
+      return null
+    }
+  }
+
+  static async getSubjects(): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from("tbl_tarl_subjects")
+        .select("*")
+        .eq("is_active", true)
+        .order("subject_name_en")
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error("Error fetching subjects:", error)
+      return []
+    }
+  }
+
+  // =====================================================
   // ANALYTICS
   // =====================================================
   static async getSurveyAnalytics(): Promise<SurveyAnalytics[]> {
@@ -333,6 +423,81 @@ export class DatabaseService {
   }
 
   // =====================================================
+  // OBSERVATIONS
+  // =====================================================
+  static async getObservations(userId?: string): Promise<ObservationResponse[]> {
+    try {
+      let query = supabase.from("tbl_tarl_observation_responses").select("*").order("visit_date", { ascending: false })
+
+      if (userId) {
+        query = query.eq("created_by_user_id", userId)
+      }
+
+      const { data, error } = await query
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error("Error fetching observations:", error)
+      return []
+    }
+  }
+
+  static async getObservationById(id: number): Promise<ObservationResponse | null> {
+    try {
+      const { data, error } = await supabase.from("tbl_tarl_observation_responses").select("*").eq("id", id).single()
+
+      if (error) throw error
+      return data
+    } catch (error) {
+      console.error("Error fetching observation by id:", error)
+      return null
+    }
+  }
+
+  static async getObservationActivities(observationId: number): Promise<ObservationActivity[]> {
+    try {
+      const { data, error } = await supabase
+        .from("tbl_tarl_observation_activities")
+        .select("*")
+        .eq("observation_id", observationId)
+        .order("activity_number")
+
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error("Error fetching observation activities:", error)
+      return []
+    }
+  }
+
+  static async getObservationStats(userId?: string): Promise<any> {
+    try {
+      const { data, error } = await supabase.rpc("get_observation_stats", {
+        user_id: userId || null,
+      })
+
+      if (error) throw error
+      return (
+        data?.[0] || {
+          total_observations: 0,
+          observations_this_month: 0,
+          unique_schools: 0,
+          avg_students_per_class: 0,
+        }
+      )
+    } catch (error) {
+      console.error("Error fetching observation stats:", error)
+      return {
+        total_observations: 0,
+        observations_this_month: 0,
+        unique_schools: 0,
+        avg_students_per_class: 0,
+      }
+    }
+  }
+
+  // =====================================================
   // UTILITY FUNCTIONS
   // =====================================================
   static async getSchoolsWithDetails(): Promise<any[]> {
@@ -356,6 +521,22 @@ export class DatabaseService {
     } catch (error) {
       console.error("Error fetching users with details:", error)
       return []
+    }
+  }
+
+  // Check if database tables exist
+  static async checkTablesExist(tableNames: string[]): Promise<boolean> {
+    try {
+      const { data, error } = await supabase
+        .from("information_schema.tables")
+        .select("table_name")
+        .in("table_name", tableNames)
+
+      if (error) throw error
+      return data && data.length === tableNames.length
+    } catch (error) {
+      console.error("Error checking if tables exist:", error)
+      return false
     }
   }
 }

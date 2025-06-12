@@ -8,7 +8,7 @@
 -- =====================================================
 
 -- 1. Total Studied Hours by Subject (with filters)
-CREATE OR REPLACE VIEW learning_progress_hours AS
+CREATE OR REPLACE VIEW public.learning_progress_hours AS
 SELECT 
     s.student_id,
     s.student_name,
@@ -36,7 +36,7 @@ WHERE se.status = 'Active'
 GROUP BY s.student_id, sht.subject, sch.school_id, sch.cluster_id, sch.district_id, sch.province_id, subj.target_hours_per_subject;
 
 -- 2. Number of Learning Tasks (with completion status)
-CREATE OR REPLACE VIEW learning_progress_tasks AS
+CREATE OR REPLACE VIEW public.learning_progress_tasks AS
 SELECT 
     s.student_id,
     s.student_name,
@@ -59,7 +59,7 @@ WHERE se.status = 'Active'
 GROUP BY s.student_id, lt.subject, sch.school_id, sch.cluster_id, sch.district_id, sch.province_id;
 
 -- 3. Combined Learning Progress Summary
-CREATE OR REPLACE VIEW learning_progress_summary AS
+CREATE OR REPLACE VIEW public.learning_progress_summary AS
 SELECT 
     COALESCE(lph.student_id, lpt.student_id) as student_id,
     COALESCE(lph.student_name, lpt.student_name) as student_name,
@@ -76,8 +76,8 @@ SELECT
     COALESCE(lpt.total_tasks_assigned, 0) as total_tasks_assigned,
     COALESCE(lpt.tasks_completed, 0) as tasks_completed,
     COALESCE(lpt.completion_percentage, 0) as task_completion_percentage
-FROM learning_progress_hours lph
-FULL OUTER JOIN learning_progress_tasks lpt ON 
+FROM public.learning_progress_hours lph
+FULL OUTER JOIN public.learning_progress_tasks lpt ON 
     lph.student_id = lpt.student_id AND lph.subject = lpt.subject;
 
 -- =====================================================
@@ -85,7 +85,7 @@ FULL OUTER JOIN learning_progress_tasks lpt ON
 -- =====================================================
 
 -- 1. Formative Assessment Results
-CREATE OR REPLACE VIEW formative_assessment_results AS
+CREATE OR REPLACE VIEW public.formative_assessment_results AS
 SELECT 
     s.student_id,
     s.student_name,
@@ -116,7 +116,7 @@ GROUP BY s.student_id, sch.school_id, sch.cluster_id, sch.district_id, sch.provi
          fa.subject, l.lesson_id, fa.assessment_type;
 
 -- 2. Geographic hierarchy for filters
-CREATE OR REPLACE VIEW geographic_hierarchy AS
+CREATE OR REPLACE VIEW public.geographic_hierarchy AS
 SELECT 
     p.province_id,
     p.province_name_en,
@@ -138,7 +138,7 @@ WHERE sch.status = 1
 ORDER BY p.province_name_en, d.district_name_en, c.cluster_name_en, sch.school_name;
 
 -- 3. School-level summary for dashboard
-CREATE OR REPLACE VIEW school_dashboard_summary AS
+CREATE OR REPLACE VIEW public.school_dashboard_summary AS
 SELECT 
     school_id,
     school_name,
@@ -152,5 +152,5 @@ SELECT
     COUNT(DISTINCT CASE WHEN subject = 'Khmer' THEN student_id END) as khmer_students,
     AVG(CASE WHEN subject = 'Math' THEN total_hours_studied END) as avg_math_hours,
     AVG(CASE WHEN subject = 'Khmer' THEN total_hours_studied END) as avg_khmer_hours
-FROM learning_progress_summary
+FROM public.learning_progress_summary
 GROUP BY school_id, school_name, province_id, district_id, cluster_id;

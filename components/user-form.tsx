@@ -2,100 +2,55 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { DatabaseService } from "@/lib/database"
 import { useToast } from "@/hooks/use-toast"
-import type { Province, District, School } from "@/lib/types"
+import { Loader2 } from "lucide-react"
+import type { User } from "@/lib/types"
 
 interface UserFormProps {
   onSuccess?: () => void
   onCancel?: () => void
+  initialData?: Partial<User>
 }
 
-export function UserForm({ onSuccess, onCancel }: UserFormProps) {
-  const [provinces, setProvinces] = useState<Province[]>([])
-  const [districts, setDistricts] = useState<District[]>([])
-  const [schools, setSchools] = useState<School[]>([])
-  const [loading, setLoading] = useState(false)
+export function UserForm({ onSuccess, onCancel, initialData }: UserFormProps) {
   const { toast } = useToast()
+  const [loading, setLoading] = useState(false)
+  const [formData, setFormData] = useState<Partial<User>>(
+    initialData || {
+      full_name: "",
+      email: "",
+      phone: "",
+      position: "",
+      role: "teacher",
+      school_id: null,
+      is_active: true,
+    },
+  )
+  const [schools, setSchools] = useState<any[]>([])
+  const [loadingSchools, setLoadingSchools] = useState(false)
 
-  const [form, setForm] = useState({
-    full_name: "",
-    email: "",
-    phone: "",
-    role: "Teacher",
-    school_id: "",
-    province_id: "",
-    district_id: "",
-    gender: "Male",
-    date_of_birth: "",
-    years_of_experience: "",
-    is_active: true,
-  })
-
-  useEffect(() => {
-    loadProvinces()
-  }, [])
-
-  useEffect(() => {
-    if (form.province_id) {
-      loadDistricts(Number(form.province_id))
-      loadSchoolsByProvince(Number(form.province_id))
-    } else {
-      setDistricts([])
-      setSchools([])
-    }
-    // Reset dependent fields
-    setForm((prev) => ({ ...prev, district_id: "", school_id: "" }))
-  }, [form.province_id])
-
-  useEffect(() => {
-    if (form.district_id) {
-      loadSchoolsByDistrict(Number(form.district_id))
-    }
-    // Reset school
-    setForm((prev) => ({ ...prev, school_id: "" }))
-  }, [form.district_id])
-
-  const loadProvinces = async () => {
-    try {
-      const data = await DatabaseService.getProvinces()
-      setProvinces(data)
-    } catch (error) {
-      console.error("Error loading provinces:", error)
-    }
+  const handleChange = (field: keyof User, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const loadDistricts = async (provinceId: number) => {
-    try {
-      const data = await DatabaseService.getDistrictsByProvince(provinceId)
-      setDistricts(data)
-    } catch (error) {
-      console.error("Error loading districts:", error)
-    }
-  }
+  const loadSchools = async () => {
+    if (schools.length > 0) return
 
-  const loadSchoolsByProvince = async (provinceId: number) => {
+    setLoadingSchools(true)
     try {
-      const data = await DatabaseService.getSchoolsByProvince(provinceId)
+      const data = await DatabaseService.getSchools()
       setSchools(data)
     } catch (error) {
-      console.error("Error loading schools by province:", error)
-    }
-  }
-
-  const loadSchoolsByDistrict = async (districtId: number) => {
-    try {
-      const data = await DatabaseService.getSchoolsByDistrict(districtId)
-      setSchools(data)
-    } catch (error) {
-      console.error("Error loading schools by district:", error)
+      console.error("Error loading schools:", error)
+    } finally {
+      setLoadingSchools(false)
     }
   }
 
@@ -104,30 +59,34 @@ export function UserForm({ onSuccess, onCancel }: UserFormProps) {
     setLoading(true)
 
     try {
-      const userData = {
-        ...form,
-        province_id: form.province_id ? Number(form.province_id) : undefined,
-        district_id: form.district_id ? Number(form.district_id) : undefined,
-        school_id: form.school_id ? Number(form.school_id) : undefined,
-        years_of_experience: form.years_of_experience ? Number(form.years_of_experience) : undefined,
+      // Validate required fields
+      if (!formData.full_name || !formData.role) {
+        throw new Error("Please fill in all required fields")
       }
 
-      const result = await DatabaseService.createUser(userData)
+      // Create or update user
+      let result
+      if (initialData?.id) {
+        // Update existing user (not implemented yet)
+        result = { ...formData, id: initialData.id }
+      } else {
+        // Create new user
+        result = await DatabaseService.createUser(formData as Omit<User, "id" | "created_at" | "updated_at">)
+      }
 
       if (result) {
         toast({
-          title: "User Added",
-          description: "The user has been successfully added.",
+          title: "Success",
+          description: `User ${initialData?.id ? "updated" : "created"} successfully`,
         })
         if (onSuccess) onSuccess()
       } else {
-        throw new Error("Failed to add user")
+        throw new Error("Failed to save user")
       }
-    } catch (error) {
-      console.error("Error adding user:", error)
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to add user. Please try again.",
+        description: error.message || "Failed to save user",
         variant: "destructive",
       })
     } finally {
@@ -137,13 +96,16 @@ export function UserForm({ onSuccess, onCancel }: UserFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-2">
-          <Label htmlFor="full_name">Full Name</Label>
+          <Label htmlFor="full_name">
+            Full Name <span className="text-red-500">*</span>
+          </Label>
           <Input
             id="full_name"
-            value={form.full_name}
-            onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+            value={formData.full_name || ""}
+            onChange={(e) => handleChange("full_name", e.target.value)}
+            placeholder="Enter full name"
             required
           />
         </div>
@@ -153,66 +115,44 @@ export function UserForm({ onSuccess, onCancel }: UserFormProps) {
           <Input
             id="email"
             type="email"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            value={formData.email || ""}
+            onChange={(e) => handleChange("email", e.target.value)}
+            placeholder="Enter email address"
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="phone">Phone</Label>
-          <Input id="phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          <Input
+            id="phone"
+            value={formData.phone || ""}
+            onChange={(e) => handleChange("phone", e.target.value)}
+            placeholder="Enter phone number"
+          />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="role">Role</Label>
-          <Select value={form.role} onValueChange={(value) => setForm({ ...form, role: value })}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select Role" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Teacher">Teacher</SelectItem>
-              <SelectItem value="Coordinator">Coordinator</SelectItem>
-              <SelectItem value="Admin">Admin</SelectItem>
-              <SelectItem value="Staff">Staff</SelectItem>
-            </SelectContent>
-          </Select>
+          <Label htmlFor="position">Position</Label>
+          <Input
+            id="position"
+            value={formData.position || ""}
+            onChange={(e) => handleChange("position", e.target.value)}
+            placeholder="Enter position"
+          />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="province">Province</Label>
-          <Select
-            value={form.province_id.toString()}
-            onValueChange={(value) => setForm({ ...form, province_id: value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select Province" />
+          <Label htmlFor="role">
+            Role <span className="text-red-500">*</span>
+          </Label>
+          <Select value={formData.role || "teacher"} onValueChange={(value) => handleChange("role", value)} required>
+            <SelectTrigger id="role">
+              <SelectValue placeholder="Select role" />
             </SelectTrigger>
             <SelectContent>
-              {provinces.map((province) => (
-                <SelectItem key={province.id} value={province.id.toString()}>
-                  {province.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="district">District</Label>
-          <Select
-            value={form.district_id.toString()}
-            onValueChange={(value) => setForm({ ...form, district_id: value })}
-            disabled={!form.province_id}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select District" />
-            </SelectTrigger>
-            <SelectContent>
-              {districts.map((district) => (
-                <SelectItem key={district.id} value={district.id.toString()}>
-                  {district.name}
-                </SelectItem>
-              ))}
+              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="teacher">Teacher</SelectItem>
+              <SelectItem value="collector">Collector</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -220,71 +160,36 @@ export function UserForm({ onSuccess, onCancel }: UserFormProps) {
         <div className="space-y-2">
           <Label htmlFor="school">School</Label>
           <Select
-            value={form.school_id.toString()}
-            onValueChange={(value) => setForm({ ...form, school_id: value })}
-            disabled={!form.province_id}
+            value={formData.school_id?.toString() || "0"}
+            onValueChange={(value) => handleChange("school_id", value ? Number.parseInt(value) : null)}
+            onOpenChange={loadSchools}
           >
-            <SelectTrigger>
-              <SelectValue placeholder="Select School" />
+            <SelectTrigger id="school">
+              <SelectValue placeholder="Select school" />
             </SelectTrigger>
             <SelectContent>
-              {schools.map((school) => (
-                <SelectItem key={school.id} value={school.id.toString()}>
-                  {school.name}
+              <SelectItem value="0">No School</SelectItem>
+              {loadingSchools ? (
+                <SelectItem value="" disabled>
+                  Loading schools...
                 </SelectItem>
-              ))}
+              ) : (
+                schools.map((school) => (
+                  <SelectItem key={school.id} value={school.id.toString()}>
+                    {school.name}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="date_of_birth">Date of Birth</Label>
-          <Input
-            id="date_of_birth"
-            type="date"
-            value={form.date_of_birth}
-            onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="years_of_experience">Years of Experience</Label>
-          <Input
-            id="years_of_experience"
-            type="number"
-            value={form.years_of_experience}
-            onChange={(e) => setForm({ ...form, years_of_experience: e.target.value })}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>Gender</Label>
-          <RadioGroup
-            value={form.gender}
-            onValueChange={(value) => setForm({ ...form, gender: value })}
-            className="flex space-x-4"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Male" id="male" />
-              <Label htmlFor="male">Male</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Female" id="female" />
-              <Label htmlFor="female">Female</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="Other" id="other" />
-              <Label htmlFor="other">Other</Label>
-            </div>
-          </RadioGroup>
         </div>
       </div>
 
       <div className="flex items-center space-x-2">
         <Switch
           id="is_active"
-          checked={form.is_active}
-          onCheckedChange={(checked) => setForm({ ...form, is_active: checked })}
+          checked={formData.is_active}
+          onCheckedChange={(checked) => handleChange("is_active", checked)}
         />
         <Label htmlFor="is_active">Active User</Label>
       </div>
@@ -296,7 +201,8 @@ export function UserForm({ onSuccess, onCancel }: UserFormProps) {
           </Button>
         )}
         <Button type="submit" disabled={loading}>
-          {loading ? "Saving..." : "Save User"}
+          {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {initialData?.id ? "Update" : "Create"} User
         </Button>
       </div>
     </form>
