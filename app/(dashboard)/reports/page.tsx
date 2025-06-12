@@ -124,7 +124,7 @@ export default function ReportsPage() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={["admin"]}>
+    <ProtectedRoute allowedRoles={["Admin"]}>
       <PageLayout title="Reports & Analytics" description="Generate and download comprehensive reports">
         <div className="space-y-6">
           {/* Stats Grid */}

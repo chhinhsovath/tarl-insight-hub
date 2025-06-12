@@ -119,7 +119,7 @@ export default function CollectionPage() {
   const totalRecords = collections.reduce((sum, c) => sum + c.records_count, 0)
 
   return (
-    <ProtectedRoute allowedRoles={["collector", "admin"]}>
+    <ProtectedRoute allowedRoles={["Collector", "Admin"]}>
       <PageLayout
         title="Data Collection"
         description="Manage offline data collection and synchronization"

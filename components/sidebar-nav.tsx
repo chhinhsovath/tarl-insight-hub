@@ -83,7 +83,7 @@ export function SidebarNav({ open, setOpen }: SidebarNavProps) {
   const { user, logout } = useAuth()
 
   const getNavItems = () => {
-    switch (user?.role) {
+    switch (user?.role.toLowerCase()) {
       case "admin":
         return adminNavItems
       case "teacher":

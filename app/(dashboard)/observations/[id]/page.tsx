@@ -133,7 +133,7 @@ export default function ObservationDetailPage() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={["admin", "teacher", "collector"]}>
+    <ProtectedRoute allowedRoles={["Admin", "Teacher", "Collector"]}>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -143,7 +143,7 @@ export default function ObservationDetailPage() {
             </Button>
             <h1 className="text-2xl font-bold">Observation Details</h1>
           </div>
-          {(user?.role === "admin" || observation.created_by === Number(user?.id)) && (
+          {(user?.role.toLowerCase() === "admin" || observation.created_by === Number(user?.id)) && (
             <Link href={`/observations/${observation.id}/edit`}>
               <Button className="soft-button">
                 <Edit className="h-4 w-4 mr-2" />

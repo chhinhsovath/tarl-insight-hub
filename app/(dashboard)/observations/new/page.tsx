@@ -5,7 +5,7 @@ import { ObservationFormBuilder } from "@/components/observation-form-builder"
 
 export default function NewObservationPage() {
   return (
-    <ProtectedRoute allowedRoles={["admin", "teacher", "collector"]}>
+    <ProtectedRoute allowedRoles={["Admin", "Teacher", "Collector"]}>
       <div className="container mx-auto py-6">
         <ObservationFormBuilder />
       </div>

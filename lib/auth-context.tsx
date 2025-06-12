@@ -58,7 +58,7 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<boolean>
   logout: () => void
   switchUser: (userId: string) => void
-  isAllowed: (allowedRoles: UserRole[]) => boolean
+  isAllowed: (allowedRoles: (UserRole | string)[]) => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -118,9 +118,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const isAllowed = (allowedRoles: UserRole[]): boolean => {
+  const isAllowed = (allowedRoles: (UserRole | string)[]): boolean => {
     if (!user) return false
-    return allowedRoles.includes(user.role)
+    const role = user.role.toLowerCase()
+    return allowedRoles.some((r) => r.toLowerCase() === role)
   }
 
   return (

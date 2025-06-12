@@ -39,7 +39,7 @@ export default function ObservationsPage() {
       }
 
       try {
-        observationsData = await DatabaseService.getObservations(user?.role !== "admin" ? user?.id : undefined)
+        observationsData = await DatabaseService.getObservations(user?.role.toLowerCase() !== "admin" ? user?.id : undefined)
       } catch (e) {
         console.log("Failed to load observations data, using mock data")
       }
@@ -205,14 +205,14 @@ export default function ObservationsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Filters - Only visible for admin and teacher */}
-        {(user?.role === "admin" || user?.role === "teacher") && (
+        {(user?.role.toLowerCase() === "admin" || user?.role.toLowerCase() === "teacher") && (
           <div className="lg:col-span-1">
             <Filters onFilterChange={handleFilterChange} />
           </div>
         )}
 
         {/* Analytics Content */}
-        <div className={user?.role === "collector" ? "lg:col-span-4" : "lg:col-span-3"}>
+        <div className={user?.role.toLowerCase() === "collector" ? "lg:col-span-4" : "lg:col-span-3"}>
           {loading ? (
             <div className="flex items-center justify-center h-64">
               <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>

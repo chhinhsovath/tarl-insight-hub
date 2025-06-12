@@ -45,7 +45,7 @@ export default function ObservationsListPage() {
           .order("visit_date", { ascending: false })
 
         // If user is not admin, only show their own observations
-        if (user?.role !== "admin") {
+        if (user?.role.toLowerCase() !== "admin") {
           query = query.eq("created_by", user?.id)
         }
 
@@ -57,7 +57,7 @@ export default function ObservationsListPage() {
         let query = supabase.from("vw_tarl_observation_complete").select("*").order("visit_date", { ascending: false })
 
         // If user is not admin, only show their own observations
-        if (user?.role !== "admin") {
+        if (user?.role.toLowerCase() !== "admin") {
           query = query.eq("created_by", user?.id)
         }
 
@@ -104,7 +104,7 @@ export default function ObservationsListPage() {
   }, [])
 
   return (
-    <ProtectedRoute allowedRoles={["admin", "teacher", "collector"]}>
+    <ProtectedRoute allowedRoles={["Admin", "Teacher", "Collector"]}>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Observation Records</h1>
@@ -265,7 +265,7 @@ export default function ObservationsListPage() {
                             <Eye className="h-4 w-4" />
                           </Button>
                         </Link>
-                        {(user?.role === "admin" || observation.created_by === Number(user?.id || "0")) && (
+                        {(user?.role.toLowerCase() === "admin" || observation.created_by === Number(user?.id || "0")) && (
                           <Link href={`/observations/${observation.id}/edit`}>
                             <Button variant="outline" size="sm" className="soft-button">
                               <Edit className="h-4 w-4" />

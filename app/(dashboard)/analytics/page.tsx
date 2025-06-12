@@ -112,7 +112,7 @@ export default function AnalyticsPage() {
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"]
 
   return (
-    <ProtectedRoute allowedRoles={["admin", "coordinator"]}>
+    <ProtectedRoute allowedRoles={["Admin", "Coordinator"]}>
       <PageLayout title="Analytics Dashboard" description="Comprehensive data analytics and insights">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Filters */}
