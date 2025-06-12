@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { DatabaseService } from "@/lib/database"
 import { RotateCcw } from "lucide-react"
 import type { Province, District, School } from "@/lib/types"
 
@@ -66,7 +65,8 @@ export function Filters({ onFilterChange, showRoleFilter = false }: FiltersProps
   const loadProvinces = async () => {
     setLoading(true)
     try {
-      const data = await DatabaseService.getProvinces()
+      const res = await fetch('/api/provinces')
+      const data: Province[] = await res.json()
       setProvinces(data)
     } catch (error) {
       console.error("Error loading provinces:", error)
@@ -78,7 +78,8 @@ export function Filters({ onFilterChange, showRoleFilter = false }: FiltersProps
   const loadDistricts = async (provinceId: number) => {
     setLoading(true)
     try {
-      const data = await DatabaseService.getDistrictsByProvince(provinceId)
+      const res = await fetch(`/api/districts?provinceId=${provinceId}`)
+      const data: District[] = await res.json()
       setDistricts(data)
     } catch (error) {
       console.error("Error loading districts:", error)
@@ -90,7 +91,8 @@ export function Filters({ onFilterChange, showRoleFilter = false }: FiltersProps
   const loadSchoolsByProvince = async (provinceId: number) => {
     setLoading(true)
     try {
-      const data = await DatabaseService.getSchoolsByProvince(provinceId)
+      const res = await fetch(`/api/schools?provinceId=${provinceId}`)
+      const data: School[] = await res.json()
       setSchools(data)
     } catch (error) {
       console.error("Error loading schools:", error)
@@ -102,7 +104,8 @@ export function Filters({ onFilterChange, showRoleFilter = false }: FiltersProps
   const loadSchoolsByDistrict = async (districtId: number) => {
     setLoading(true)
     try {
-      const data = await DatabaseService.getSchoolsByDistrict(districtId)
+      const res = await fetch(`/api/schools?districtId=${districtId}`)
+      const data: School[] = await res.json()
       setSchools(data)
     } catch (error) {
       console.error("Error loading schools:", error)

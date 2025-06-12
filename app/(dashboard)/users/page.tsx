@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { UserForm } from "@/components/user-form"
-import { DatabaseService } from "@/lib/database"
 import { Users, Plus, Mail, Phone, School, UserCheck } from "lucide-react"
 import { ProtectedRoute } from "@/components/protected-route"
 import type { User } from "@/lib/types"
@@ -26,7 +25,8 @@ export default function UsersPage() {
   const loadUsers = async () => {
     setLoading(true)
     try {
-      let data = await DatabaseService.getUsers()
+      let res = await fetch('/api/users')
+      let data: User[] = await res.json()
 
       // Apply filters
       if (filters.schoolId) {

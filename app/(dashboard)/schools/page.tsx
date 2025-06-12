@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { SchoolForm } from "@/components/school-form"
-import { DatabaseService } from "@/lib/database"
 import { ProtectedRoute } from "@/components/protected-route"
 import { School, MapPin, Phone, Mail, Users, Plus } from "lucide-react"
 import type { School as SchoolType } from "@/lib/types"
@@ -26,7 +25,8 @@ export default function SchoolsPage() {
   const loadSchools = async () => {
     setLoading(true)
     try {
-      let data = await DatabaseService.getSchools()
+      const res = await fetch('/api/schools')
+      let data: SchoolType[] = await res.json()
 
       // Apply filters
       if (filters.provinceId) {
@@ -42,43 +42,7 @@ export default function SchoolsPage() {
       setSchools(data)
     } catch (error) {
       console.error("Error loading schools:", error)
-      // Use mock data as fallback
-      setSchools([
-        {
-          id: 1,
-          name: "Angkor High School",
-          name_kh: "វិទ្យាល័យអង្គរ",
-          code: "AHS001",
-          province_id: 1,
-          district_id: 1,
-          address: "Siem Reap City Center",
-          contact_person: "Mr. Sopheak Mao",
-          phone: "012-345-678",
-          email: "angkor.hs@edu.gov.kh",
-          total_students: 450,
-          total_teachers: 25,
-          is_active: true,
-          created_at: "2024-01-01T00:00:00Z",
-          updated_at: "2024-01-01T00:00:00Z",
-        },
-        {
-          id: 2,
-          name: "Bayon Primary School",
-          name_kh: "សាលាបឋមសិក្សាបាយ័ន",
-          code: "BPS001",
-          province_id: 1,
-          district_id: 2,
-          address: "Angkor Chum District",
-          contact_person: "Ms. Channary Lim",
-          phone: "012-456-789",
-          email: "bayon.ps@edu.gov.kh",
-          total_students: 320,
-          total_teachers: 18,
-          is_active: true,
-          created_at: "2024-01-01T00:00:00Z",
-          updated_at: "2024-01-01T00:00:00Z",
-        },
-      ])
+      setSchools([])
     } finally {
       setLoading(false)
     }
