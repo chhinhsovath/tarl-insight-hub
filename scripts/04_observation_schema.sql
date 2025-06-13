@@ -184,32 +184,29 @@ SELECT
 FROM tbl_tarl_observation_responses o
 LEFT JOIN program_types p ON o.program_type_id = p.id;
 
--- Add RLS policies
-ALTER TABLE tbl_tarl_observation_responses ENABLE ROW LEVEL SECURITY;
-ALTER TABLE tbl_tarl_observation_activities ENABLE ROW LEVEL SECURITY;
-ALTER TABLE tbl_tarl_observation_materials ENABLE ROW LEVEL SECURITY;
-ALTER TABLE tbl_tarl_observation_tarl_levels ENABLE ROW LEVEL SECURITY;
+-- Create function to get allowed pages for a role
+CREATE OR REPLACE FUNCTION get_allowed_pages(role_name VARCHAR)
+RETURNS TABLE (
+    page_path VARCHAR,
+    page_name VARCHAR,
+    icon_name VARCHAR
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        pp.page_path,
+        pp.page_name,
+        pp.icon_name
+    FROM page_permissions pp
+    JOIN role_page_permissions rpp ON pp.id = rpp.page_id
+    WHERE rpp.role = role_name
+    AND rpp.is_allowed = true
+    ORDER BY pp.page_name;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Create policies
-CREATE POLICY "Admin can see all observations" ON tbl_tarl_observation_responses
-    FOR SELECT USING (
-        auth.uid() IN (SELECT id FROM users WHERE role = 'admin')
-    );
-
-CREATE POLICY "Users can see their own observations" ON tbl_tarl_observation_responses
-    FOR SELECT USING (
-        created_by = auth.uid()
-    );
-
-CREATE POLICY "Admin can insert observations" ON tbl_tarl_observation_responses
-    FOR INSERT WITH CHECK (
-        auth.uid() IN (SELECT id FROM users WHERE role = 'admin')
-    );
-
-CREATE POLICY "Users can insert observations" ON tbl_tarl_observation_responses
-    FOR INSERT WITH CHECK (
-        auth.uid() IN (SELECT id FROM users WHERE role IN ('teacher', 'collector'))
-    );
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION get_allowed_pages TO PUBLIC;
 
 -- =====================================================
 -- PAGE PERMISSIONS
@@ -284,27 +281,3 @@ CROSS JOIN (VALUES
     ('/reports', true)
 ) AS default_perms(page_path, is_allowed)
 WHERE page_permissions.page_path = default_perms.page_path;
-
--- Create function to get allowed pages for a role
-CREATE OR REPLACE FUNCTION get_allowed_pages(role_name VARCHAR)
-RETURNS TABLE (
-    page_path VARCHAR,
-    page_name VARCHAR,
-    icon_name VARCHAR
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        pp.page_path,
-        pp.page_name,
-        pp.icon_name
-    FROM page_permissions pp
-    JOIN role_page_permissions rpp ON pp.id = rpp.page_id
-    WHERE rpp.role = role_name
-    AND rpp.is_allowed = true
-    ORDER BY pp.page_name;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Grant execute permission to authenticated users
-GRANT EXECUTE ON FUNCTION get_allowed_pages TO authenticated;

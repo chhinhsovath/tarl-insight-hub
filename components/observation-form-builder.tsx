@@ -22,6 +22,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { DatabaseService } from "@/lib/database"
 
 interface ObservationFormData {
   // Visit Details
@@ -98,6 +99,7 @@ interface LookupData {
   materials: Array<{ id: number; material_name: string; description: string }>
   tarlLevels: Array<{ id: number; level_name: string; subject: string; level_order: number }>
   activityTypes: Array<{ id: number; activity_name: string; subject: string; description: string }>
+  provinces: Array<{ id: number; name: string; name_kh: string; code: string }>
 }
 
 export const ObservationFormBuilder = React.memo(function ObservationFormBuilder() {
@@ -111,6 +113,7 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
     materials: [],
     tarlLevels: [],
     activityTypes: [],
+    provinces: [],
   })
 
   const [formData, setFormData] = useState<ObservationFormData>({
@@ -195,15 +198,21 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
     setLookupError(null)
     try {
       // Try to load data directly, handle errors gracefully
-      const [programTypes, materials, tarlLevels, activityTypes] = await Promise.all([
+      const [programTypes, materials, tarlLevels, activityTypes, provinces] = await Promise.all([
         supabase.from("program_types").select("*").order("program_type"),
         supabase.from("materials").select("*").order("material_name"),
         supabase.from("tarl_levels").select("*").order("subject, level_order"),
         supabase.from("activity_types").select("*").order("subject, activity_name"),
+        DatabaseService.getProvinces(),
       ])
 
       // Check if any queries failed
-      const errors = [programTypes.error, materials.error, tarlLevels.error, activityTypes.error].filter(Boolean)
+      const errors = [
+        programTypes.error,
+        materials.error,
+        tarlLevels.error,
+        activityTypes.error,
+      ].filter(Boolean)
 
       if (errors.length > 0) {
         throw new Error("Some lookup tables are missing. Please run the database setup script first.")
@@ -214,6 +223,7 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
         materials: materials.data || [],
         tarlLevels: tarlLevels.data || [],
         activityTypes: activityTypes.data || [],
+        provinces: provinces || [],
       })
     } catch (error: any) {
       console.error("Error loading lookup data:", error)
@@ -500,12 +510,21 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
 
                   <div>
                     <Label htmlFor="province">Province</Label>
-                    <Input
-                      id="province"
+                    <Select
                       value={formData.province}
-                      onChange={(e) => updateFormData("province", e.target.value)}
-                      placeholder="Enter province"
-                    />
+                      onValueChange={(value) => updateFormData("province", value)}
+                    >
+                      <SelectTrigger id="province">
+                        <SelectValue placeholder="Select Province" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {lookupData.provinces.map((province) => (
+                          <SelectItem key={province.id} value={province.name}>
+                            {province.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div>
@@ -845,8 +864,7 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
                         />
                       </div>
                     )}
-                  </div>
-                )}
+                </div>
 
                 <div>
                   <Label htmlFor="transition_time">Transition time between subjects (minutes)</Label>

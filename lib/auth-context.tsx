@@ -1,64 +1,27 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, ReactNode } from "react"
+import { useRouter } from "next/navigation"
 
-export type UserRole = "Admin" | "Teacher" | "Collector" | "Coordinator" | "Staff"
-
-export type User = {
-  id: string
+interface User {
+  id: number
   full_name: string
   email: string
-  role: UserRole
-  school_id?: number
-  province_id?: number
-  district_id?: number
-  phone?: string
-  gender?: string
-  years_of_experience?: number
+  username: string
+  role: string
+  school_id: number | null
+  province_id: number | null
+  district_id: number | null
+  is_active: boolean
 }
 
-// Mock users for each role - keeping the name as mockUsers to avoid breaking imports
-export const mockUsers: User[] = [
-  {
-    id: "12",
-    full_name: "Mr. Kosal Vann",
-    email: "kosal.vann@tarl.edu.kh",
-    role: "Admin",
-    phone: "012-345-689",
-    gender: "Male",
-    years_of_experience: 20,
-  },
-  {
-    id: "1",
-    full_name: "Ms. Sophea Lim",
-    email: "sophea.lim@tarl.edu.kh",
-    role: "Teacher",
-    school_id: 1,
-    province_id: 1,
-    district_id: 1,
-    phone: "012-345-678",
-    gender: "Female",
-    years_of_experience: 8,
-  },
-  {
-    id: "9",
-    full_name: "Ms. Bopha Keo",
-    email: "bopha.keo@tarl.edu.kh",
-    role: "Coordinator",
-    province_id: 1,
-    phone: "012-345-686",
-    gender: "Female",
-    years_of_experience: 15,
-  },
-]
-
-type AuthContextType = {
+interface AuthContextType {
   user: User | null
   loading: boolean
-  login: (email: string, password: string) => Promise<boolean>
+  login: (emailOrUsername: string, password: string) => Promise<void>
   logout: () => void
-  switchUser: (userId: string) => void
-  isAllowed: (allowedRoles: UserRole[]) => boolean
+  error: string | null
+  isAllowed: (allowedRoles: string[]) => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -66,65 +29,77 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
-    // Check for stored user session or set default admin user
-    const storedUser = localStorage.getItem("tarl-user")
-    if (storedUser) {
+    // Check if user is logged in on mount
+    const checkAuth = async () => {
       try {
-        setUser(JSON.parse(storedUser))
+        const response = await fetch("/api/auth/check")
+        if (response.ok) {
+          const userData = await response.json()
+          setUser(userData)
+        }
       } catch (error) {
-        localStorage.removeItem("tarl-user")
-        // Set default admin user for demo
-        setUser(mockUsers[0])
+        console.error("Auth check failed:", error)
+      } finally {
+        setLoading(false)
       }
-    } else {
-      // Set default admin user for demo
-      setUser(mockUsers[0])
     }
-    setLoading(false)
+
+    checkAuth()
   }, [])
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    setLoading(true)
+  const login = async (emailOrUsername: string, password: string) => {
+    try {
+      setError(null)
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: emailOrUsername.includes('@') ? emailOrUsername : undefined,
+          username: !emailOrUsername.includes('@') ? emailOrUsername : undefined,
+          password,
+        }),
+      })
 
-    // Simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+      const data = await response.json()
 
-    // Find user by email (password is ignored for demo)
-    const foundUser = mockUsers.find((u) => u.email === email)
+      if (!response.ok) {
+        if (response.status === 423) {
+          throw new Error(`Account is locked until ${new Date(data.lockedUntil).toLocaleString()}`)
+        }
+        throw new Error(data.message || "Login failed")
+      }
 
-    if (foundUser && password === "password") {
-      setUser(foundUser)
-      localStorage.setItem("tarl-user", JSON.stringify(foundUser))
-      setLoading(false)
-      return true
+      setUser(data)
+      router.push("/dashboard")
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "An error occurred during login")
+      throw error
     }
-
-    setLoading(false)
-    return false
   }
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem("tarl-user")
-  }
-
-  const switchUser = (userId: string) => {
-    const foundUser = mockUsers.find((u) => u.id === userId)
-    if (foundUser) {
-      setUser(foundUser)
-      localStorage.setItem("tarl-user", JSON.stringify(foundUser))
+  const logout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" })
+      setUser(null)
+      router.push("/login")
+    } catch (error) {
+      console.error("Logout failed:", error)
     }
   }
 
-  const isAllowed = (allowedRoles: UserRole[]): boolean => {
+  const isAllowed = (allowedRoles: string[]): boolean => {
     if (!user) return false
-    return allowedRoles.includes(user.role)
+    return allowedRoles.map(role => role.toLowerCase()).includes(user.role.toLowerCase())
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, switchUser, isAllowed }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, error, isAllowed }}>
       {children}
     </AuthContext.Provider>
   )

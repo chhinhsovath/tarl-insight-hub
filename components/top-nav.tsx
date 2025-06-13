@@ -1,7 +1,6 @@
 "use client"
 
 import { useAuth } from "@/lib/auth-context"
-import { RoleSwitcher } from "@/components/role-switcher"
 import { Button } from "@/components/ui/button"
 import { Bell, Settings } from "lucide-react"
 
@@ -24,7 +23,6 @@ export function TopNav() {
           <Button variant="ghost" size="sm">
             <Settings className="h-4 w-4" />
           </Button>
-          <RoleSwitcher />
         </div>
       </div>
     </header>

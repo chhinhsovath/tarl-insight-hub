@@ -1,59 +1,92 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { useAuth, mockUsers } from "@/lib/auth-context"
+import { useState, useEffect } from "react"
+import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Label } from "@/components/ui/label"
-import { AlertCircle, CheckCircle2, School, User, Users } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { CheckCircle2, School, User, Users } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type React from "react"
+
+const demoUsers = [
+  {
+    role: "Admin",
+    emailOrUsername: "admin@tarl.edu.kh",
+    description: "Complete system oversight and management",
+    icon: <Users className="h-12 w-12 text-blue-600" />,
+    features: ["User Management", "School Administration", "System Analytics", "Report Generation"],
+  },
+  {
+    role: "Teacher",
+    emailOrUsername: "teacher@tarl.edu.kh",
+    description: "Classroom and student management",
+    icon: <User className="h-12 w-12 text-green-600" />,
+    features: ["Student Progress", "Classroom Data", "Learning Materials", "Assessment Tools"],
+  },
+  {
+    role: "Coordinator",
+    emailOrUsername: "coordinator@tarl.edu.kh",
+    description: "Regional oversight and school coordination",
+    icon: <School className="h-12 w-12 text-purple-600" />,
+    features: ["School Monitoring", "Teacher Support", "Regional Analytics", "Training Management"],
+  },
+]
+
+interface UserListItem {
+  email: string
+  username: string
+}
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
+  const [identifier, setIdentifier] = useState("")
+  const [password, setPassword] = useState("12345") // Default password
   const [isLoading, setIsLoading] = useState(false)
-  const { login } = useAuth()
-  const router = useRouter()
+  const [userList, setUserList] = useState<UserListItem[]>([])
+  const { login, error } = useAuth()
+
+  useEffect(() => {
+    const fetchUserList = async () => {
+      try {
+        const response = await fetch("/api/users/list")
+        if (response.ok) {
+          const data = await response.json()
+          setUserList(data)
+        } else {
+          console.error("Failed to fetch user list:", await response.text())
+        }
+      } catch (err) {
+        console.error("Error fetching user list:", err)
+      }
+    }
+    fetchUserList()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError("")
     setIsLoading(true)
 
     try {
-      const success = await login(email, password)
-      if (success) {
-        router.push("/dashboard")
-      } else {
-        setError("Invalid credentials. Try using one of the demo accounts.")
-      }
-    } catch (err) {
-      setError("An error occurred during login.")
+      await login(identifier, password)
+    } catch (error) {
+      // Error is handled by the auth context
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleQuickLogin = async (userEmail: string) => {
-    setEmail(userEmail)
-    setPassword("password")
+  const handleQuickLogin = async (emailOrUsername: string) => {
+    setIdentifier(emailOrUsername)
+    setPassword("12345") // Default password for demo accounts
     setIsLoading(true)
 
     try {
-      const success = await login(userEmail, "password")
-      if (success) {
-        router.push("/dashboard")
-      } else {
-        setError("Quick login failed. Please try again.")
-      }
-    } catch (err) {
-      setError("An error occurred during login.")
+      await login(emailOrUsername, "12345")
+    } catch (error) {
+      // Error is handled by the auth context
     } finally {
       setIsLoading(false)
     }
@@ -69,44 +102,24 @@ export default function LoginPage() {
 
         <Tabs defaultValue="quick" className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="quick">Quick Access</TabsTrigger>
+            <TabsTrigger value="quick">Users Role</TabsTrigger>
             <TabsTrigger value="manual">Manual Login</TabsTrigger>
           </TabsList>
 
           <TabsContent value="quick">
             <div className="grid md:grid-cols-3 gap-4">
-              {/* Admin Card */}
-              <RoleCard
-                title="System Administrator"
-                description="Complete system oversight and management"
-                icon={<Users className="h-12 w-12 text-blue-600" />}
-                features={["User Management", "School Administration", "System Analytics", "Report Generation"]}
-                email={mockUsers[0].email}
-                onLogin={handleQuickLogin}
-                isLoading={isLoading}
-              />
-
-              {/* Teacher Card */}
-              <RoleCard
-                title="Teacher"
-                description="Classroom and student management"
-                icon={<User className="h-12 w-12 text-green-600" />}
-                features={["Student Progress", "Classroom Data", "Learning Materials", "Assessment Tools"]}
-                email={mockUsers[1].email}
-                onLogin={handleQuickLogin}
-                isLoading={isLoading}
-              />
-
-              {/* Coordinator Card */}
-              <RoleCard
-                title="Coordinator"
-                description="Regional oversight and school coordination"
-                icon={<School className="h-12 w-12 text-purple-600" />}
-                features={["School Monitoring", "Teacher Support", "Regional Analytics", "Training Management"]}
-                email={mockUsers[2].email}
-                onLogin={handleQuickLogin}
-                isLoading={isLoading}
-              />
+              {demoUsers.map((user, index) => (
+                <RoleCard
+                  key={index}
+                  title={`${user.role} User`}
+                  description={user.description}
+                  icon={user.icon}
+                  features={user.features}
+                  emailOrUsername={user.emailOrUsername}
+                  onLogin={handleQuickLogin}
+                  isLoading={isLoading}
+                />
+              ))}
             </div>
           </TabsContent>
 
@@ -119,15 +132,19 @@ export default function LoginPage() {
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="your.email@tarl.edu.kh"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
+                    <Label htmlFor="identifier">Email or Username</Label>
+                    <Select value={identifier} onValueChange={setIdentifier}>
+                      <SelectTrigger id="identifier">
+                        <SelectValue placeholder="Select an email or username" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {userList.map((user, index) => (
+                          <SelectItem key={index} value={user.email}>
+                            {user.email} {user.username ? `(${user.username})` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
@@ -136,29 +153,27 @@ export default function LoginPage() {
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter your password"
                       required
                     />
                   </div>
-
                   {error && (
                     <Alert variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
                       <AlertDescription>{error}</AlertDescription>
                     </Alert>
                   )}
-
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Logging in..." : "Login"}
+                    {isLoading ? "Signing in..." : "Sign In"}
                   </Button>
                 </form>
               </CardContent>
               <CardFooter className="flex flex-col items-start">
                 <p className="text-sm text-gray-500 mb-2">Demo Accounts:</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2 w-full text-xs">
-                  {mockUsers.map((user) => (
-                    <div key={user.id} className="flex items-center space-x-1">
+                  {demoUsers.map((user, index) => (
+                    <div key={index} className="flex items-center space-x-1">
                       <span className="font-medium">{user.role}:</span>
-                      <span className="text-gray-600">{user.email}</span>
+                      <span className="text-gray-600">{user.emailOrUsername}</span>
                     </div>
                   ))}
                 </div>
@@ -166,32 +181,22 @@ export default function LoginPage() {
             </Card>
           </TabsContent>
         </Tabs>
-
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <p>For demonstration purposes, use "password" for all accounts</p>
-        </div>
       </div>
     </div>
   )
 }
 
-function RoleCard({
-  title,
-  description,
-  icon,
-  features,
-  email,
-  onLogin,
-  isLoading,
-}: {
+interface RoleCardProps {
   title: string
   description: string
   icon: React.ReactNode
   features: string[]
-  email: string
-  onLogin: (email: string) => void
+  emailOrUsername: string
+  onLogin: (emailOrUsername: string) => void
   isLoading: boolean
-}) {
+}
+
+function RoleCard({ title, description, icon, features, emailOrUsername, onLogin, isLoading }: RoleCardProps) {
   return (
     <Card className="overflow-hidden transition-all hover:shadow-lg">
       <CardHeader className="bg-gradient-to-br from-gray-50 to-gray-100">
@@ -209,11 +214,7 @@ function RoleCard({
           ))}
         </ul>
       </CardContent>
-      <CardFooter>
-        <Button className="w-full" onClick={() => onLogin(email)} disabled={isLoading}>
-          {isLoading ? "Logging in..." : "Login as " + title}
-        </Button>
-      </CardFooter>
+      
     </Card>
   )
 }

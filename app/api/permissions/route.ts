@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { createClient } from "@supabase/supabase-js"
+import { Pool } from "pg"
 
 interface Page {
   id: number
@@ -23,37 +23,40 @@ interface PermissionWithPage {
   is_allowed: boolean
 }
 
+const pool = new Pool({
+  user: process.env.PGUSER,
+  host: process.env.PGHOST,
+  database: process.env.PGDATABASE,
+  password: process.env.PGPASSWORD,
+  port: parseInt(process.env.PGPORT || '5432', 10),
+});
+
 export async function GET() {
   try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    const client = await pool.connect();
 
     // Get all pages
-    const { data: pages, error: pagesError } = await supabase
-      .from("page_permissions")
-      .select("*")
-
-    if (pagesError) throw pagesError
+    const pagesRes = await client.query('SELECT * FROM page_permissions');
+    const pages: Page[] = pagesRes.rows;
 
     // Get all role permissions
-    const { data: rolePermissions, error: rolePermissionsError } = await supabase
-      .from("role_page_permissions")
-      .select("*")
+    const rolePermissionsRes = await client.query('SELECT * FROM role_page_permissions');
+    const rolePermissions: RolePermission[] = rolePermissionsRes.rows;
 
-    if (rolePermissionsError) throw rolePermissionsError
+    client.release();
 
     // Group permissions by role
     const permissionsByRole = (rolePermissions as RolePermission[]).reduce((acc: Record<string, PermissionWithPage[]>, permission) => {
       const page = (pages as Page[]).find((p) => p.id === permission.page_id)
       if (!page) return acc
 
-      if (!acc[permission.role]) {
-        acc[permission.role] = []
+      const lowercasedRole = permission.role.toLowerCase()
+
+      if (!acc[lowercasedRole]) {
+        acc[lowercasedRole] = []
       }
 
-      acc[permission.role].push({
+      acc[lowercasedRole].push({
         id: permission.page_id,
         page_path: page.page_path,
         page_name: page.page_name,
@@ -74,18 +77,15 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const { role, pageId, isAllowed } = await request.json()
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    const client = await pool.connect();
 
     // Update permission
-    const { error } = await supabase
-      .from("role_page_permissions")
-      .update({ is_allowed: isAllowed })
-      .match({ role, page_id: pageId })
+    const updateQuery = 'UPDATE role_page_permissions SET is_allowed = $1 WHERE role = $2 AND page_id = $3';
+    const { rowCount } = await client.query(updateQuery, [isAllowed, role, pageId]);
 
-    if (error) throw error
+    client.release();
+
+    if (rowCount === 0) throw new Error("Permission not found or not updated");
 
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -3,11 +3,11 @@
 import type React from "react"
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { useAuth, type UserRole } from "@/lib/auth-context"
+import { useAuth } from "@/lib/auth-context"
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  allowedRoles: UserRole[]
+  allowedRoles: string[]
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
@@ -29,7 +29,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
       const response = await fetch("/api/permissions")
       const data = await response.json()
       
-      const userRole = user.role
+      const userRole = user.role.toLowerCase()
       const userPermissions = data[userRole] || []
       
       const hasAccess = userPermissions.some(

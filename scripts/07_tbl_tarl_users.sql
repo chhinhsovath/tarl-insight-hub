@@ -6,9 +6,9 @@
 -- ----------------------------
 -- Table structure for tbl_tarl_users
 -- ----------------------------
-DROP TABLE IF EXISTS "public"."tbl_tarl_users";
+DROP TABLE IF EXISTS "public"."tbl_tarl_users" CASCADE;
 CREATE TABLE "public"."tbl_tarl_users" (
-  "id" int4 NOT NULL DEFAULT nextval('tbl_tarl_users_id_seq'::regclass),
+  "id" SERIAL PRIMARY KEY,
   "full_name" varchar(250) COLLATE "pg_catalog"."default" NOT NULL,
   "email" varchar(100) COLLATE "pg_catalog"."default",
   "phone" varchar(20) COLLATE "pg_catalog"."default",
@@ -59,4 +59,3 @@ CREATE INDEX "idx_tbl_tarl_users_school" ON "public"."tbl_tarl_users" USING btre
 ALTER TABLE "public"."tbl_tarl_users" ADD CONSTRAINT "tbl_tarl_users_email_key" UNIQUE ("email");
 ALTER TABLE "public"."tbl_tarl_users" ADD CONSTRAINT "tbl_tarl_users_gender_check" CHECK (gender::text = ANY (ARRAY['Male'::character varying, 'Female'::character varying, 'Other'::character varying]::text[]));
 ALTER TABLE "public"."tbl_tarl_users" ADD CONSTRAINT "tbl_tarl_users_role_check" CHECK (role::text = ANY (ARRAY['Teacher'::character varying, 'Coordinator'::character varying, 'Admin'::character varying, 'Staff'::character varying]::text[]));
-ALTER TABLE "public"."tbl_tarl_users" ADD CONSTRAINT "tbl_tarl_users_pkey" PRIMARY KEY ("id");
