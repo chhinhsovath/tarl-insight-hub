@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 
-export type UserRole = "Admin" | "Teacher" | "Coordinator" | "Staff"
+export type UserRole = "Admin" | "Teacher" | "Collector" | "Coordinator" | "Staff"
 
 export type User = {
   id: string

@@ -47,7 +47,9 @@ export default function DashboardPage() {
   if (!user) return null
 
   const stats = getStaticData(user.role, "dashboardStats") || {}
-  const quickActions = getStaticData(user.role, "quickActions") || []
+  const quickActions = Array.isArray(getStaticData(user.role, "quickActions"))
+    ? getStaticData(user.role, "quickActions")
+    : []
 
   const getWelcomeMessage = () => {
     const timeOfDay = new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening"
