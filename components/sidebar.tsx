@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
@@ -39,47 +39,46 @@ const iconMap = {
   PieChart,
 }
 
-// Static navigation items by role
-const navigationItems = {
-  Admin: [
-    { name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
-    { name: "Schools", href: "/schools", icon: "School" },
-    { name: "Users", href: "/users", icon: "Users" },
-    { name: "Analytics", href: "/analytics", icon: "BarChart3" },
-    { name: "Reports", href: "/reports", icon: "FileText" },
-    { name: "Settings", href: "/settings", icon: "Settings" },
-  ],
-  Teacher: [
-    { name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
-    { name: "Students", href: "/students", icon: "Users" },
-    { name: "Observations", href: "/observations", icon: "Eye" },
-    { name: "Progress", href: "/progress", icon: "TrendingUp" },
-    { name: "Training", href: "/training", icon: "BookOpen" },
-  ],
-  Coordinator: [
-    { name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
-    { name: "Schools", href: "/schools", icon: "School" },
-    { name: "Visits", href: "/visits", icon: "MapPin" },
-    { name: "Progress", href: "/progress", icon: "TrendingUp" },
-    { name: "Analytics", href: "/analytics", icon: "BarChart3" },
-    { name: "Reports", href: "/reports", icon: "FileText" },
-  ],
-  Staff: [
-    { name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
-    { name: "Data Collection", href: "/collection", icon: "Database" },
-    { name: "Reports", href: "/reports", icon: "FileText" },
-  ],
+interface NavigationItem {
+  name: string
+  href: string
+  icon: string
 }
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
+  const [navigation, setNavigation] = useState<NavigationItem[]>([])
   const pathname = usePathname()
   const { user, logout } = useAuth()
 
-  if (!user) return null
+  useEffect(() => {
+    if (user) {
+      fetchNavigationItems()
+    }
+  }, [user])
 
-  // Get navigation items for the current user role with fallback
-  const navigation = navigationItems[user.role] || navigationItems.Admin
+  const fetchNavigationItems = async () => {
+    if (!user) return
+
+    try {
+      const response = await fetch("/api/permissions")
+      const data = await response.json()
+      
+      const userRole = user.role
+      if (data[userRole]) {
+        const items = data[userRole].map((item: any) => ({
+          name: item.page_name,
+          href: item.page_path,
+          icon: item.icon_name,
+        }))
+        setNavigation(items)
+      }
+    } catch (error) {
+      console.error("Error fetching navigation items:", error)
+    }
+  }
+
+  if (!user) return null
 
   return (
     <div

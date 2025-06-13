@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuth, type UserRole } from "@/lib/auth-context"
 
@@ -12,23 +12,39 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { user, loading, isAllowed } = useAuth()
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null)
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
-    if (!loading) {
-      if (!user) {
-        // For demo purposes, we'll just show a message instead of redirecting
-        console.log("User not authenticated")
-      } else if (!isAllowed(allowedRoles)) {
-        // For demo purposes, we'll just show a message instead of redirecting
-        console.log("User not authorized for this page")
-      }
+    if (!loading && user) {
+      checkPermission()
     }
-  }, [user, loading, isAllowed, allowedRoles, router, pathname])
+  }, [user, loading, pathname])
 
-  // Show loading spinner while checking authentication
-  if (loading) {
+  const checkPermission = async () => {
+    if (!user) return
+
+    try {
+      const response = await fetch("/api/permissions")
+      const data = await response.json()
+      
+      const userRole = user.role
+      const userPermissions = data[userRole] || []
+      
+      const hasAccess = userPermissions.some(
+        (permission: any) => permission.page_path === pathname && permission.is_allowed
+      )
+
+      setHasPermission(hasAccess)
+    } catch (error) {
+      console.error("Error checking permission:", error)
+      setHasPermission(false)
+    }
+  }
+
+  // Show loading spinner while checking authentication and permissions
+  if (loading || hasPermission === null) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100">
         <div className="flex flex-col items-center space-y-4">
@@ -52,7 +68,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     )
   }
 
-  if (!isAllowed(allowedRoles)) {
+  if (!isAllowed(allowedRoles) || !hasPermission) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-gradient-to-br from-yellow-50 to-gray-100">
         <div className="text-center">
