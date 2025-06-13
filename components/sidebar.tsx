@@ -64,6 +64,10 @@ export function Sidebar() {
       const response = await fetch("/api/permissions")
       const data = await response.json()
       
+      console.log("API Permissions Data:", data)
+      console.log("User Role:", user.role)
+      console.log("Permissions for user role:", data[user.role])
+
       const userRole = user.role
       if (data[userRole]) {
         const items = data[userRole].map((item: any) => ({
@@ -72,9 +76,12 @@ export function Sidebar() {
           icon: item.icon_name,
         }))
         setNavigation(items)
+      } else {
+        setNavigation([]) // Clear navigation if no permissions for role
       }
     } catch (error) {
       console.error("Error fetching navigation items:", error)
+      setNavigation([]) // Clear navigation on error
     }
   }
 
