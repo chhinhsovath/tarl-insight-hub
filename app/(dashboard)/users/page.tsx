@@ -79,7 +79,7 @@ export default function UsersPage() {
   )
 
   return (
-    <ProtectedRoute allowedRoles={["admin"]}>
+    <ProtectedRoute allowedRoles={["Admin", "Coordinator"]}>
       <PageLayout
         title="User Management"
         description="Manage system users and their permissions"

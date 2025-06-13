@@ -120,7 +120,7 @@ export default function StudentsPage() {
       : 0
 
   return (
-    <ProtectedRoute allowedRoles={["admin", "teacher"]}>
+    <ProtectedRoute allowedRoles={["Admin", "Teacher", "Coordinator"]}>
       <PageLayout
         title="Student Management"
         description="Monitor and manage student information and progress"

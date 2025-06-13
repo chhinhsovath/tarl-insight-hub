@@ -101,7 +101,7 @@ export default function SchoolsPage() {
   const totalTeachers = schools.reduce((sum, school) => sum + (school.total_teachers || 0), 0)
 
   return (
-    <ProtectedRoute allowedRoles={["Admin"]}>
+    <ProtectedRoute allowedRoles={["Admin", "Coordinator"]}>
       <PageLayout
         title="Schools Management"
         description="Manage participating schools and their information"

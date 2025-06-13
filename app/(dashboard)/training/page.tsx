@@ -89,7 +89,7 @@ export default function TrainingPage() {
   ]
 
   return (
-    <ProtectedRoute allowedRoles={["admin", "teacher"]}>
+    <ProtectedRoute allowedRoles={["Admin", "Teacher", "Coordinator"]}>
       <PageLayout
         title="Training Feedback"
         description="Monitor training effectiveness and participant satisfaction"

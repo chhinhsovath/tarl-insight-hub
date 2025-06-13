@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { PageLayout } from "@/components/page-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -105,14 +105,14 @@ export default function AnalyticsPage() {
     loadAnalyticsData()
   }, [filters])
 
-  const handleFilterChange = (newFilters: any) => {
+  const handleFilterChange = useCallback((newFilters: any) => {
     setFilters(newFilters)
-  }
+  }, [])
 
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d"]
 
   return (
-    <ProtectedRoute allowedRoles={["admin", "coordinator"]}>
+    <ProtectedRoute allowedRoles={["Admin", "Coordinator"]}>
       <PageLayout title="Analytics Dashboard" description="Comprehensive data analytics and insights">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Filters */}
@@ -186,7 +186,7 @@ export default function AnalyticsPage() {
                           <Tooltip />
                           <Legend />
                           <Bar dataKey="schools" fill="#8884d8" name="Schools" />
-                          <Bar dataKey="students" fill="#82ca9d" name="Students (x100)" />
+                          <Bar dataKey="total_students" fill="#82ca9d" name="Students (x100)" />
                         </BarChart>
                       </ResponsiveContainer>
                     )}

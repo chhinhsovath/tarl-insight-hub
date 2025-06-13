@@ -47,7 +47,8 @@ export function Filters({ onFilterChange, showRoleFilter = false }: FiltersProps
     setSelectedSchool("all")
   }, [selectedDistrict])
 
-  const notifyFilterChange = useCallback(() => {
+  // Call filter change notification when any filter changes
+  useEffect(() => {
     const filters = {
       provinceId: selectedProvince !== "all" ? Number.parseInt(selectedProvince) : null,
       districtId: selectedDistrict !== "all" ? Number.parseInt(selectedDistrict) : null,
@@ -57,11 +58,6 @@ export function Filters({ onFilterChange, showRoleFilter = false }: FiltersProps
     }
     onFilterChange(filters)
   }, [selectedProvince, selectedDistrict, selectedSchool, selectedRole, selectedSubject, onFilterChange])
-
-  // Call filter change notification when any filter changes
-  useEffect(() => {
-    notifyFilterChange()
-  }, [notifyFilterChange])
 
   const loadProvinces = async () => {
     setLoading(true)

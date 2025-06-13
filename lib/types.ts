@@ -44,7 +44,7 @@ export interface User {
   id: number
   full_name: string
   email?: string
-  phone?: string
+  phone?: string | null
   role: "Admin" | "Teacher" | "Coordinator" | "Staff" // Updated to match auth context
   school_id?: number
   province_id?: number
@@ -53,6 +53,7 @@ export interface User {
   date_of_birth?: string
   years_of_experience?: number
   is_active: boolean
+  position?: string
   created_at: string
   updated_at: string
 }
@@ -95,12 +96,14 @@ export interface SurveyResponse {
 
 export interface TrainingFeedback {
   id: number
+  training_id: string
   training_title?: string
   training_date?: string
   training_location?: string
   respondent_id?: number
   respondent_name?: string
   respondent_role?: string
+  respondent_type: string
   school_id?: number
   overall_rating?: number
   content_quality_rating?: number

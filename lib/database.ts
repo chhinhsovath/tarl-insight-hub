@@ -8,15 +8,15 @@ export class DatabaseService {
     try {
       // Return static province data
       return [
-        { id: 1, name: "Western Cape" },
-        { id: 2, name: "Gauteng" },
-        { id: 3, name: "KwaZulu-Natal" },
-        { id: 4, name: "Eastern Cape" },
-        { id: 5, name: "Free State" },
-        { id: 6, name: "Limpopo" },
-        { id: 7, name: "Mpumalanga" },
-        { id: 8, name: "North West" },
-        { id: 9, name: "Northern Cape" },
+        { id: 1, name: "Western Cape", created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" },
+        { id: 2, name: "Gauteng", created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" },
+        { id: 3, name: "KwaZulu-Natal", created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" },
+        { id: 4, name: "Eastern Cape", created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" },
+        { id: 5, name: "Free State", created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" },
+        { id: 6, name: "Limpopo", created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" },
+        { id: 7, name: "Mpumalanga", created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" },
+        { id: 8, name: "North West", created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" },
+        { id: 9, name: "Northern Cape", created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" }
       ]
     } catch (error) {
       console.error("Error fetching provinces:", error)
@@ -30,16 +30,16 @@ export class DatabaseService {
   static async getDistricts() {
     try {
       return [
-        { id: 1, name: "Cape Town Metro", province_id: 1 },
-        { id: 2, name: "West Coast", province_id: 1 },
-        { id: 3, name: "Johannesburg", province_id: 2 },
-        { id: 4, name: "Pretoria", province_id: 2 },
-        { id: 5, name: "Durban", province_id: 3 },
-        { id: 6, name: "Pietermaritzburg", province_id: 3 },
-        { id: 7, name: "Port Elizabeth", province_id: 4 },
-        { id: 8, name: "East London", province_id: 4 },
-        { id: 9, name: "Bloemfontein", province_id: 5 },
-        { id: 10, name: "Welkom", province_id: 5 },
+        { id: 1, name: "Cape Town Metro", province_id: 1, created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" },
+        { id: 2, name: "West Coast", province_id: 1, created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" },
+        { id: 3, name: "Johannesburg", province_id: 2, created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" },
+        { id: 4, name: "Pretoria", province_id: 2, created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" },
+        { id: 5, name: "Durban", province_id: 3, created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" },
+        { id: 6, name: "Pietermaritzburg", province_id: 3, created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" },
+        { id: 7, name: "Port Elizabeth", province_id: 4, created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" },
+        { id: 8, name: "East London", province_id: 4, created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" },
+        { id: 9, name: "Bloemfontein", province_id: 5, created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" },
+        { id: 10, name: "Welkom", province_id: 5, created_at: "2023-01-01T00:00:00Z", updated_at: "2023-01-01T00:00:00Z" }
       ]
     } catch (error) {
       console.error("Error fetching districts:", error)
@@ -66,13 +66,20 @@ export class DatabaseService {
       return staticData.schools.map((school) => ({
         id: school.id,
         name: school.name,
-        district: school.district,
-        province: school.province,
-        province_id: (school.id % 5) + 1, // Mock province mapping
-        district_id: (school.id % 10) + 1, // Mock district mapping
-        is_active: school.status === "Active",
-        students: school.students,
-        teachers: school.teachers,
+        name_kh: school.name_kh,
+        code: school.code,
+        province_id: school.province_id,
+        district_id: school.district_id,
+        address: school.address,
+        contact_person: school.contact_person,
+        phone: school.phone,
+        email: school.email,
+        director_name: school.director_name,
+        total_students: school.total_students,
+        total_teachers: school.total_teachers,
+        is_active: school.is_active,
+        created_at: school.created_at,
+        updated_at: school.updated_at,
       }))
     } catch (error) {
       console.error("Error fetching schools:", error)
@@ -119,13 +126,19 @@ export class DatabaseService {
     try {
       return staticData.users.map((user) => ({
         id: user.id,
-        full_name: user.name,
+        full_name: user.full_name,
         email: user.email,
         role: user.role,
-        school_id: user.role === "teacher" ? user.id : null,
-        is_active: user.status === "Active",
-        last_login: user.lastLogin,
-        created_at: "2024-01-01T00:00:00Z",
+        school_id: user.school_id,
+        province_id: user.province_id,
+        district_id: user.district_id,
+        phone: user.phone,
+        gender: user.gender,
+        years_of_experience: user.years_of_experience,
+        is_active: user.is_active,
+        position: user.position,
+        created_at: user.created_at,
+        updated_at: user.updated_at,
       }))
     } catch (error) {
       console.error("Error fetching users:", error)
@@ -255,6 +268,32 @@ export class DatabaseService {
     }
   }
 
+  static async getObservationMaterials(observationId: number) {
+    try {
+      // Mock observation materials
+      return [
+        { id: 1, observation_id: observationId, material_name: "Flashcards", quantity: 1, notes: "Used for phonics" },
+        { id: 2, observation_id: observationId, material_name: "Worksheets", quantity: 2, notes: "For math exercises" },
+      ]
+    } catch (error) {
+      console.error("Error fetching observation materials:", error)
+      return []
+    }
+  }
+
+  static async getObservationTarlLevels(observationId: number) {
+    try {
+      // Mock TaRL levels observed
+      return [
+        { id: 1, observation_id: observationId, level_name: "Letter Recognition", subject: "Language", students_at_level: 10 },
+        { id: 2, observation_id: observationId, level_name: "Number Recognition", subject: "Numeracy", students_at_level: 15 },
+      ]
+    } catch (error) {
+      console.error("Error fetching observation TaRL levels:", error)
+      return []
+    }
+  }
+
   static async getObservationStats(userId?: string) {
     try {
       return {
@@ -356,6 +395,7 @@ export class DatabaseService {
           feedback_comments: "Very informative and practical",
           training_date: "2024-11-15",
           created_at: "2024-11-16T00:00:00Z",
+          updated_at: "2024-11-16T00:00:00Z",
         },
         {
           id: 2,
@@ -365,6 +405,7 @@ export class DatabaseService {
           feedback_comments: "Good examples and hands-on practice",
           training_date: "2024-11-20",
           created_at: "2024-11-21T00:00:00Z",
+          updated_at: "2024-11-21T00:00:00Z",
         },
       ]
     } catch (error) {

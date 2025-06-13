@@ -6,11 +6,11 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { supabase } from "@/lib/supabase"
 import { useAuth } from "@/lib/auth-context"
 import { ProtectedRoute } from "@/components/protected-route"
 import { Search, Eye, Edit, Calendar, MapPin, User, GraduationCap, Plus } from "lucide-react"
 import Link from "next/link"
+import { DatabaseService } from "@/lib/database"
 
 export default function ObservationsListPage() {
   const { user } = useAuth()
@@ -29,42 +29,8 @@ export default function ObservationsListPage() {
     setLoading(true)
     setError(null)
     try {
-      // Check if the view exists first
-      const { data: viewCheck, error: viewError } = await supabase
-        .from("information_schema.views")
-        .select("table_name")
-        .eq("table_name", "vw_tarl_observation_complete")
-        .single()
-
-      if (viewError || !viewCheck) {
-        console.warn("View doesn't exist yet, using main table instead")
-        // Fallback to the main table if view doesn't exist
-        let query = supabase
-          .from("tbl_tarl_observation_responses")
-          .select("*")
-          .order("visit_date", { ascending: false })
-
-        // If user is not admin, only show their own observations
-        if (user?.role !== "admin") {
-          query = query.eq("created_by", user?.id)
-        }
-
-        const { data, error } = await query
-        if (error) throw error
-        setObservations(data || [])
-      } else {
-        // Use the view if it exists
-        let query = supabase.from("vw_tarl_observation_complete").select("*").order("visit_date", { ascending: false })
-
-        // If user is not admin, only show their own observations
-        if (user?.role !== "admin") {
-          query = query.eq("created_by", user?.id)
-        }
-
-        const { data, error } = await query
-        if (error) throw error
-        setObservations(data || [])
-      }
+      const data = await DatabaseService.getObservations(user?.role !== "Admin" ? user?.id : undefined);
+      setObservations(data || []);
     } catch (error: any) {
       console.error("Error loading observations:", error)
       setError(error.message || "Failed to load observations")
@@ -104,7 +70,7 @@ export default function ObservationsListPage() {
   }, [])
 
   return (
-    <ProtectedRoute allowedRoles={["admin", "teacher", "collector"]}>
+    <ProtectedRoute allowedRoles={["Admin", "Teacher", "Collector", "Coordinator"]}>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Observation Records</h1>
@@ -265,7 +231,7 @@ export default function ObservationsListPage() {
                             <Eye className="h-4 w-4" />
                           </Button>
                         </Link>
-                        {(user?.role === "admin" || observation.created_by === Number(user?.id || "0")) && (
+                        {(user?.role === "Admin" || observation.created_by === Number(user?.id || "0")) && (
                           <Link href={`/observations/${observation.id}/edit`}>
                             <Button variant="outline" size="sm" className="soft-button">
                               <Edit className="h-4 w-4" />
