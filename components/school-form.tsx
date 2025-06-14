@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch"
 import { DatabaseService } from "@/lib/database"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
-import type { School, Province, District } from "@/lib/types"
+import type { School, Province, District, Country, Commune, Village } from "@/lib/types"
 
 interface SchoolFormProps {
   onSuccess?: () => void
@@ -28,8 +28,11 @@ export function SchoolForm({ onSuccess, onCancel, initialData }: SchoolFormProps
       name: "",
       code: "",
       address: "",
+      country_id: null,
       province_id: null,
       district_id: null,
+      commune_id: null,
+      village_id: null,
       contact_person: "",
       phone: "",
       email: "",
@@ -38,32 +41,83 @@ export function SchoolForm({ onSuccess, onCancel, initialData }: SchoolFormProps
       is_active: true,
     },
   )
+  const [countries, setCountries] = useState<Country[]>([])
   const [provinces, setProvinces] = useState<Province[]>([])
   const [districts, setDistricts] = useState<District[]>([])
+  const [communes, setCommunes] = useState<Commune[]>([])
+  const [villages, setVillages] = useState<Village[]>([])
+  const [loadingCountries, setLoadingCountries] = useState(false)
   const [loadingProvinces, setLoadingProvinces] = useState(false)
   const [loadingDistricts, setLoadingDistricts] = useState(false)
+  const [loadingCommunes, setLoadingCommunes] = useState(false)
+  const [loadingVillages, setLoadingVillages] = useState(false)
 
   useEffect(() => {
-    loadProvinces()
+    loadCountries()
   }, [])
+
+  useEffect(() => {
+    if (formData.country_id) {
+      loadProvinces(formData.country_id)
+    } else {
+      setProvinces([])
+      setDistricts([])
+      setCommunes([])
+      setVillages([])
+      setFormData((prev) => ({ ...prev, province_id: null, district_id: null, commune_id: null, village_id: null }))
+    }
+  }, [formData.country_id])
 
   useEffect(() => {
     if (formData.province_id) {
       loadDistricts(formData.province_id)
     } else {
       setDistricts([])
+      setCommunes([])
+      setVillages([])
       setFormData((prev) => ({ ...prev, district_id: null }))
     }
   }, [formData.province_id])
+
+  useEffect(() => {
+    if (formData.district_id) {
+      loadCommunes(formData.district_id)
+    } else {
+      setCommunes([])
+      setVillages([])
+      setFormData((prev) => ({ ...prev, commune_id: null, village_id: null }))
+    }
+  }, [formData.district_id])
+
+  useEffect(() => {
+    if (formData.commune_id) {
+      loadVillages(formData.commune_id)
+    } else {
+      setVillages([])
+      setFormData((prev) => ({ ...prev, village_id: null }))
+    }
+  }, [formData.commune_id])
 
   const handleChange = (field: keyof School, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const loadProvinces = async () => {
+  const loadCountries = async () => {
+    setLoadingCountries(true)
+    try {
+      const data = await DatabaseService.getCountries()
+      setCountries(data)
+    } catch (error) {
+      console.error("Error loading countries:", error)
+    } finally {
+      setLoadingCountries(false)
+    }
+  }
+
+  const loadProvinces = async (countryId: number) => {
     setLoadingProvinces(true)
     try {
-      const data = await DatabaseService.getProvinces()
+      const data = await DatabaseService.getProvincesByCountry(countryId)
       setProvinces(data)
     } catch (error) {
       console.error("Error loading provinces:", error)
@@ -84,13 +138,37 @@ export function SchoolForm({ onSuccess, onCancel, initialData }: SchoolFormProps
     }
   }
 
+  const loadCommunes = async (districtId: number) => {
+    setLoadingCommunes(true)
+    try {
+      const data = await DatabaseService.getCommunesByDistrict(districtId)
+      setCommunes(data)
+    } catch (error) {
+      console.error("Error loading communes:", error)
+    } finally {
+      setLoadingCommunes(false)
+    }
+  }
+
+  const loadVillages = async (communeId: number) => {
+    setLoadingVillages(true)
+    try {
+      const data = await DatabaseService.getVillagesByCommune(communeId)
+      setVillages(data)
+    } catch (error) {
+      console.error("Error loading villages:", error)
+    } finally {
+      setLoadingVillages(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
     try {
       // Validate required fields
-      if (!formData.name || !formData.province_id) {
+      if (!formData.name || !formData.country_id || !formData.province_id) {
         throw new Error("Please fill in all required fields")
       }
 
@@ -151,6 +229,34 @@ export function SchoolForm({ onSuccess, onCancel, initialData }: SchoolFormProps
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="country">
+            Country <span className="text-red-500">*</span>
+          </Label>
+          <Select
+            value={formData.country_id?.toString() || ""}
+            onValueChange={(value) => handleChange("country_id", value ? Number.parseInt(value) : null)}
+            required
+          >
+            <SelectTrigger id="country">
+              <SelectValue placeholder="Select country" />
+            </SelectTrigger>
+            <SelectContent>
+              {loadingCountries ? (
+                <SelectItem value="" disabled>
+                  Loading countries...
+                </SelectItem>
+              ) : (
+                countries.map((country) => (
+                  <SelectItem key={country.id} value={country.id.toString()}>
+                    {country.name_en}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="province">
             Province <span className="text-red-500">*</span>
           </Label>
@@ -158,6 +264,7 @@ export function SchoolForm({ onSuccess, onCancel, initialData }: SchoolFormProps
             value={formData.province_id?.toString() || ""}
             onValueChange={(value) => handleChange("province_id", value ? Number.parseInt(value) : null)}
             required
+            disabled={!formData.country_id}
           >
             <SelectTrigger id="province">
               <SelectValue placeholder="Select province" />
@@ -170,7 +277,7 @@ export function SchoolForm({ onSuccess, onCancel, initialData }: SchoolFormProps
               ) : (
                 provinces.map((province) => (
                   <SelectItem key={province.id} value={province.id.toString()}>
-                    {province.name}
+                    {province.name_en}
                   </SelectItem>
                 ))
               )}
@@ -183,7 +290,7 @@ export function SchoolForm({ onSuccess, onCancel, initialData }: SchoolFormProps
           <Select
             value={formData.district_id?.toString() || ""}
             onValueChange={(value) => handleChange("district_id", value ? Number.parseInt(value) : null)}
-            disabled={!formData.province_id}
+            disabled={!formData.province_id || districts.length === 0}
           >
             <SelectTrigger id="district">
               <SelectValue placeholder="Select district" />
@@ -196,7 +303,59 @@ export function SchoolForm({ onSuccess, onCancel, initialData }: SchoolFormProps
               ) : (
                 districts.map((district) => (
                   <SelectItem key={district.id} value={district.id.toString()}>
-                    {district.name}
+                    {district.name_en}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="commune">Commune</Label>
+          <Select
+            value={formData.commune_id?.toString() || ""}
+            onValueChange={(value) => handleChange("commune_id", value ? Number.parseInt(value) : null)}
+            disabled={!formData.district_id || communes.length === 0}
+          >
+            <SelectTrigger id="commune">
+              <SelectValue placeholder="Select commune" />
+            </SelectTrigger>
+            <SelectContent>
+              {loadingCommunes ? (
+                <SelectItem value="" disabled>
+                  Loading communes...
+                </SelectItem>
+              ) : (
+                communes.map((commune) => (
+                  <SelectItem key={commune.id} value={commune.id.toString()}>
+                    {commune.name_en}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="village">Village</Label>
+          <Select
+            value={formData.village_id?.toString() || ""}
+            onValueChange={(value) => handleChange("village_id", value ? Number.parseInt(value) : null)}
+            disabled={!formData.commune_id || villages.length === 0}
+          >
+            <SelectTrigger id="village">
+              <SelectValue placeholder="Select village" />
+            </SelectTrigger>
+            <SelectContent>
+              {loadingVillages ? (
+                <SelectItem value="" disabled>
+                  Loading villages...
+                </SelectItem>
+              ) : (
+                villages.map((village) => (
+                  <SelectItem key={village.id} value={village.id.toString()}>
+                    {village.name_en}
                   </SelectItem>
                 ))
               )}
@@ -252,8 +411,8 @@ export function SchoolForm({ onSuccess, onCancel, initialData }: SchoolFormProps
             id="total_students"
             type="number"
             value={formData.total_students || ""}
-            onChange={(e) => handleChange("total_students", e.target.value ? Number.parseInt(e.target.value) : null)}
-            placeholder="Enter total students"
+            onChange={(e) => handleChange("total_students", Number.parseInt(e.target.value))}
+            placeholder="Enter total number of students"
           />
         </div>
 
@@ -263,22 +422,22 @@ export function SchoolForm({ onSuccess, onCancel, initialData }: SchoolFormProps
             id="total_teachers"
             type="number"
             value={formData.total_teachers || ""}
-            onChange={(e) => handleChange("total_teachers", e.target.value ? Number.parseInt(e.target.value) : null)}
-            placeholder="Enter total teachers"
+            onChange={(e) => handleChange("total_teachers", Number.parseInt(e.target.value))}
+            placeholder="Enter total number of teachers"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="is_active">Active</Label>
+          <Switch
+            id="is_active"
+            checked={formData.is_active}
+            onCheckedChange={(checked) => handleChange("is_active", checked)}
           />
         </div>
       </div>
 
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="is_active"
-          checked={formData.is_active}
-          onCheckedChange={(checked) => handleChange("is_active", checked)}
-        />
-        <Label htmlFor="is_active">Active School</Label>
-      </div>
-
-      <div className="flex justify-end space-x-2">
+      <div className="flex justify-end space-x-2 mt-6">
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
@@ -286,7 +445,7 @@ export function SchoolForm({ onSuccess, onCancel, initialData }: SchoolFormProps
         )}
         <Button type="submit" disabled={loading}>
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {initialData?.id ? "Update" : "Create"} School
+          {initialData?.id ? "Update School" : "Create School"}
         </Button>
       </div>
     </form>

@@ -26,7 +26,7 @@ export async function GET() {
 
     try {
       const result = await client.query(
-        `SELECT id, full_name, email, username, role, school_id, province_id, district_id, is_active
+        `SELECT id, full_name, email, username, role, school_id, is_active
          FROM tbl_tarl_users
          WHERE session_token = $1 AND session_expires > NOW()`,
         [sessionToken]
@@ -40,6 +40,9 @@ export async function GET() {
           { status: 401 }
         )
       }
+
+      // Normalize role to lowercase for consistent comparison
+      user.role = user.role.toLowerCase()
 
       // Remove sensitive fields from response
       const { password: _, failed_login_attempts: __, account_locked_until: ___, ...userWithoutSensitiveData } = user

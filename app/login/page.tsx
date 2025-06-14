@@ -15,21 +15,21 @@ import type React from "react"
 const demoUsers = [
   {
     role: "Admin",
-    emailOrUsername: "kosal.vann@tarl.edu.kh",
+    emailOrUsername: "admin@tarl.org",
     description: "Complete system oversight and management",
     icon: <Users className="h-12 w-12 text-blue-600" />,
     features: ["User Management", "School Administration", "System Analytics", "Report Generation"],
   },
   {
     role: "Teacher",
-    emailOrUsername: "bunthoeun.ly@tarl.edu.kh",
+    emailOrUsername: "teacher1@tarl.org",
     description: "Classroom and student management",
     icon: <User className="h-12 w-12 text-green-600" />,
     features: ["Student Progress", "Classroom Data", "Learning Materials", "Assessment Tools"],
   },
   {
     role: "Coordinator",
-    emailOrUsername: "mealea.ros@tarl.edu.kh",
+    emailOrUsername: "coord1@tarl.org",
     description: "Regional oversight and school coordination",
     icon: <School className="h-12 w-12 text-purple-600" />,
     features: ["School Monitoring", "Teacher Support", "Regional Analytics", "Training Management"],
@@ -170,12 +170,18 @@ export default function LoginPage() {
               <CardFooter className="flex flex-col items-start">
                 <p className="text-sm text-gray-500 mb-2">Demo Accounts:</p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-2 w-full text-xs">
-                  {demoUsers.map((user, index) => (
-                    <div key={index} className="flex items-center space-x-1">
-                      <span className="font-medium">{user.role}:</span>
-                      <span className="text-gray-600">{user.emailOrUsername}</span>
-                    </div>
-                  ))}
+                  <div className="flex items-center space-x-1">
+                    <span className="font-medium">Admin:</span>
+                    <span className="text-gray-600">admin@tarl.org</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <span className="font-medium">Teacher:</span>
+                    <span className="text-gray-600">teacher1@tarl.org</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <span className="font-medium">Coordinator:</span>
+                    <span className="text-gray-600">coord1@tarl.org</span>
+                  </div>
                 </div>
               </CardFooter>
             </Card>
@@ -214,7 +220,15 @@ function RoleCard({ title, description, icon, features, emailOrUsername, onLogin
           ))}
         </ul>
       </CardContent>
-      
+      <CardFooter className="pt-4">
+        <Button 
+          onClick={() => onLogin(emailOrUsername)} 
+          disabled={isLoading}
+          className="w-full"
+        >
+          {isLoading ? "Signing in..." : `Login as ${title}`}
+        </Button>
+      </CardFooter>
     </Card>
   )
 }

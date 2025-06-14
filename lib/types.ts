@@ -7,6 +7,7 @@ export interface Province {
   name: string
   name_kh?: string
   code?: string
+  country_id: number
   created_at: string
   updated_at: string
 }
@@ -24,20 +25,20 @@ export interface District {
 export interface School {
   id: number
   name: string
-  name_kh?: string
   code?: string
-  province_id: number
-  district_id: number
-  address?: string
-  contact_person?: string
-  phone?: string
-  email?: string
-  director_name?: string
-  total_students: number
-  total_teachers: number
-  is_active: boolean
-  created_at: string
-  updated_at: string
+  cluster?: string
+  commune?: string
+  district?: string
+  province?: string
+  zone?: string
+  order?: number
+  status?: number
+  image?: string
+  createdAt: string
+  updatedAt: string
+  zoneName: string;
+  provinceName: string;
+  districtName: string;
 }
 
 export interface User {
@@ -46,7 +47,7 @@ export interface User {
   email?: string
   phone?: string | null
   role: "Admin" | "Teacher" | "Coordinator" | "Staff" // Updated to match auth context
-  school_id?: number
+  school_id?: number | null // Added null to allow null values
   province_id?: number
   district_id?: number
   gender?: "Male" | "Female" | "Other"
@@ -293,3 +294,33 @@ export interface Material {
 
 // Remove the TarlSurveyResponse interface if it exists and replace with ObservationResponse
 export type TarlSurveyResponse = ObservationResponse
+
+// New interfaces for Country, Commune, Village
+export interface Country {
+  id: number;
+  code: string;
+  name_kh: string;
+  name_en: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Commune {
+  id: number;
+  code?: string;
+  name_kh: string;
+  name_en: string;
+  district_id: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Village {
+  id: number;
+  code?: string;
+  name_kh: string;
+  name_en: string;
+  commune_id: number;
+  created_at: string;
+  updated_at: string;
+}

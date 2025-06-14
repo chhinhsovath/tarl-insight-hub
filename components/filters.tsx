@@ -1,210 +1,196 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { DatabaseService } from "@/lib/database"
-import { RotateCcw } from "lucide-react"
-import type { Province, District, School } from "@/lib/types"
+import { Search, X } from "lucide-react"
+import type { School } from "@/lib/types"
 
 interface FiltersProps {
   onFilterChange: (filters: any) => void
   showRoleFilter?: boolean
+  showSchoolFilter?: boolean
+  showStatusFilter?: boolean
+  showDateFilter?: boolean
+  showSearch?: boolean
 }
 
-export function Filters({ onFilterChange, showRoleFilter = false }: FiltersProps) {
-  const [provinces, setProvinces] = useState<Province[]>([])
-  const [districts, setDistricts] = useState<District[]>([])
+export function Filters({
+  onFilterChange,
+  showRoleFilter = false,
+  showSchoolFilter = false,
+  showStatusFilter = false,
+  showDateFilter = false,
+  showSearch = true,
+}: FiltersProps) {
+  const [filters, setFilters] = useState({
+    search: "",
+    role: "all",
+    schoolId: "all",
+    isActive: true,
+    startDate: "",
+    endDate: "",
+  })
   const [schools, setSchools] = useState<School[]>([])
-  const [loading, setLoading] = useState(false)
-  const [selectedProvince, setSelectedProvince] = useState<string>("all")
-  const [selectedDistrict, setSelectedDistrict] = useState<string>("all")
-  const [selectedSchool, setSelectedSchool] = useState<string>("all")
-  const [selectedRole, setSelectedRole] = useState<string>("all")
-  const [selectedSubject, setSelectedSubject] = useState<string>("all")
+  const [loadingSchools, setLoadingSchools] = useState(false)
 
   useEffect(() => {
-    loadProvinces()
-  }, [])
-
-  useEffect(() => {
-    if (selectedProvince !== "all") {
-      loadDistricts(Number.parseInt(selectedProvince))
-      loadSchoolsByProvince(Number.parseInt(selectedProvince))
-    } else {
-      setDistricts([])
-      setSchools([])
+    if (showSchoolFilter) {
+      loadSchools()
     }
-    setSelectedDistrict("all")
-    setSelectedSchool("all")
-  }, [selectedProvince])
+  }, [showSchoolFilter])
 
-  useEffect(() => {
-    if (selectedDistrict !== "all") {
-      loadSchoolsByDistrict(Number.parseInt(selectedDistrict))
-    }
-    setSelectedSchool("all")
-  }, [selectedDistrict])
+  const loadSchools = async () => {
+    if (schools.length > 0) return
 
-  // Call filter change notification when any filter changes
-  useEffect(() => {
-    const filters = {
-      provinceId: selectedProvince !== "all" ? Number.parseInt(selectedProvince) : null,
-      districtId: selectedDistrict !== "all" ? Number.parseInt(selectedDistrict) : null,
-      schoolId: selectedSchool !== "all" ? Number.parseInt(selectedSchool) : null,
-      role: selectedRole !== "all" ? selectedRole : null,
-      subject: selectedSubject !== "all" ? selectedSubject : null,
-    }
-    onFilterChange(filters)
-  }, [selectedProvince, selectedDistrict, selectedSchool, selectedRole, selectedSubject, onFilterChange])
-
-  const loadProvinces = async () => {
-    setLoading(true)
+    setLoadingSchools(true)
     try {
-      const data = await DatabaseService.getProvinces()
-      setProvinces(data)
-    } catch (error) {
-      console.error("Error loading provinces:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadDistricts = async (provinceId: number) => {
-    setLoading(true)
-    try {
-      const data = await DatabaseService.getDistrictsByProvince(provinceId)
-      setDistricts(data)
-    } catch (error) {
-      console.error("Error loading districts:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadSchoolsByProvince = async (provinceId: number) => {
-    setLoading(true)
-    try {
-      const data = await DatabaseService.getSchoolsByProvince(provinceId)
+      const data = await DatabaseService.getSchools()
       setSchools(data)
     } catch (error) {
       console.error("Error loading schools:", error)
     } finally {
-      setLoading(false)
+      setLoadingSchools(false)
     }
   }
 
-  const loadSchoolsByDistrict = async (districtId: number) => {
-    setLoading(true)
-    try {
-      const data = await DatabaseService.getSchoolsByDistrict(districtId)
-      setSchools(data)
-    } catch (error) {
-      console.error("Error loading schools:", error)
-    } finally {
-      setLoading(false)
-    }
+  const handleChange = (field: string, value: any) => {
+    const newFilters = { ...filters, [field]: value }
+    setFilters(newFilters)
+    onFilterChange(newFilters)
   }
 
-  const resetFilters = () => {
-    setSelectedProvince("all")
-    setSelectedDistrict("all")
-    setSelectedSchool("all")
-    setSelectedRole("all")
-    setSelectedSubject("all")
+  const handleClearFilters = () => {
+    const clearedFilters = {
+      search: "",
+      role: "all",
+      schoolId: "all",
+      isActive: true,
+      startDate: "",
+      endDate: "",
+    }
+    setFilters(clearedFilters)
+    onFilterChange(clearedFilters)
   }
 
   return (
-    <Card className="soft-card">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-base font-medium">Filters</CardTitle>
-        <Button variant="ghost" size="icon" onClick={resetFilters} className="h-8 w-8">
-          <RotateCcw className="h-4 w-4" />
-        </Button>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span>Filters</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClearFilters}
+            className="h-8 px-2"
+          >
+            <X className="h-4 w-4 mr-2" />
+            Clear
+          </Button>
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">Province</label>
-          <Select value={selectedProvince} onValueChange={setSelectedProvince}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Provinces" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Provinces</SelectItem>
-              {provinces.map((province) => (
-                <SelectItem key={province.id} value={province.id.toString()}>
-                  {province.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">District</label>
-          <Select value={selectedDistrict} onValueChange={setSelectedDistrict} disabled={selectedProvince === "all"}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Districts" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Districts</SelectItem>
-              {districts.map((district) => (
-                <SelectItem key={district.id} value={district.id.toString()}>
-                  {district.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">School</label>
-          <Select value={selectedSchool} onValueChange={setSelectedSchool} disabled={selectedProvince === "all"}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Schools" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Schools</SelectItem>
-              {schools.map((school) => (
-                <SelectItem key={school.id} value={school.id.toString()}>
-                  {school.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {showSearch && (
+          <div className="space-y-2">
+            <Label htmlFor="search">Search</Label>
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-500" />
+              <Input
+                id="search"
+                placeholder="Search users..."
+                value={filters.search}
+                onChange={(e) => handleChange("search", e.target.value)}
+                className="pl-8"
+              />
+            </div>
+          </div>
+        )}
 
         {showRoleFilter && (
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Role</label>
-            <Select value={selectedRole} onValueChange={setSelectedRole}>
-              <SelectTrigger>
-                <SelectValue placeholder="All Roles" />
+          <div className="space-y-2">
+            <Label htmlFor="role">Role</Label>
+            <Select value={filters.role} onValueChange={(value) => handleChange("role", value)}>
+              <SelectTrigger id="role">
+                <SelectValue placeholder="All roles" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="all">All roles</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="teacher">Teacher</SelectItem>
                 <SelectItem value="collector">Collector</SelectItem>
+                <SelectItem value="coordinator">Coordinator</SelectItem>
               </SelectContent>
             </Select>
           </div>
         )}
 
-        <div>
-          <label className="text-sm font-medium text-gray-700 mb-2 block">Subject</label>
-          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Subjects" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Subjects</SelectItem>
-              <SelectItem value="Math">TaRL Math</SelectItem>
-              <SelectItem value="Khmer">TaRL Khmer</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {showSchoolFilter && (
+          <div className="space-y-2">
+            <Label htmlFor="school">School</Label>
+            <Select
+              value={filters.schoolId}
+              onValueChange={(value) => handleChange("schoolId", value)}
+              onOpenChange={loadSchools}
+            >
+              <SelectTrigger id="school">
+                <SelectValue placeholder="All schools" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All schools</SelectItem>
+                {loadingSchools ? (
+                  <SelectItem value="" disabled>
+                    Loading schools...
+                  </SelectItem>
+                ) : (
+                  schools.map((school) => (
+                    <SelectItem key={school.id} value={school.id.toString()}>
+                      {school.name}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {showStatusFilter && (
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="isActive"
+              checked={filters.isActive}
+              onCheckedChange={(checked) => handleChange("isActive", checked)}
+            />
+            <Label htmlFor="isActive">Active Users Only</Label>
+          </div>
+        )}
+
+        {showDateFilter && (
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="startDate">Start Date</Label>
+              <Input
+                id="startDate"
+                type="date"
+                value={filters.startDate}
+                onChange={(e) => handleChange("startDate", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="endDate">End Date</Label>
+              <Input
+                id="endDate"
+                type="date"
+                value={filters.endDate}
+                onChange={(e) => handleChange("endDate", e.target.value)}
+              />
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

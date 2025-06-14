@@ -1,3 +1,5 @@
+import { User } from "@/lib/types";
+
 // This file is used to provide an API for database operations.
 // It should be used by client-side components to interact with the database.
 
@@ -14,6 +16,19 @@ export class DatabaseService {
       return await response.json();
     } catch (error) {
       console.error("Error fetching provinces:", error);
+      return [];
+    }
+  }
+
+  static async getProvincesByCountry(countryId: number | string) {
+    try {
+      const response = await fetch(`/api/data/provinces?country_id=${countryId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching provinces by country:", error);
       return [];
     }
   }
@@ -47,18 +62,93 @@ export class DatabaseService {
     }
   }
 
+  static async getCommunesByDistrict(districtId: number | string) {
+    try {
+      const response = await fetch(`/api/data/communes?district_id=${districtId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching communes by district:", error);
+      return [];
+    }
+  }
+
+  static async getVillagesByCommune(communeId: number | string) {
+    try {
+      const response = await fetch(`/api/data/villages?commune_id=${communeId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching villages by commune:", error);
+      return [];
+    }
+  }
+
   // =====================================================
   // SCHOOLS
   // =====================================================
-  static async getSchools() {
+  static async getSchools(filters: { search?: string; count?: boolean; id?: number; limit?: number; offset?: number; zone?: string; province?: string } = {}) {
     try {
-      const response = await fetch("/api/data/schools");
+      const query = new URLSearchParams();
+      if (filters.search) {
+        query.append("search", filters.search);
+      }
+      if (filters.count) {
+        query.append("count", "true");
+      }
+      if (filters.id) {
+        query.append("id", filters.id.toString());
+      }
+      if (filters.limit) {
+        query.append("limit", filters.limit.toString());
+      }
+      if (filters.offset) {
+        query.append("offset", filters.offset.toString());
+      }
+      if (filters.zone) {
+        query.append("zone", filters.zone);
+      }
+      if (filters.province) {
+        query.append("province", filters.province);
+      }
+
+      const response = await fetch(`/api/data/schools?${query.toString()}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       return await response.json();
     } catch (error) {
       console.error("Error fetching schools:", error);
+      return [];
+    }
+  }
+
+  static async getUniqueZones() {
+    try {
+      const response = await fetch("/api/data/schools/zones");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching unique zones:", error);
+      return [];
+    }
+  }
+
+  static async getUniqueProvinces() {
+    try {
+      const response = await fetch("/api/data/schools/provinces");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching unique provinces:", error);
       return [];
     }
   }
@@ -109,16 +199,31 @@ export class DatabaseService {
   // =====================================================
   // USERS
   // =====================================================
-  static async getUsers() {
+  static async getUsers(filters: {
+    search?: string
+    role?: string
+    schoolId?: string
+    isActive?: boolean
+    startDate?: string
+    endDate?: string
+  } = {}) {
     try {
-      const response = await fetch("/api/data/users");
+      const response = await fetch("/api/data/users", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(filters),
+      })
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error("Failed to fetch users")
       }
-      return await response.json();
+
+      return await response.json()
     } catch (error) {
-      console.error("Error fetching users:", error);
-      return [];
+      console.error("Error fetching users:", error)
+      throw error
     }
   }
 
@@ -149,6 +254,115 @@ export class DatabaseService {
     } catch (error) {
       console.error("Error creating user:", error);
       return null;
+    }
+  }
+
+  static async updateUser(userId: number, userData: any) {
+    try {
+      const response = await fetch(`/api/data/users/${userId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(userData),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error updating user:", error);
+      throw error;
+    }
+  }
+
+  static async getUserById(userId: number) {
+    try {
+      const response = await fetch(`/api/data/users/${userId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      throw error;
+    }
+  }
+
+  static async updatePassword(passwordData: { current_password: string; new_password: string }) {
+    try {
+      const response = await fetch("/api/data/users/password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(passwordData),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error updating password:", error);
+      throw error;
+    }
+  }
+
+  static async getUserActivities(userId: number) {
+    try {
+      const response = await fetch(`/api/data/users/${userId}/activities`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching user activities:", error);
+      return [];
+    }
+  }
+
+  static async deleteUser(userId: number) {
+    try {
+      const response = await fetch(`/api/data/users/${userId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      throw error;
+    }
+  }
+
+  static async getUserSessions(userId: number) {
+    try {
+      const response = await fetch(`/api/data/users/${userId}/sessions`)
+      if (!response.ok) {
+        throw new Error("Failed to fetch user sessions")
+      }
+      return await response.json()
+    } catch (error) {
+      console.error("Error fetching user sessions:", error)
+      throw error
+    }
+  }
+
+  static async terminateSession(userId: number, sessionId: number) {
+    try {
+      const response = await fetch(`/api/data/users/${userId}/sessions`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ sessionId }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to terminate session")
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error("Error terminating session:", error)
+      throw error
     }
   }
 
@@ -217,7 +431,7 @@ export class DatabaseService {
 
   static async getObservationActivities(observationId: number) {
     try {
-      const response = await fetch(`/api/data/observations/${observationId}/activities`);
+      const response = await fetch(`/api/data/observation-activities?observationId=${observationId}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -230,7 +444,7 @@ export class DatabaseService {
 
   static async getObservationMaterials(observationId: number) {
     try {
-      const response = await fetch(`/api/data/observations/${observationId}/materials`);
+      const response = await fetch(`/api/data/observation-materials?observationId=${observationId}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -243,20 +457,20 @@ export class DatabaseService {
 
   static async getObservationTarlLevels(observationId: number) {
     try {
-      const response = await fetch(`/api/data/observations/${observationId}/tarl-levels`);
+      const response = await fetch(`/api/data/observation-tarl-levels?observationId=${observationId}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       return await response.json();
     } catch (error) {
-      console.error("Error fetching observation Tarl levels:", error);
+      console.error("Error fetching observation TaRL levels:", error);
       return [];
     }
   }
 
   static async getObservationStats(userId?: string) {
     try {
-      const url = userId ? `/api/data/observations/stats?userId=${userId}` : "/api/data/observations/stats";
+      const url = userId ? `/api/data/observation-stats?userId=${userId}` : "/api/data/observation-stats";
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -265,233 +479,6 @@ export class DatabaseService {
     } catch (error) {
       console.error("Error fetching observation stats:", error);
       return [];
-    }
-  }
-
-  // =====================================================
-  // LEARNING PROGRESS
-  // =====================================================
-  static async getLearningProgressSummary(filters: any = {}) {
-    try {
-      const params = new URLSearchParams();
-      for (const key in filters) {
-        if (filters[key]) {
-          params.append(key, filters[key]);
-        }
-      }
-      const url = `/api/data/learning-progress?${params.toString()}`;
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching learning progress summary:", error);
-      return [];
-    }
-  }
-
-  // =====================================================
-  // STUDENTS
-  // =====================================================
-  static async getStudents() {
-    try {
-      const response = await fetch("/api/data/students");
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching students:", error);
-      return [];
-    }
-  }
-
-  static async createStudent(student: any) {
-    try {
-      const response = await fetch("/api/data/students", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(student),
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error creating student:", error);
-      return null;
-    }
-  }
-
-  // =====================================================
-  // SUBJECTS
-  // =====================================================
-  static async getSubjects() {
-    try {
-      const response = await fetch("/api/data/subjects");
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching subjects:", error);
-      return [];
-    }
-  }
-
-  // =====================================================
-  // TRAINING FEEDBACK
-  // =====================================================
-  static async getTrainingFeedback() {
-    try {
-      const response = await fetch("/api/data/training-feedback");
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching training feedback:", error);
-      return [];
-    }
-  }
-
-  static async createTrainingFeedback(feedback: any) {
-    try {
-      const response = await fetch("/api/data/training-feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(feedback),
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error creating training feedback:", error);
-      return null;
-    }
-  }
-
-  // =====================================================
-  // SURVEY ANALYTICS
-  // =====================================================
-  static async getSurveyAnalytics() {
-    try {
-      const response = await fetch("/api/data/survey-analytics");
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching survey analytics:", error);
-      return [];
-    }
-  }
-
-  // =====================================================
-  // DASHBOARD STATS
-  // =====================================================
-  static async getDashboardStats(filters: any = {}) {
-    try {
-      const params = new URLSearchParams();
-      for (const key in filters) {
-        if (filters[key]) {
-          params.append(key, filters[key]);
-        }
-      }
-      const url = `/api/data/dashboard-stats?${params.toString()}`;
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching dashboard stats:", error);
-      return null;
-    }
-  }
-
-  // =====================================================
-  // Schools with Details
-  // =====================================================
-  static async getSchoolsWithDetails() {
-    try {
-      const response = await fetch("/api/data/schools-with-details");
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching schools with details:", error);
-      return [];
-    }
-  }
-
-  // =====================================================
-  // Users with Details
-  // =====================================================
-  static async getUsersWithDetails() {
-    try {
-      const response = await fetch("/api/data/users-with-details");
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching users with details:", error);
-      return [];
-    }
-  }
-
-  // =====================================================
-  // Check Tables Exist
-  // =====================================================
-  static async checkTablesExist(tableNames?: string[]) {
-    try {
-      const url = tableNames ? `/api/data/check-tables-exist?tableNames=${tableNames.join(',')}` : "/api/data/check-tables-exist";
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error checking tables existence:", error);
-      return false;
-    }
-  }
-
-  // =====================================================
-  // Survey Responses
-  // =====================================================
-  static async getSurveyResponses(surveyId?: number) {
-    try {
-      const url = surveyId ? `/api/data/survey-responses?surveyId=${surveyId}` : "/api/data/survey-responses";
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error fetching survey responses:", error);
-      return [];
-    }
-  }
-
-  static async createSurveyResponse(surveyResponse: any) {
-    try {
-      const response = await fetch("/api/data/survey-responses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(surveyResponse),
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error("Error creating survey response:", error);
-      return null;
     }
   }
 }

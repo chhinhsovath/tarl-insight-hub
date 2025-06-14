@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     try {
       // Find user by email or username
       const result = await client.query(
-        `SELECT id, full_name, email, username, role, school_id, province_id, district_id, 
+        `SELECT id, full_name, email, username, role, school_id, 
                 password, failed_login_attempts, account_locked_until, is_active
          FROM tbl_tarl_users 
          WHERE (email = $1 OR username = $2)`,
@@ -67,6 +67,9 @@ export async function POST(request: Request) {
         )
       }
 
+      // Normalize role to lowercase for consistent comparison
+      user.role = user.role.toLowerCase()
+      
       // Verify password
       const passwordMatch = await bcrypt.compare(password, user.password)
 

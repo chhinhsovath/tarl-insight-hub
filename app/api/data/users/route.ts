@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Pool } from "pg";
+import { cookies } from "next/headers";
 
 const pool = new Pool({
   user: process.env.PGUSER,
@@ -9,91 +10,86 @@ const pool = new Pool({
   port: parseInt(process.env.PGPORT || '5432', 10),
 });
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const role = searchParams.get('role');
-  const provinceId = searchParams.get('provinceId');
-  const districtId = searchParams.get('districtId');
-  const schoolId = searchParams.get('schoolId');
-
-  try {
-    const client = await pool.connect();
-    let queryText = `
-      SELECT 
-        u.id,
-        u.full_name,
-        u.email,
-        u.role,
-        u.province_id,
-        u.district_id,
-        u.school_id,
-        u.created_at,
-        u.updated_at,
-        p.name as province_name,
-        d.name as district_name,
-        s.name as school_name
-      FROM tbl_tarl_users u
-      LEFT JOIN tbl_tarl_provinces p ON u.province_id = p.id
-      LEFT JOIN tbl_tarl_districts d ON u.district_id = d.id
-      LEFT JOIN tbl_tarl_schools s ON u.school_id = s.id
-      WHERE 1=1
-    `;
-
-    const params: any[] = [];
-    let paramCount = 1;
-
-    if (role) {
-      queryText += ` AND u.role = $${paramCount}`;
-      params.push(role);
-      paramCount++;
-    }
-
-    if (provinceId) {
-      queryText += ` AND u.province_id = $${paramCount}`;
-      params.push(provinceId);
-      paramCount++;
-    }
-
-    if (districtId) {
-      queryText += ` AND u.district_id = $${paramCount}`;
-      params.push(districtId);
-      paramCount++;
-    }
-
-    if (schoolId) {
-      queryText += ` AND u.school_id = $${paramCount}`;
-      params.push(schoolId);
-      paramCount++;
-    }
-
-    queryText += " ORDER BY u.full_name";
-
-    const res = await client.query(queryText, params);
-    client.release();
-    return NextResponse.json(res.rows);
-  } catch (error) {
-    console.error("Error fetching users:", error);
-    return NextResponse.json({ message: "Error fetching users" }, { status: 500 });
-  }
-}
-
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { full_name, email, role, provinceId, districtId, schoolId } = body;
+    const filters = await request.json();
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get("session-token")?.value;
 
-    const client = await pool.connect();
-    const res = await client.query(
-      `INSERT INTO tbl_tarl_users (full_name, email, role, province_id, district_id, school_id)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
-      [full_name, email, role, provinceId, districtId, schoolId]
+    if (!sessionToken) {
+      console.error("API Error: Unauthorized - No session token provided.")
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify session and get user
+    const sessionResult = await pool.query(
+      "SELECT id, role FROM tbl_tarl_users WHERE session_token = $1 AND session_expires > NOW()",
+      [sessionToken]
     );
-    client.release();
 
-    return NextResponse.json(res.rows[0]);
+    if (sessionResult.rows.length === 0) {
+      console.error("API Error: Invalid session - Session token is invalid or expired.")
+      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    }
+
+    const currentUser = sessionResult.rows[0];
+    
+    // Check if user has admin role for user management (case-insensitive)
+    if (currentUser.role.toLowerCase() !== 'admin') {
+      return NextResponse.json({ error: "Access denied. Admin role required." }, { status: 403 });
+    }
+
+    // Build the query with filters
+    let query = "SELECT * FROM tbl_tarl_users WHERE 1=1";
+    const queryParams: any[] = [];
+    let paramIndex = 1;
+
+    if (filters.search) {
+      query += ` AND (
+        full_name ILIKE $${paramIndex} OR
+        email ILIKE $${paramIndex} OR
+        phone ILIKE $${paramIndex}
+      )`;
+      queryParams.push(`%${filters.search}%`);
+      paramIndex++;
+    }
+
+    if (filters.role && filters.role !== "all") {
+      query += ` AND role = $${paramIndex}`;
+      queryParams.push(filters.role);
+      paramIndex++;
+    }
+
+    if (filters.schoolId && filters.schoolId !== "all") {
+      query += ` AND school_id = $${paramIndex}`;
+      queryParams.push(filters.schoolId);
+      paramIndex++;
+    }
+
+    if (filters.isActive !== undefined) {
+      query += ` AND is_active = $${paramIndex}`;
+      queryParams.push(filters.isActive);
+      paramIndex++;
+    }
+
+    if (filters.startDate) {
+      query += ` AND created_at >= $${paramIndex}`;
+      queryParams.push(filters.startDate);
+      paramIndex++;
+    }
+
+    if (filters.endDate) {
+      query += ` AND created_at <= $${paramIndex}`;
+      queryParams.push(filters.endDate);
+      paramIndex++;
+    }
+
+    query += " ORDER BY created_at DESC";
+
+    const result = await pool.query(query, queryParams);
+    return NextResponse.json(result.rows);
   } catch (error) {
-    console.error("Error creating user:", error);
-    return NextResponse.json({ message: "Error creating user" }, { status: 500 });
+    console.error("API Error: An unexpected error occurred while fetching users:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 } 

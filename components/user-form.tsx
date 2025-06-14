@@ -2,11 +2,17 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { DatabaseService } from "@/lib/database"
 import { useToast } from "@/hooks/use-toast"
@@ -28,30 +34,14 @@ export function UserForm({ onSuccess, onCancel, initialData }: UserFormProps) {
       email: "",
       phone: "",
       position: "",
-      role: "teacher",
+      role: "Teacher",
       school_id: null,
       is_active: true,
     },
   )
-  const [schools, setSchools] = useState<any[]>([])
-  const [loadingSchools, setLoadingSchools] = useState(false)
 
   const handleChange = (field: keyof User, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-  }
-
-  const loadSchools = async () => {
-    if (schools.length > 0) return
-
-    setLoadingSchools(true)
-    try {
-      const data = await DatabaseService.getSchools()
-      setSchools(data)
-    } catch (error) {
-      console.error("Error loading schools:", error)
-    } finally {
-      setLoadingSchools(false)
-    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,8 +57,8 @@ export function UserForm({ onSuccess, onCancel, initialData }: UserFormProps) {
       // Create or update user
       let result
       if (initialData?.id) {
-        // Update existing user (not implemented yet)
-        result = { ...formData, id: initialData.id }
+        // Update existing user
+        result = await DatabaseService.updateUser(initialData.id, formData)
       } else {
         // Create new user
         result = await DatabaseService.createUser(formData as Omit<User, "id" | "created_at" | "updated_at">)
@@ -145,64 +135,36 @@ export function UserForm({ onSuccess, onCancel, initialData }: UserFormProps) {
           <Label htmlFor="role">
             Role <span className="text-red-500">*</span>
           </Label>
-          <Select value={formData.role || "teacher"} onValueChange={(value) => handleChange("role", value)} required>
+          <Select value={formData.role || "Teacher"} onValueChange={(value) => handleChange("role", value)} required>
             <SelectTrigger id="role">
               <SelectValue placeholder="Select role" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="teacher">Teacher</SelectItem>
-              <SelectItem value="collector">Collector</SelectItem>
+              <SelectItem value="Admin">Admin</SelectItem>
+              <SelectItem value="Teacher">Teacher</SelectItem>
+              <SelectItem value="Collector">Collector</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="school">School</Label>
-          <Select
-            value={formData.school_id?.toString() || "0"}
-            onValueChange={(value) => handleChange("school_id", value ? Number.parseInt(value) : null)}
-            onOpenChange={loadSchools}
-          >
-            <SelectTrigger id="school">
-              <SelectValue placeholder="Select school" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0">No School</SelectItem>
-              {loadingSchools ? (
-                <SelectItem value="" disabled>
-                  Loading schools...
-                </SelectItem>
-              ) : (
-                schools.map((school) => (
-                  <SelectItem key={school.id} value={school.id.toString()}>
-                    {school.name}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
+          <Label htmlFor="is_active">Account Status</Label>
+          <Switch
+            id="is_active"
+            checked={formData.is_active}
+            onCheckedChange={(checked) => handleChange("is_active", checked)}
+          />
+          <span className="ml-2 text-sm text-gray-600">{formData.is_active ? "Active" : "Inactive"}</span>
         </div>
       </div>
 
-      <div className="flex items-center space-x-2">
-        <Switch
-          id="is_active"
-          checked={formData.is_active}
-          onCheckedChange={(checked) => handleChange("is_active", checked)}
-        />
-        <Label htmlFor="is_active">Active User</Label>
-      </div>
-
-      <div className="flex justify-end space-x-2">
-        {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-        )}
+      <div className="flex justify-end space-x-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
         <Button type="submit" disabled={loading}>
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {initialData?.id ? "Update" : "Create"} User
+          {initialData?.id ? "Update User" : "Create User"}
         </Button>
       </div>
     </form>
