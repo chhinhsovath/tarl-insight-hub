@@ -11,11 +11,7 @@ export function TopNav() {
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">TaRL Insight Hub</h1>
-          <p className="text-sm text-gray-600">Teaching at the Right Level - Data Management System</p>
-        </div>
+      <div className="flex items-center justify-end">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm">
             <Bell className="h-4 w-4" />

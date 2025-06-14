@@ -39,6 +39,8 @@ export interface School {
   zoneName: string;
   provinceName: string;
   districtName: string;
+  totalStudents?: number;
+  totalTeachers?: number;
 }
 
 export interface User {

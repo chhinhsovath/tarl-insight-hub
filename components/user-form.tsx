@@ -149,19 +149,19 @@ export function UserForm({ onSuccess, onCancel, initialData }: UserFormProps) {
 
         <div className="space-y-2">
           <Label htmlFor="is_active">Account Status</Label>
-          <Switch
-            id="is_active"
-            checked={formData.is_active}
-            onCheckedChange={(checked) => handleChange("is_active", checked)}
-          />
+        <Switch
+          id="is_active"
+          checked={formData.is_active}
+          onCheckedChange={(checked) => handleChange("is_active", checked)}
+        />
           <span className="ml-2 text-sm text-gray-600">{formData.is_active ? "Active" : "Inactive"}</span>
         </div>
       </div>
 
       <div className="flex justify-end space-x-4">
-        <Button type="button" variant="outline" onClick={onCancel}>
-          Cancel
-        </Button>
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
         <Button type="submit" disabled={loading}>
           {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {initialData?.id ? "Update User" : "Create User"}

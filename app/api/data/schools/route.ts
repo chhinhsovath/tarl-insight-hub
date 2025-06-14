@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const offset = parseInt(searchParams.get("offset") || '0', 10);
     const filterZone = searchParams.get("zone");
     const filterProvince = searchParams.get("province");
-
+    
     const client = await pool.connect();
     let query;
     const params = [];
@@ -31,11 +31,11 @@ export async function GET(request: Request) {
       params.push(`%${searchTerm}%`);
     }
     if (filterZone) {
-      whereClauses.push(`"sclZoneName" ILIKE $${paramIndex++}`);
+      whereClauses.push(`"sclZoneName\" ILIKE $${paramIndex++}`);
       params.push(`%${filterZone}%`);
     }
     if (filterProvince) {
-      whereClauses.push(`"sclProvinceName" ILIKE $${paramIndex++}`);
+      whereClauses.push(`"sclProvinceName\" ILIKE $${paramIndex++}`);
       params.push(`%${filterProvince}%`);
     }
 
@@ -70,6 +70,7 @@ export async function GET(request: Request) {
 
     const result = await client.query(query, params);
     client.release();
+    
     return NextResponse.json(countOnly ? { total: parseInt(result.rows[0].total) } : result.rows);
   } catch (error) {
     console.error("Error fetching schools:", error);
@@ -79,33 +80,3 @@ export async function GET(request: Request) {
     );
   }
 }
-
-export async function GET_UNIQUE_ZONES(request: Request) {
-  try {
-    const client = await pool.connect();
-    const result = await client.query('SELECT DISTINCT "sclZoneName" FROM tbl_tarl_schools WHERE "sclZoneName" IS NOT NULL ORDER BY "sclZoneName"');
-    client.release();
-    return NextResponse.json(result.rows.map(row => row.sclZoneName));
-  } catch (error) {
-    console.error("Error fetching unique zones:", error);
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET_UNIQUE_PROVINCES(request: Request) {
-  try {
-    const client = await pool.connect();
-    const result = await client.query('SELECT DISTINCT "sclProvinceName" FROM tbl_tarl_schools WHERE "sclProvinceName" IS NOT NULL ORDER BY "sclProvinceName"');
-    client.release();
-    return NextResponse.json(result.rows.map(row => row.sclProvinceName));
-  } catch (error) {
-    console.error("Error fetching unique provinces:", error);
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    );
-  }
-} 

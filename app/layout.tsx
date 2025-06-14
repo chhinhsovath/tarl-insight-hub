@@ -17,8 +17,8 @@ import {
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "TaRL Insight Hub",
-  description: "Teaching at the Right Level - Observation and Analytics Platform",
+  title: "គរុកោសល្យ និងវិក្រឹតការ",
+  description: "Details for គរុកោសល្យ និងវិក្រឹតការ",
     generator: 'v0.dev'
 }
 
