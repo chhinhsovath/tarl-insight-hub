@@ -68,47 +68,21 @@ export default function SchoolDetailsPage() {
               <CardDescription>Code: {school.code || "N/A"}</CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Tabular alignment using grid */}
               <div className="grid grid-cols-2 gap-y-4 gap-x-8 text-sm">
                 <p><strong>Zone:</strong></p>
                 <p>{school.zoneName || "N/A"}</p>
-
                 <p><strong>Province:</strong></p>
                 <p>{school.provinceName || "N/A"}</p>
-
                 <p><strong>District:</strong></p>
                 <p>{school.districtName || "N/A"}</p>
-
-                <p><strong>Cluster:</strong></p>
-                <p>{school.cluster || "N/A"}</p>
-
-                <p><strong>Commune:</strong></p>
-                <p>{school.commune || "N/A"}</p>
-
                 <p><strong>Status:</strong></p>
                 <p>{school.status === 1 ? "Active" : "Inactive"}</p>
               </div>
-
-              {school.image && (
-                <div className="mt-4">
-                  <p><strong>Image:</strong></p>
-                  <img src={school.image} alt="School Image" className="mt-2 max-w-xs" />
-                </div>
-              )}
             </CardContent>
-            
-            {/* Edit and Back buttons moved inside the CardFooter */}
             <CardFooter className="flex justify-between pt-4">
-              <Button
-                variant="outline"
-                onClick={() => router.back()}
-              >
-                Back
-              </Button>
+              <Button variant="outline" onClick={() => router.back()}>Back</Button>
               <Link href={`/schools/${school.id}/edit`}>
-                <Button className={cn(buttonVariants({ variant: "default" }))}>
-                  Edit School
-                </Button>
+                <Button className={cn(buttonVariants({ variant: "default" }))}>Edit School</Button>
               </Link>
             </CardFooter>
           </Card>

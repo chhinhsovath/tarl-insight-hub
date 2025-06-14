@@ -4,7 +4,6 @@ import { useEffect, useState } from "react"
 import { PageLayout } from "@/components/page-layout"
 import { DatabaseService } from "@/lib/database"
 import type { School as SchoolType } from "@/lib/types"
-import { SchoolForm } from "@/components/school-form"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -44,10 +43,6 @@ export default function EditSchoolPage() {
     fetchSchool();
   }, [schoolId]);
 
-  const handleSuccess = () => {
-    router.push(`/schools/${schoolId}`);
-  };
-
   if (loading) {
     return <PageLayout title="Loading School..." description="Fetching school details for editing...">{null}</PageLayout>;
   }
@@ -70,19 +65,63 @@ export default function EditSchoolPage() {
               <CardDescription>Update school information</CardDescription>
             </CardHeader>
             <CardContent>
-              <SchoolForm initialData={school} onSuccess={handleSuccess} hideExtraFields={true} />
-            </CardContent>
-            <CardFooter className="flex justify-between pt-4">
-              <Button
-                variant="outline"
-                onClick={() => router.back()}
+              <form
+                id="school-edit-form"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setLoading(true);
+                  try {
+                    const updated = await DatabaseService.updateSchool(school.id, {
+                      name: school.name,
+                      code: school.code,
+                      zoneName: school.zoneName,
+                      provinceName: school.provinceName,
+                      districtName: school.districtName,
+                      status: school.status,
+                    });
+                    if (updated) router.push(`/schools/${school.id}`);
+                  } catch (err) {
+                    setError("Failed to update school.");
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="space-y-6"
               >
-                Back
-              </Button>
-              <Button type="submit" form="school-edit-form" disabled={loading}>
-                Update School
-              </Button>
-            </CardFooter>
+                <div>
+                  <label htmlFor="name">School Name</label>
+                  <input id="name" value={school.name || ""} onChange={e => setSchool({ ...school, name: e.target.value })} required className="input" />
+                </div>
+                <div>
+                  <label htmlFor="code">School Code</label>
+                  <input id="code" value={school.code || ""} onChange={e => setSchool({ ...school, code: e.target.value })} className="input" />
+                </div>
+                <div>
+                  <label htmlFor="zoneName">Zone</label>
+                  <input id="zoneName" value={school.zoneName || ""} onChange={e => setSchool({ ...school, zoneName: e.target.value })} className="input" />
+                </div>
+                <div>
+                  <label htmlFor="provinceName">Province</label>
+                  <input id="provinceName" value={school.provinceName || ""} onChange={e => setSchool({ ...school, provinceName: e.target.value })} className="input" />
+                </div>
+                <div>
+                  <label htmlFor="districtName">District</label>
+                  <input id="districtName" value={school.districtName || ""} onChange={e => setSchool({ ...school, districtName: e.target.value })} className="input" />
+                </div>
+                <div>
+                  <label htmlFor="status">Status</label>
+                  <select id="status" value={school.status} onChange={e => setSchool({ ...school, status: Number(e.target.value) })} className="input">
+                    <option value={1}>Active</option>
+                    <option value={0}>Inactive</option>
+                  </select>
+                </div>
+                <div className="flex justify-between pt-4">
+                  <Button variant="outline" type="button" onClick={() => router.back()}>Back</Button>
+                  <Button type="submit" disabled={loading}>Update School</Button>
+                </div>
+                {error && <p className="text-red-500">{error}</p>}
+              </form>
+            </CardContent>
           </Card>
         </div>
       </PageLayout>

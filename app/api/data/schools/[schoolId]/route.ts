@@ -35,10 +35,8 @@ export async function GET(request: Request) {
         "sclZoneName" as zoneName,
         "sclProvinceName" as provinceName,
         "sclDistrictName" as districtName,
-        "total_students" as totalStudents,
-        "total_teachers" as totalTeachers,
-        "createdAt" as createdAt,
-        "updatedAt" as updatedAt
+        "updated_at" as updatedAt,
+        "total_students" as totalStudents
       FROM
         tbl_tarl_schools
       WHERE "sclAutoID" = $1
@@ -70,12 +68,14 @@ export async function PUT(request: Request) {
     }
 
     const data = await request.json();
+    console.log('Received data for school update:', JSON.stringify(data, null, 2));
+    
     const client = await pool.connect();
     let updateFields = [];
     let params = [];
     let paramIndex = 1;
 
-    // Map frontend camelCase to database PascalCase/snake_case
+    // Map frontend camelCase to database columns that exist
     if (data.name !== undefined) { updateFields.push(`"sclName" = $${paramIndex++}`); params.push(data.name); }
     if (data.code !== undefined) { updateFields.push(`"sclCode" = $${paramIndex++}`); params.push(data.code); }
     if (data.cluster !== undefined) { updateFields.push(`"sclCluster" = $${paramIndex++}`); params.push(data.cluster); }
@@ -90,8 +90,7 @@ export async function PUT(request: Request) {
     if (data.provinceName !== undefined) { updateFields.push(`"sclProvinceName" = $${paramIndex++}`); params.push(data.provinceName); }
     if (data.districtName !== undefined) { updateFields.push(`"sclDistrictName" = $${paramIndex++}`); params.push(data.districtName); }
     if (data.totalStudents !== undefined) { updateFields.push(`"total_students" = $${paramIndex++}`); params.push(data.totalStudents); }
-    if (data.totalTeachers !== undefined) { updateFields.push(`"total_teachers" = $${paramIndex++}`); params.push(data.totalTeachers); }
-
+    
     if (updateFields.length === 0) {
       client.release();
       return NextResponse.json({ message: "No fields to update" }, { status: 400 });
@@ -106,8 +105,13 @@ export async function PUT(request: Request) {
     `;
     params.push(schoolId);
 
+    console.log('Update query:', query);
+    console.log('Update params:', params);
+
     const result = await client.query(query, params);
     client.release();
+    
+    console.log('Update result rows:', result.rows.length);
 
     if (result.rows.length > 0) {
       return NextResponse.json(result.rows[0]);

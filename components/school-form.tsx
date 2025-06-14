@@ -24,42 +24,100 @@ interface SchoolFormProps {
 export function SchoolForm({ onSuccess, onCancel, initialData, hideExtraFields }: SchoolFormProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState<Partial<School>>(
-    initialData || {
-      name: "",
-      code: "",
-      zoneName: "",
-      provinceName: "",
-      districtName: "",
-      cluster: "",
-      commune: "",
-      order: 0,
-      status: 1, // Default to active
-      image: "",
-      totalStudents: 0,
-      totalTeachers: 0,
-    },
-  )
+  const [formData, setFormData] = useState<Partial<School>>(() => ({
+    name: "",
+    code: "",
+    zoneName: "",
+    provinceName: "",
+    districtName: "",
+    cluster: "",
+    commune: "",
+    order: 0,
+    status: 1,
+    image: "",
+    totalStudents: 0,
+    totalTeachers: 0,
+    ...initialData,
+  }))
   
   const [uniqueZones, setUniqueZones] = useState<string[]>([]);
   const [uniqueProvinces, setUniqueProvinces] = useState<string[]>([]);
+  const [isLoadingFilters, setIsLoadingFilters] = useState(true);
+
+  // Update form data when initialData changes (for edit mode)
+  useEffect(() => {
+    if (initialData) {
+      console.log('SchoolForm: initialData changed:', initialData);
+      setFormData(prev => ({
+        name: "",
+        code: "",
+        zoneName: "",
+        provinceName: "",
+        districtName: "",
+        cluster: "",
+        commune: "",
+        order: 0,
+        status: 1,
+        image: "",
+        totalStudents: 0,
+        totalTeachers: 0,
+        ...initialData,
+      }));
+    }
+  }, [initialData]);
 
   useEffect(() => {
     const fetchUniqueFilters = async () => {
+      setIsLoadingFilters(true);
       try {
-        const zones = await DatabaseService.getUniqueZones();
+        const [zones, provinces] = await Promise.all([
+          DatabaseService.getUniqueZones(),
+          DatabaseService.getUniqueProvinces()
+        ]);
         setUniqueZones(zones);
-        const provinces = await DatabaseService.getUniqueProvinces();
         setUniqueProvinces(provinces);
       } catch (error) {
         console.error("Error fetching unique zones or provinces:", error);
+        toast({
+          title: "Warning",
+          description: "Failed to load zone and province options",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingFilters(false);
       }
     };
     fetchUniqueFilters();
-  }, []);
+  }, [toast]);
 
   const handleChange = (field: keyof School, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const validateForm = () => {
+    const errors: string[] = []
+    
+    if (!formData.name?.trim()) {
+      errors.push("School name is required")
+    }
+    
+    if (!formData.zoneName?.trim()) {
+      errors.push("Zone is required")
+    }
+    
+    if (!formData.provinceName?.trim()) {
+      errors.push("Province is required")
+    }
+    
+    if (formData.totalStudents !== undefined && formData.totalStudents < 0) {
+      errors.push("Total students cannot be negative")
+    }
+    
+    if (formData.totalTeachers !== undefined && formData.totalTeachers < 0) {
+      errors.push("Total teachers cannot be negative")
+    }
+    
+    return errors
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,17 +125,31 @@ export function SchoolForm({ onSuccess, onCancel, initialData, hideExtraFields }
     setLoading(true)
 
     try {
-      if (!formData.name || !formData.provinceName || !formData.zoneName) {
-        throw new Error("School Name, Zone, and Province are required fields.")
+      const validationErrors = validateForm()
+      if (validationErrors.length > 0) {
+        throw new Error(validationErrors.join(", "))
+      }
+
+      const sanitizedData = {
+        ...formData,
+        name: formData.name?.trim(),
+        code: formData.code?.trim() || undefined,
+        zoneName: formData.zoneName?.trim(),
+        provinceName: formData.provinceName?.trim(),
+        districtName: formData.districtName?.trim() || undefined,
+        cluster: formData.cluster?.trim() || undefined,
+        commune: formData.commune?.trim() || undefined,
+        image: formData.image?.trim() || undefined,
+        totalStudents: Math.max(0, formData.totalStudents || 0),
+        totalTeachers: Math.max(0, formData.totalTeachers || 0),
+        order: Math.max(0, formData.order || 0)
       }
 
       let result
       if (initialData?.id) {
-        // Update existing school
-        result = await DatabaseService.updateSchool(initialData.id, formData)
+        result = await DatabaseService.updateSchool(initialData.id, sanitizedData)
       } else {
-        // Create new school
-        result = await DatabaseService.createSchool(formData as Omit<School, "id" | "createdAt" | "updatedAt">)
+        result = await DatabaseService.createSchool(sanitizedData as Omit<School, "id" | "createdAt" | "updatedAt">)
       }
 
       if (result) {
@@ -125,9 +197,9 @@ export function SchoolForm({ onSuccess, onCancel, initialData, hideExtraFields }
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <Label htmlFor="zoneName">Zone <span className="text-red-500">*</span></Label>
-          <Select onValueChange={(value) => handleChange("zoneName", value)} value={formData.zoneName || ""} required>
+          <Select onValueChange={(value) => handleChange("zoneName", value)} value={formData.zoneName || ""} required disabled={isLoadingFilters}>
             <SelectTrigger id="zoneName">
-              <SelectValue placeholder="Select Zone" />
+              <SelectValue placeholder={isLoadingFilters ? "Loading zones..." : "Select Zone"} />
             </SelectTrigger>
             <SelectContent>
               {uniqueZones.map((zone) => (
@@ -140,9 +212,9 @@ export function SchoolForm({ onSuccess, onCancel, initialData, hideExtraFields }
         </div>
         <div>
           <Label htmlFor="provinceName">Province <span className="text-red-500">*</span></Label>
-          <Select onValueChange={(value) => handleChange("provinceName", value)} value={formData.provinceName || ""} required>
+          <Select onValueChange={(value) => handleChange("provinceName", value)} value={formData.provinceName || ""} required disabled={isLoadingFilters}>
             <SelectTrigger id="provinceName">
-              <SelectValue placeholder="Select Province" />
+              <SelectValue placeholder={isLoadingFilters ? "Loading provinces..." : "Select Province"} />
             </SelectTrigger>
             <SelectContent>
               {uniqueProvinces.map((province) => (
@@ -189,8 +261,9 @@ export function SchoolForm({ onSuccess, onCancel, initialData, hideExtraFields }
             <Input
               id="order"
               type="number"
+              min="0"
               value={formData.order || 0}
-              onChange={(e) => handleChange("order", parseInt(e.target.value) || 0)}
+              onChange={(e) => handleChange("order", Math.max(0, parseInt(e.target.value) || 0))}
             />
           </div>
           <div>
@@ -223,8 +296,9 @@ export function SchoolForm({ onSuccess, onCancel, initialData, hideExtraFields }
             <Input
               id="totalStudents"
               type="number"
+              min="0"
               value={formData.totalStudents || 0}
-              onChange={(e) => handleChange("totalStudents", parseInt(e.target.value) || 0)}
+              onChange={(e) => handleChange("totalStudents", Math.max(0, parseInt(e.target.value) || 0))}
             />
           </div>
           <div>
@@ -232,8 +306,9 @@ export function SchoolForm({ onSuccess, onCancel, initialData, hideExtraFields }
             <Input
               id="totalTeachers"
               type="number"
+              min="0"
               value={formData.totalTeachers || 0}
-              onChange={(e) => handleChange("totalTeachers", parseInt(e.target.value) || 0)}
+              onChange={(e) => handleChange("totalTeachers", Math.max(0, parseInt(e.target.value) || 0))}
             />
           </div>
         </div>
