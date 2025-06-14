@@ -15,21 +15,21 @@ import type React from "react"
 const demoUsers = [
   {
     role: "Admin",
-    emailOrUsername: "admin@tarl.edu.kh",
+    emailOrUsername: "kosal.vann@tarl.edu.kh",
     description: "Complete system oversight and management",
     icon: <Users className="h-12 w-12 text-blue-600" />,
     features: ["User Management", "School Administration", "System Analytics", "Report Generation"],
   },
   {
     role: "Teacher",
-    emailOrUsername: "teacher@tarl.edu.kh",
+    emailOrUsername: "bunthoeun.ly@tarl.edu.kh",
     description: "Classroom and student management",
     icon: <User className="h-12 w-12 text-green-600" />,
     features: ["Student Progress", "Classroom Data", "Learning Materials", "Assessment Tools"],
   },
   {
     role: "Coordinator",
-    emailOrUsername: "coordinator@tarl.edu.kh",
+    emailOrUsername: "mealea.ros@tarl.edu.kh",
     description: "Regional oversight and school coordination",
     icon: <School className="h-12 w-12 text-purple-600" />,
     features: ["School Monitoring", "Teacher Support", "Regional Analytics", "Training Management"],

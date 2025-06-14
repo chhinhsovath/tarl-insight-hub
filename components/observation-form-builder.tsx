@@ -13,7 +13,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { supabase } from "@/lib/supabase"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/lib/auth-context"
 import { CalendarIcon, Save, Eye, AlertCircle } from "lucide-react"
@@ -120,7 +119,7 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
     visit_date: format(new Date(), "yyyy-MM-dd"),
     region: "",
     province: "",
-    mentor_name: user?.name || "",
+    mentor_name: user?.full_name || "",
     school_name: "",
     program_type_id: null,
     tarl_class_taking_place: "",
@@ -198,36 +197,30 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
     setLookupError(null)
     try {
       // Try to load data directly, handle errors gracefully
-      const [programTypes, materials, tarlLevels, activityTypes, provinces] = await Promise.all([
-        supabase.from("program_types").select("*").order("program_type"),
-        supabase.from("materials").select("*").order("material_name"),
-        supabase.from("tarl_levels").select("*").order("subject, level_order"),
-        supabase.from("activity_types").select("*").order("subject, activity_name"),
-        DatabaseService.getProvinces(),
+      const [programTypesResponse, materialsResponse, tarlLevelsResponse, activityTypesResponse, provincesResponse] = await Promise.all([
+        fetch("/api/data/program-types"),
+        fetch("/api/data/materials"),
+        fetch("/api/data/tarl-levels"),
+        fetch("/api/data/activity-types"),
+        fetch("/api/data/provinces"),
       ])
 
-      // Check if any queries failed
-      const errors = [
-        programTypes.error,
-        materials.error,
-        tarlLevels.error,
-        activityTypes.error,
-      ].filter(Boolean)
-
-      if (errors.length > 0) {
-        throw new Error("Some lookup tables are missing. Please run the database setup script first.")
-      }
+      const programTypesData = programTypesResponse.ok ? await programTypesResponse.json() : []
+      const materialsData = materialsResponse.ok ? await materialsResponse.json() : []
+      const tarlLevelsData = tarlLevelsResponse.ok ? await tarlLevelsResponse.json() : []
+      const activityTypesData = activityTypesResponse.ok ? await activityTypesResponse.json() : []
+      const provincesData = provincesResponse.ok ? await provincesResponse.json() : []
 
       setLookupData({
-        programTypes: programTypes.data || [],
-        materials: materials.data || [],
-        tarlLevels: tarlLevels.data || [],
-        activityTypes: activityTypes.data || [],
-        provinces: provinces || [],
+        programTypes: programTypesData,
+        materials: materialsData,
+        tarlLevels: tarlLevelsData,
+        activityTypes: activityTypesData,
+        provinces: provincesData,
       })
-    } catch (error: any) {
-      console.error("Error loading lookup data:", error)
-      setLookupError(error.message || "Failed to load form data")
+    } catch (err: any) {
+      console.error("Error loading lookup data:", err)
+      setLookupError(err.message || "Failed to load form data")
       toast({
         title: "Error",
         description: "Failed to load form data. Please refresh the page.",
@@ -243,89 +236,40 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
     setLoading(true)
 
     try {
-      // Check if required tables exist
-      const { data: tablesData, error: tablesError } = await supabase
-        .from("information_schema.tables")
-        .select("table_name")
-        .in("table_name", [
-          "tbl_tarl_observation_responses",
-          "tbl_tarl_observation_activities",
-          "tbl_tarl_observation_materials",
-          "tbl_tarl_observation_tarl_levels",
-        ])
-
-      if (tablesError) {
-        throw new Error("Could not check if tables exist")
-      }
-
-      if (!tablesData || tablesData.length < 4) {
-        throw new Error("Required tables are missing. Please run the database setup script first.")
-      }
-
-      // Insert main observation record
-      const { data: observationData, error: observationError } = await supabase
-        .from("tbl_tarl_observation_responses")
-        .insert([
-          {
+      const response = await fetch("/api/observations/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          formData: {
             ...formData,
-            created_by_user_id: user?.id, // Use the auth user ID
-            created_by_name: user?.name || formData.mentor_name,
-            grades_observed: formData.grades_observed,
+            created_by: user?.id,
           },
-        ])
-        .select()
-        .single()
+          activities: formData.activities,
+          materials: formData.selected_materials,
+          tarlLevels: formData.selected_tarl_levels,
+        }),
+      })
 
-      if (observationError) throw observationError
+      const data = await response.json()
 
-      const observationId = observationData.id
-
-      // Insert materials
-      if (formData.selected_materials.length > 0) {
-        const materialInserts = formData.selected_materials.map((materialId) => ({
-          observation_id: observationId,
-          material_id: materialId,
-        }))
-
-        const { error: materialsError } = await supabase.from("tbl_tarl_observation_materials").insert(materialInserts)
-
-        if (materialsError) throw materialsError
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to submit observation")
       }
-
-      // Insert TaRL levels
-      if (formData.selected_tarl_levels.length > 0) {
-        const levelInserts = formData.selected_tarl_levels.map((levelId) => ({
-          observation_id: observationId,
-          tarl_level_id: levelId,
-        }))
-
-        const { error: levelsError } = await supabase.from("tbl_tarl_observation_tarl_levels").insert(levelInserts)
-
-        if (levelsError) throw levelsError
-      }
-
-      // Insert activities
-      const activityInserts = formData.activities.map((activity) => ({
-        observation_id: observationId,
-        ...activity,
-      }))
-
-      const { error: activitiesError } = await supabase.from("tbl_tarl_observation_activities").insert(activityInserts)
-
-      if (activitiesError) throw activitiesError
 
       toast({
         title: "Success",
-        description: "Observation form submitted successfully!",
+        description: "Observation submitted successfully",
       })
 
       // Reset form or redirect
-      // resetForm()
+      // You might want to redirect to the observations list or reset the form
     } catch (error: any) {
       console.error("Error submitting observation:", error)
       toast({
         title: "Error",
-        description: error.message || "Failed to submit observation. Please try again.",
+        description: error.message || "Failed to submit observation",
         variant: "destructive",
       })
     } finally {
@@ -430,7 +374,7 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
           </Button>
           <Button onClick={handleSubmit} disabled={loading} className="soft-button soft-gradient">
             <Save className="h-4 w-4 mr-2" />
-            {loading ? "Saving..." : "Save Observation"}
+            {loading ? "Submitting..." : "Submit Observation"}
           </Button>
         </div>
       </div>
@@ -613,13 +557,14 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
                 )}
               </CardContent>
             </Card>
+
           </TabsContent>
 
           {/* Class Details Tab */}
           <TabsContent value="class" className="space-y-6">
             <Card className="soft-card">
               <CardHeader>
-                <CardTitle>Teacher & Observation Details</CardTitle>
+                <CardTitle>Class Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -630,180 +575,109 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
                       value={formData.teacher_name}
                       onChange={(e) => updateFormData("teacher_name", e.target.value)}
                       placeholder="Enter teacher name"
+                      required
                     />
                   </div>
-
                   <div>
-                    <Label>Observed full session?</Label>
+                    <Label>Did you observe the full session?</Label>
                     <RadioGroup
                       value={formData.observed_full_session}
                       onValueChange={(value) => updateFormData("observed_full_session", value)}
                       className="flex space-x-4 mt-2"
                     >
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="Yes" id="full-yes" />
-                        <Label htmlFor="full-yes">Yes</Label>
+                        <RadioGroupItem value="Yes" id="full-session-yes" />
+                        <Label htmlFor="full-session-yes">Yes</Label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="No" id="full-no" />
-                        <Label htmlFor="full-no">No</Label>
+                        <RadioGroupItem value="No" id="full-session-no" />
+                        <Label htmlFor="full-session-no">No</Label>
                       </div>
                     </RadioGroup>
                   </div>
-
                   <div>
-                    <Label>Grade Group</Label>
+                    <Label htmlFor="grade_group">Grade Group</Label>
                     <Select
                       value={formData.grade_group}
                       onValueChange={(value) => updateFormData("grade_group", value)}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select grade group" />
+                      <SelectTrigger id="grade_group">
+                        <SelectValue placeholder="Select Grade Group" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Std. 1-2">Std. 1-2</SelectItem>
-                        <SelectItem value="Std. 3-6">Std. 3-6</SelectItem>
+                        <SelectItem value="Grade 1-2">Grade 1-2</SelectItem>
+                        <SelectItem value="Grade 3-5">Grade 3-5</SelectItem>
+                        <SelectItem value="Combined">Combined</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-
                   <div>
-                    <Label>Subject Observed</Label>
-                    <Select
-                      value={formData.subject_observed}
-                      onValueChange={(value) => updateFormData("subject_observed", value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select subject" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Language">Language</SelectItem>
-                        <SelectItem value="Numeracy">Numeracy</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {formData.grade_group === "Std. 3-6" && (
-                  <div>
-                    <Label>Specific Grades Observed</Label>
+                    <Label>Grades Observed</Label>
                     <div className="flex space-x-4 mt-2">
-                      {["3", "4", "5", "6"].map((grade) => (
+                      {["Grade 1", "Grade 2", "Grade 3", "Grade 4", "Grade 5"].map((grade) => (
                         <div key={grade} className="flex items-center space-x-2">
                           <Checkbox
-                            id={`grade-${grade}`}
+                            id={grade}
                             checked={formData.grades_observed.includes(grade)}
-                            onCheckedChange={() => toggleGrade(grade)}
+                            onCheckedChange={(checked) => {
+                              updateFormData(
+                                "grades_observed",
+                                checked
+                                  ? [...formData.grades_observed, grade]
+                                  : formData.grades_observed.filter((g) => g !== grade),
+                              )
+                            }}
                           />
-                          <Label htmlFor={`grade-${grade}`}>Grade {grade}</Label>
+                          <Label htmlFor={grade}>{grade}</Label>
                         </div>
                       ))}
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card className="soft-card">
-              <CardHeader>
-                <CardTitle>Class Statistics</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="subject_observed">Subject Observed</Label>
+                    <Select
+                      value={formData.subject_observed}
+                      onValueChange={(value) => updateFormData("subject_observed", value)}
+                    >
+                      <SelectTrigger id="subject_observed">
+                        <SelectValue placeholder="Select Subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Numeracy">Numeracy</SelectItem>
+                        <SelectItem value="Language">Language</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div>
                     <Label htmlFor="total_class_strength">Total Class Strength</Label>
                     <Input
                       id="total_class_strength"
                       type="number"
                       value={formData.total_class_strength || ""}
-                      onChange={(e) =>
-                        updateFormData("total_class_strength", e.target.value ? Number.parseInt(e.target.value) : null)
-                      }
-                      placeholder="Enter total students"
+                      onChange={(e) => updateFormData("total_class_strength", Number.parseInt(e.target.value) || null)}
+                      placeholder="Enter total class strength"
                     />
                   </div>
-
                   <div>
                     <Label htmlFor="students_present">Students Present</Label>
                     <Input
                       id="students_present"
                       type="number"
                       value={formData.students_present || ""}
-                      onChange={(e) =>
-                        updateFormData("students_present", e.target.value ? Number.parseInt(e.target.value) : null)
-                      }
-                      placeholder="Enter present students"
+                      onChange={(e) => updateFormData("students_present", Number.parseInt(e.target.value) || null)}
+                      placeholder="Enter number of students present"
                     />
                   </div>
-
                   <div>
-                    <Label htmlFor="students_progressed">Students Progressed Since Last Week</Label>
+                    <Label htmlFor="students_progressed_since_last_week">Students Progressed Since Last Week</Label>
                     <Input
-                      id="students_progressed"
+                      id="students_progressed_since_last_week"
                       type="number"
                       value={formData.students_progressed_since_last_week || ""}
-                      onChange={(e) =>
-                        updateFormData(
-                          "students_progressed_since_last_week",
-                          e.target.value ? Number.parseInt(e.target.value) : null,
-                        )
-                      }
-                      placeholder="Enter progressed students"
+                      onChange={(e) => updateFormData("students_progressed_since_last_week", Number.parseInt(e.target.value) || null)}
+                      placeholder="Enter number of students progressed"
                     />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="soft-card">
-              <CardHeader>
-                <CardTitle>Materials Present</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {lookupData.materials.map((material) => (
-                    <div key={material.id} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`material-${material.id}`}
-                        checked={formData.selected_materials.includes(material.id)}
-                        onCheckedChange={() => toggleMaterial(material.id)}
-                      />
-                      <Label htmlFor={`material-${material.id}`} className="text-sm">
-                        {material.material_name}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="soft-card">
-              <CardHeader>
-                <CardTitle>TaRL Levels Observed</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {["Language", "Numeracy"].map((subject) => (
-                    <div key={subject}>
-                      <h4 className="font-medium mb-2">{subject}</h4>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {lookupData.tarlLevels
-                          .filter((level) => level.subject === subject)
-                          .map((level) => (
-                            <div key={level.id} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`level-${level.id}`}
-                                checked={formData.selected_tarl_levels.includes(level.id)}
-                                onCheckedChange={() => toggleTarlLevel(level.id)}
-                              />
-                              <Label htmlFor={`level-${level.id}`} className="text-sm">
-                                {level.level_name}
-                              </Label>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -813,7 +687,7 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
           <TabsContent value="teacher" className="space-y-6">
             <Card className="soft-card">
               <CardHeader>
-                <CardTitle>Class Delivery</CardTitle>
+                <CardTitle>Delivery</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -824,12 +698,12 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
                     className="flex space-x-4 mt-2"
                   >
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="Yes" id="ontime-yes" />
-                      <Label htmlFor="ontime-yes">Yes</Label>
+                      <RadioGroupItem value="Yes" id="class-start-yes" />
+                      <Label htmlFor="class-start-yes">Yes</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="No" id="ontime-no" />
-                      <Label htmlFor="ontime-no">No</Label>
+                      <RadioGroupItem value="No" id="class-start-no" />
+                      <Label htmlFor="class-start-no">No</Label>
                     </div>
                   </RadioGroup>
                 </div>
@@ -846,8 +720,11 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
                           <SelectValue placeholder="Select reason" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Teacher came late">Teacher came late</SelectItem>
-                          <SelectItem value="Pupils came late">Pupils came late</SelectItem>
+                          <SelectItem value="Teacher is Absent">Teacher is Absent</SelectItem>
+                          <SelectItem value="Students are late">Students are late</SelectItem>
+                          <SelectItem value="Teacher is busy with another activity">
+                            Teacher is busy with another activity
+                          </SelectItem>
                           <SelectItem value="Others">Others</SelectItem>
                         </SelectContent>
                       </Select>
@@ -855,9 +732,9 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
 
                     {formData.class_not_on_time_reason === "Others" && (
                       <div>
-                        <Label htmlFor="ontime_other_reason">Please specify</Label>
+                        <Label htmlFor="class_not_on_time_other_reason">Please specify</Label>
                         <Textarea
-                          id="ontime_other_reason"
+                          id="class_not_on_time_other_reason"
                           value={formData.class_not_on_time_other_reason || ""}
                           onChange={(e) => updateFormData("class_not_on_time_other_reason", e.target.value)}
                           placeholder="Please specify the reason"
@@ -865,20 +742,18 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
                       </div>
                     )}
                 </div>
+                )}
 
                 <div>
-                  <Label htmlFor="transition_time">Transition time between subjects (minutes)</Label>
+                  <Label htmlFor="transition_time_between_subjects">Transition time between subjects (minutes)</Label>
                   <Input
-                    id="transition_time"
+                    id="transition_time_between_subjects"
                     type="number"
                     value={formData.transition_time_between_subjects || ""}
                     onChange={(e) =>
-                      updateFormData(
-                        "transition_time_between_subjects",
-                        e.target.value ? Number.parseInt(e.target.value) : null,
-                      )
+                      updateFormData("transition_time_between_subjects", Number.parseInt(e.target.value) || null)
                     }
-                    placeholder="Enter transition time in minutes"
+                    placeholder="Enter minutes"
                   />
                 </div>
               </CardContent>
@@ -890,7 +765,7 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label>Were children grouped appropriately?</Label>
+                  <Label>Were the children grouped appropriately?</Label>
                   <RadioGroup
                     value={formData.children_grouped_appropriately}
                     onValueChange={(value) => updateFormData("children_grouped_appropriately", value)}
@@ -908,7 +783,7 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
                 </div>
 
                 <div>
-                  <Label>Were students fully involved?</Label>
+                  <Label>Were the students fully involved?</Label>
                   <RadioGroup
                     value={formData.students_fully_involved}
                     onValueChange={(value) => updateFormData("students_fully_involved", value)}
@@ -929,7 +804,7 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
 
             <Card className="soft-card">
               <CardHeader>
-                <CardTitle>Session Planning</CardTitle>
+                <CardTitle>Teacher Preparedness</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -952,167 +827,156 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
 
                 {formData.teacher_had_session_plan === "No" && (
                   <div>
-                    <Label htmlFor="no_plan_reason">Reason for not having session plan</Label>
-                    <Textarea
-                      id="no_plan_reason"
+                    <Label>Reason for not having a session plan</Label>
+                    <Select
                       value={formData.teacher_no_session_plan_reason || ""}
-                      onChange={(e) => updateFormData("teacher_no_session_plan_reason", e.target.value)}
+                      onValueChange={(value) => updateFormData("teacher_no_session_plan_reason", value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select reason" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Teacher is new">Teacher is new</SelectItem>
+                        <SelectItem value="No materials available">No materials available</SelectItem>
+                        <SelectItem value="Others">Others</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div>
+                  <Label>Did the teacher follow the session plan?</Label>
+                  <RadioGroup
+                    value={formData.teacher_followed_session_plan}
+                    onValueChange={(value) => updateFormData("teacher_followed_session_plan", value)}
+                    className="flex space-x-4 mt-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Yes" id="follow-plan-yes" />
+                      <Label htmlFor="follow-plan-yes">Yes</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="No" id="follow-plan-no" />
+                      <Label htmlFor="follow-plan-no">No</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                {formData.teacher_followed_session_plan === "No" && (
+                  <div>
+                    <Label htmlFor="teacher_not_follow_plan_reason">Reason for not following the plan</Label>
+                    <Textarea
+                      id="teacher_not_follow_plan_reason"
+                      value={formData.teacher_not_follow_plan_reason || ""}
+                      onChange={(e) => updateFormData("teacher_not_follow_plan_reason", e.target.value)}
                       placeholder="Please specify the reason"
                     />
                   </div>
                 )}
 
-                {formData.teacher_had_session_plan === "Yes" && (
-                  <>
-                    <div>
-                      <Label>Did the teacher follow the session plan?</Label>
-                      <RadioGroup
-                        value={formData.teacher_followed_session_plan}
-                        onValueChange={(value) => updateFormData("teacher_followed_session_plan", value)}
-                        className="flex space-x-4 mt-2"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Yes" id="follow-yes" />
-                          <Label htmlFor="follow-yes">Yes</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="No" id="follow-no" />
-                          <Label htmlFor="follow-no">No</Label>
-                        </div>
-                      </RadioGroup>
+                <div>
+                  <Label>Was the session plan appropriate for the level of children?</Label>
+                  <RadioGroup
+                    value={formData.session_plan_appropriate_for_level}
+                    onValueChange={(value) => updateFormData("session_plan_appropriate_for_level", value)}
+                    className="flex space-x-4 mt-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Yes" id="appropriate-yes" />
+                      <Label htmlFor="appropriate-yes">Yes</Label>
                     </div>
-
-                    {formData.teacher_followed_session_plan === "No" && (
-                      <div>
-                        <Label htmlFor="not_follow_reason">Reason for not following session plan</Label>
-                        <Textarea
-                          id="not_follow_reason"
-                          value={formData.teacher_not_follow_plan_reason || ""}
-                          onChange={(e) => updateFormData("teacher_not_follow_plan_reason", e.target.value)}
-                          placeholder="Please specify the reason"
-                        />
-                      </div>
-                    )}
-
-                    <div>
-                      <Label>Was the session plan appropriate for the level?</Label>
-                      <RadioGroup
-                        value={formData.session_plan_appropriate_for_level}
-                        onValueChange={(value) => updateFormData("session_plan_appropriate_for_level", value)}
-                        className="flex space-x-4 mt-2"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Yes" id="appropriate-yes" />
-                          <Label htmlFor="appropriate-yes">Yes</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="No" id="appropriate-no" />
-                          <Label htmlFor="appropriate-no">No</Label>
-                        </div>
-                      </RadioGroup>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="No" id="appropriate-no" />
+                      <Label htmlFor="appropriate-no">No</Label>
                     </div>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Activities Tab */}
-          <TabsContent value="activities" className="space-y-6">
-            <Card className="soft-card">
-              <CardHeader>
-                <CardTitle>Number of Activities</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Select
-                  value={formData.number_of_activities}
-                  onValueChange={(value) => updateFormData("number_of_activities", value)}
-                >
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Select number of activities" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 Activity</SelectItem>
-                    <SelectItem value="2">2 Activities</SelectItem>
-                    <SelectItem value="3">3 Activities</SelectItem>
-                  </SelectContent>
-                </Select>
+                  </RadioGroup>
+                </div>
               </CardContent>
             </Card>
 
-            {formData.activities.map((activity, index) => (
-              <Card key={index} className="soft-card">
+            {/* Activities Tab */}
+            <TabsContent value="activities" className="space-y-6">
+              <Card className="soft-card">
                 <CardHeader>
-                  <CardTitle>Activity {index + 1}</CardTitle>
+                  <CardTitle>Activities</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>Language Activity Type</Label>
-                      <Select
-                        value={activity.activity_type_id_language?.toString() || ""}
-                        onValueChange={(value) =>
-                          updateActivityData(index, "activity_type_id_language", value ? Number.parseInt(value) : null)
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select language activity" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {lookupData.activityTypes
-                            .filter((type) => type.subject === "Language")
-                            .map((type) => (
-                              <SelectItem key={type.id} value={type.id.toString()}>
-                                {type.activity_name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label>Numeracy Activity Type</Label>
-                      <Select
-                        value={activity.activity_type_id_numeracy?.toString() || ""}
-                        onValueChange={(value) =>
-                          updateActivityData(index, "activity_type_id_numeracy", value ? Number.parseInt(value) : null)
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select numeracy activity" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {lookupData.activityTypes
-                            .filter((type) => type.subject === "Numeracy")
-                            .map((type) => (
-                              <SelectItem key={type.id} value={type.id.toString()}>
-                                {type.activity_name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Label htmlFor={`duration-${index}`}>Duration (minutes)</Label>
-                      <Input
-                        id={`duration-${index}`}
-                        type="number"
-                        value={activity.duration_minutes || ""}
-                        onChange={(e) =>
-                          updateActivityData(
-                            index,
-                            "duration_minutes",
-                            e.target.value ? Number.parseInt(e.target.value) : null,
-                          )
-                        }
-                        placeholder="Enter duration"
-                      />
-                    </div>
+                  <div>
+                    <Label htmlFor="number_of_activities">Number of Activities Observed</Label>
+                    <Select
+                      value={formData.number_of_activities}
+                      onValueChange={(value) => updateFormData("number_of_activities", value)}
+                    >
+                      {[1, 2, 3, 4, 5].map((num) => (
+                        <SelectItem key={num} value={num.toString()}>
+                          {num}
+                        </SelectItem>
+                      ))}
+                    </Select>
                   </div>
 
-                  <div className="space-y-4">
-                    <div>
+                  {formData.activities.map((activity, index) => (
+                    <div key={index} className="space-y-4 border-b pb-4 mb-4 last:border-b-0 last:pb-0 last:mb-0">
+                      <h3 className="text-lg font-semibold">Activity {activity.activity_number}</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor={`activity_type_language_${index}`}>Activity Type (Language)</Label>
+                          <Select
+                            value={activity.activity_type_id_language?.toString() || ""}
+                            onValueChange={(value) =>
+                              updateActivityData(index, "activity_type_id_language", Number.parseInt(value))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Activity Type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {lookupData.activityTypes
+                                .filter((type) => type.subject === "Language")
+                                .map((type) => (
+                                  <SelectItem key={type.id} value={type.id.toString()}>
+                                    {type.activity_name}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor={`activity_type_numeracy_${index}`}>Activity Type (Numeracy)</Label>
+                          <Select
+                            value={activity.activity_type_id_numeracy?.toString() || ""}
+                            onValueChange={(value) =>
+                              updateActivityData(index, "activity_type_id_numeracy", Number.parseInt(value))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select Activity Type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {lookupData.activityTypes
+                                .filter((type) => type.subject === "Numeracy")
+                                .map((type) => (
+                                  <SelectItem key={type.id} value={type.id.toString()}>
+                                    {type.activity_name}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor={`duration_minutes_${index}`}>Duration (minutes)</Label>
+                          <Input
+                            id={`duration_minutes_${index}`}
+                            type="number"
+                            value={activity.duration_minutes || ""}
+                            onChange={(e) =>
+                              updateActivityData(index, "duration_minutes", Number.parseInt(e.target.value) || null)
+                            }
+                            placeholder="Enter duration"
+                          />
+                        </div>
+                      </div>
+
                       <Label>Did the teacher give clear instructions?</Label>
                       <RadioGroup
                         value={activity.teacher_gave_clear_instructions}
@@ -1120,31 +984,27 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
                         className="flex space-x-4 mt-2"
                       >
                         <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Yes" id={`clear-${index}-yes`} />
-                          <Label htmlFor={`clear-${index}-yes`}>Yes</Label>
+                          <RadioGroupItem value="Yes" id={`instructions-yes-${index}`} />
+                          <Label htmlFor={`instructions-yes-${index}`}>Yes</Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="No" id={`clear-${index}-no`} />
-                          <Label htmlFor={`clear-${index}-no`}>No</Label>
+                          <RadioGroupItem value="No" id={`instructions-no-${index}`} />
+                          <Label htmlFor={`instructions-no-${index}`}>No</Label>
                         </div>
                       </RadioGroup>
-                    </div>
 
-                    {activity.teacher_gave_clear_instructions === "No" && (
-                      <div>
-                        <Label htmlFor={`clear-reason-${index}`}>Reason for not giving clear instructions</Label>
-                        <Textarea
-                          id={`clear-reason-${index}`}
-                          value={activity.teacher_no_clear_instructions_reason || ""}
-                          onChange={(e) =>
-                            updateActivityData(index, "teacher_no_clear_instructions_reason", e.target.value)
-                          }
-                          placeholder="Please specify the reason"
-                        />
-                      </div>
-                    )}
+                      {activity.teacher_gave_clear_instructions === "No" && (
+                        <div>
+                          <Label htmlFor={`no_clear_instructions_reason_${index}`}>Reason for not giving clear instructions</Label>
+                          <Textarea
+                            id={`no_clear_instructions_reason_${index}`}
+                            value={activity.teacher_no_clear_instructions_reason || ""}
+                            onChange={(e) => updateActivityData(index, "teacher_no_clear_instructions_reason", e.target.value)}
+                            placeholder="Please specify the reason"
+                          />
+                        </div>
+                      )}
 
-                    <div>
                       <Label>Did the teacher demonstrate the activity?</Label>
                       <RadioGroup
                         value={activity.teacher_demonstrated_activity}
@@ -1152,18 +1012,16 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
                         className="flex space-x-4 mt-2"
                       >
                         <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Yes" id={`demo-${index}-yes`} />
-                          <Label htmlFor={`demo-${index}-yes`}>Yes</Label>
+                          <RadioGroupItem value="Yes" id={`demonstrated-yes-${index}`} />
+                          <Label htmlFor={`demonstrated-yes-${index}`}>Yes</Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="No" id={`demo-${index}-no`} />
-                          <Label htmlFor={`demo-${index}-no`}>No</Label>
+                          <RadioGroupItem value="No" id={`demonstrated-no-${index}`} />
+                          <Label htmlFor={`demonstrated-no-${index}`}>No</Label>
                         </div>
                       </RadioGroup>
-                    </div>
 
-                    <div>
-                      <Label>Did the teacher make students practice in front?</Label>
+                      <Label>Did the teacher make students practice the activity in front of the class?</Label>
                       <RadioGroup
                         value={activity.teacher_made_students_practice_in_front}
                         onValueChange={(value) =>
@@ -1172,144 +1030,126 @@ export const ObservationFormBuilder = React.memo(function ObservationFormBuilder
                         className="flex space-x-4 mt-2"
                       >
                         <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Yes" id={`practice-${index}-yes`} />
-                          <Label htmlFor={`practice-${index}-yes`}>Yes</Label>
+                          <RadioGroupItem value="Yes" id={`practice-front-yes-${index}`} />
+                          <Label htmlFor={`practice-front-yes-${index}`}>Yes</Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="No" id={`practice-${index}-no`} />
-                          <Label htmlFor={`practice-${index}-no`}>No</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Not Applicable" id={`practice-${index}-na`} />
-                          <Label htmlFor={`practice-${index}-na`}>Not Applicable</Label>
+                          <RadioGroupItem value="No" id={`practice-front-no-${index}`} />
+                          <Label htmlFor={`practice-front-no-${index}`}>No</Label>
                         </div>
                       </RadioGroup>
-                    </div>
 
-                    <div>
-                      <Label>Did students perform in small groups?</Label>
+                      <Label>Did students perform the activity in small groups?</Label>
                       <RadioGroup
                         value={activity.students_performed_in_small_groups}
-                        onValueChange={(value) =>
-                          updateActivityData(index, "students_performed_in_small_groups", value)
-                        }
+                        onValueChange={(value) => updateActivityData(index, "students_performed_in_small_groups", value)}
                         className="flex space-x-4 mt-2"
                       >
                         <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Yes" id={`groups-${index}-yes`} />
-                          <Label htmlFor={`groups-${index}-yes`}>Yes</Label>
+                          <RadioGroupItem value="Yes" id={`small-groups-yes-${index}`} />
+                          <Label htmlFor={`small-groups-yes-${index}`}>Yes</Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="No" id={`groups-${index}-no`} />
-                          <Label htmlFor={`groups-${index}-no`}>No</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Not Applicable" id={`groups-${index}-na`} />
-                          <Label htmlFor={`groups-${index}-na`}>Not Applicable</Label>
+                          <RadioGroupItem value="No" id={`small-groups-no-${index}`} />
+                          <Label htmlFor={`small-groups-no-${index}`}>No</Label>
                         </div>
                       </RadioGroup>
-                    </div>
 
-                    <div>
-                      <Label>Did students perform individually?</Label>
+                      <Label>Did students perform the activity individually?</Label>
                       <RadioGroup
                         value={activity.students_performed_individually}
                         onValueChange={(value) => updateActivityData(index, "students_performed_individually", value)}
                         className="flex space-x-4 mt-2"
                       >
                         <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Yes" id={`individual-${index}-yes`} />
-                          <Label htmlFor={`individual-${index}-yes`}>Yes</Label>
+                          <RadioGroupItem value="Yes" id={`individual-yes-${index}`} />
+                          <Label htmlFor={`individual-yes-${index}`}>Yes</Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="No" id={`individual-${index}-no`} />
-                          <Label htmlFor={`individual-${index}-no`}>No</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Not Applicable" id={`individual-${index}-na`} />
-                          <Label htmlFor={`individual-${index}-na`}>Not Applicable</Label>
+                          <RadioGroupItem value="No" id={`individual-no-${index}`} />
+                          <Label htmlFor={`individual-no-${index}`}>No</Label>
                         </div>
                       </RadioGroup>
                     </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Summary Tab */}
+            <TabsContent value="summary" className="space-y-6">
+              <Card className="soft-card">
+                <CardHeader>
+                  <CardTitle>Summary & Suggestions</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label htmlFor="selected_materials">Materials Used</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                      {lookupData.materials.map((material) => (
+                        <div key={material.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`material-${material.id}`}
+                            checked={formData.selected_materials.includes(material.id)}
+                            onCheckedChange={(checked) => {
+                              updateFormData(
+                                "selected_materials",
+                                checked
+                                  ? [...formData.selected_materials, material.id]
+                                  : formData.selected_materials.filter((id) => id !== material.id),
+                              )
+                            }}
+                          />
+                          <Label htmlFor={`material-${material.id}`}>{material.material_name}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="selected_tarl_levels">TaRL Levels Observed</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                      {lookupData.tarlLevels.map((level) => (
+                        <div key={level.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`level-${level.id}`}
+                            checked={formData.selected_tarl_levels.includes(level.id)}
+                            onCheckedChange={(checked) => {
+                              updateFormData(
+                                "selected_tarl_levels",
+                                checked
+                                  ? [...formData.selected_tarl_levels, level.id]
+                                  : formData.selected_tarl_levels.filter((id) => id !== level.id),
+                              )
+                            }}
+                          />
+                          <Label htmlFor={`level-${level.id}`}>{level.level_name}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="suggestions_to_teacher">Suggestions to Teacher</Label>
+                    <Textarea
+                      id="suggestions_to_teacher"
+                      value={formData.suggestions_to_teacher}
+                      onChange={(e) => updateFormData("suggestions_to_teacher", e.target.value)}
+                      placeholder="Enter suggestions for the teacher (e.g., areas for improvement, positive feedback)"
+                      rows={5}
+                    />
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </TabsContent>
 
-          {/* Summary Tab */}
-          <TabsContent value="summary" className="space-y-6">
-            <Card className="soft-card">
-              <CardHeader>
-                <CardTitle>Suggestions to Teacher</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Textarea
-                  value={formData.suggestions_to_teacher}
-                  onChange={(e) => updateFormData("suggestions_to_teacher", e.target.value)}
-                  placeholder="Enter suggestions and recommendations for the teacher"
-                  rows={6}
-                />
-              </CardContent>
-            </Card>
-
-            <Card className="soft-card">
-              <CardHeader>
-                <CardTitle>Form Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="font-medium">Visit Details</h4>
-                    <p className="text-sm text-gray-600">Date: {formData.visit_date}</p>
-                    <p className="text-sm text-gray-600">School: {formData.school_name}</p>
-                    <p className="text-sm text-gray-600">Teacher: {formData.teacher_name}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Class Information</h4>
-                    <p className="text-sm text-gray-600">Subject: {formData.subject_observed}</p>
-                    <p className="text-sm text-gray-600">Grade Group: {formData.grade_group}</p>
-                    <p className="text-sm text-gray-600">Students Present: {formData.students_present}</p>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium">Selected Materials</h4>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.selected_materials.map((materialId) => {
-                      const material = lookupData.materials.find((m) => m.id === materialId)
-                      return (
-                        <Badge key={materialId} variant="secondary">
-                          {material?.material_name}
-                        </Badge>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium">TaRL Levels Observed</h4>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.selected_tarl_levels.map((levelId) => {
-                      const level = lookupData.tarlLevels.find((l) => l.id === levelId)
-                      return (
-                        <Badge key={levelId} variant="outline">
-                          {level?.subject}: {level?.level_name}
-                        </Badge>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="font-medium">Activities</h4>
-                  <p className="text-sm text-gray-600">Number of activities: {formData.number_of_activities}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </form>
-    </div>
+              <div className="flex justify-end">
+                <Button type="submit" disabled={loading} className="soft-gradient">
+                  {loading ? "Submitting..." : "Submit Observation"}
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </form>
+      </div>
   )
 })

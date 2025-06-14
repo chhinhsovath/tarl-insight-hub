@@ -66,9 +66,9 @@ export function Sidebar() {
       
       console.log("API Permissions Data:", data)
       console.log("User Role:", user.role)
-      console.log("Permissions for user role:", data[user.role])
+      console.log("Permissions for user role:", data[user.role.toLowerCase()])
 
-      const userRole = user.role
+      const userRole = user.role.toLowerCase()
       if (data[userRole]) {
         const items = data[userRole].map((item: any) => ({
           name: item.page_name,

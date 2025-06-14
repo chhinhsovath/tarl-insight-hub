@@ -26,7 +26,7 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     if (!user) return
 
     try {
-      const response = await fetch("/api/permissions")
+      const response = await fetch("/api/permissions", { cache: 'no-store' })
       const data = await response.json()
       
       const userRole = user.role.toLowerCase()

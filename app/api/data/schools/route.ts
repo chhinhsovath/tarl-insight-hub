@@ -1,5 +1,25 @@
 import { NextResponse } from "next/server";
+import { Pool } from "pg";
+
+const pool = new Pool({
+  user: process.env.PGUSER,
+  host: process.env.PGHOST,
+  database: process.env.PGDATABASE,
+  password: process.env.PGPASSWORD,
+  port: parseInt(process.env.PGPORT || '5432', 10),
+});
 
 export async function GET() {
-  return NextResponse.json({ message: "Schools API route" });
+  try {
+    const client = await pool.connect();
+    const result = await client.query("SELECT id, name FROM tbl_tarl_schools ORDER BY name");
+    client.release();
+    return NextResponse.json(result.rows);
+  } catch (error) {
+    console.error("Error fetching schools:", error);
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 }
+    );
+  }
 } 
