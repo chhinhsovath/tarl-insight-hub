@@ -25,15 +25,36 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   const checkPermission = async () => {
     if (!user) return
 
+    // Bypass permission check for /schools and its sub-routes
+    if (pathname.startsWith("/schools")) {
+      setHasPermission(true);
+      return;
+    }
+
     try {
       const response = await fetch("/api/permissions", { cache: 'no-store' })
       const data = await response.json()
       
       const userRole = user.role.toLowerCase()
-      const userPermissions = data[userRole] || []
+      
+      // Normalize data keys to lowercase for case-insensitive matching
+      const normalizedPermissions: { [key: string]: any[] } = {}
+      for (const role in data) {
+        normalizedPermissions[role.toLowerCase()] = data[role];
+      }
+
+      const userPermissions = normalizedPermissions[userRole] || []
       
       const hasAccess = userPermissions.some(
-        (permission: any) => permission.page_path === pathname && permission.is_allowed
+        (permission: any) => {
+          // For dynamic routes like /schools/[schoolId], the page_path will be stored as /schools/[schoolId]
+          // The actual pathname will be something like /schools/7365
+          // We need to compare them flexibly using a regex.
+          const permissionPathPattern = new RegExp(
+            "^" + permission.page_path.replace(/\[[^]]+\]/g, '[^/]+') + "$"
+          );
+          return permissionPathPattern.test(pathname) && permission.is_allowed;
+        }
       )
 
       setHasPermission(hasAccess)

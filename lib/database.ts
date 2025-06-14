@@ -1,4 +1,4 @@
-import { User } from "@/lib/types";
+import { User, School } from "@/lib/types";
 
 // This file is used to provide an API for database operations.
 // It should be used by client-side components to interact with the database.
@@ -196,6 +196,37 @@ export class DatabaseService {
     }
   }
 
+  static async updateSchool(id: number, schoolData: Partial<School>) {
+    try {
+      const response = await fetch(`/api/data/schools/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(schoolData),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error updating school:", error);
+      return null;
+    }
+  }
+
+// In lib/database.ts, update the getSchoolById method:
+static async getSchoolById(id: number) {
+  try {
+    const response = await fetch(`/api/data/schools/${id}`); // Changed from ?id=${id}
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching school by ID:", error);
+    return null;
+  }
+}
+
   // =====================================================
   // USERS
   // =====================================================
@@ -208,22 +239,42 @@ export class DatabaseService {
     endDate?: string
   } = {}) {
     try {
+      const query = new URLSearchParams();
+      if (filters.search) {
+        query.append("search", filters.search);
+      }
+      if (filters.role) {
+        query.append("role", filters.role);
+      }
+      if (filters.schoolId) {
+        query.append("schoolId", filters.schoolId);
+      }
+      if (filters.isActive) {
+        query.append("isActive", filters.isActive.toString());
+      }
+      if (filters.startDate) {
+        query.append("startDate", filters.startDate);
+      }
+      if (filters.endDate) {
+        query.append("endDate", filters.endDate);
+      }
+
       const response = await fetch("/api/data/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(filters),
-      })
+        body: JSON.stringify(query),
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch users")
+        throw new Error("Failed to fetch users");
       }
 
-      return await response.json()
+      return await response.json();
     } catch (error) {
-      console.error("Error fetching users:", error)
-      throw error
+      console.error("Error fetching users:", error);
+      throw error;
     }
   }
 
