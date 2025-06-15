@@ -4,12 +4,19 @@ import { useEffect, useState } from "react"
 import { PageLayout } from "@/components/page-layout"
 import { DatabaseService } from "@/lib/database"
 import type { School as SchoolType } from "@/lib/types"
+<<<<<<< HEAD
+=======
+import { SchoolForm } from "@/components/school-form"
+>>>>>>> 7b33594a43002ee4975b28d823c2c907582df8fc
 import { ProtectedRoute } from "@/components/protected-route"
 import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+<<<<<<< HEAD
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+=======
+>>>>>>> 7b33594a43002ee4975b28d823c2c907582df8fc
 
 export default function EditSchoolPage() {
   const params = useParams();
@@ -45,6 +52,13 @@ export default function EditSchoolPage() {
     fetchSchool();
   }, [schoolId]);
 
+<<<<<<< HEAD
+=======
+  const handleSuccess = () => {
+    router.push(`/schools/${schoolId}`);
+  };
+
+>>>>>>> 7b33594a43002ee4975b28d823c2c907582df8fc
   if (loading) {
     return <PageLayout title="Loading School..." description="Fetching school details for editing...">{null}</PageLayout>;
   }
@@ -67,6 +81,7 @@ export default function EditSchoolPage() {
               <CardDescription>Update school information</CardDescription>
             </CardHeader>
             <CardContent>
+<<<<<<< HEAD
               <form
                 id="school-edit-form"
                 onSubmit={async (e) => {
@@ -144,6 +159,21 @@ export default function EditSchoolPage() {
                 {error && <p className="md:col-span-2 text-red-500">{error}</p>}
               </form>
             </CardContent>
+=======
+              <SchoolForm initialData={school} onSuccess={handleSuccess} hideExtraFields={true} />
+            </CardContent>
+            <CardFooter className="flex justify-between pt-4">
+              <Button
+                variant="outline"
+                onClick={() => router.back()}
+              >
+                Back
+              </Button>
+              <Button type="submit" form="school-edit-form" disabled={loading}>
+                Update School
+              </Button>
+            </CardFooter>
+>>>>>>> 7b33594a43002ee4975b28d823c2c907582df8fc
           </Card>
         </div>
       </PageLayout>

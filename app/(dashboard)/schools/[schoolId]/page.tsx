@@ -45,11 +45,19 @@ export default function SchoolDetailsPage() {
 
     fetchSchool();
   }, [schoolId]);
+<<<<<<< HEAD
 /*
   if (loading) {
     return <PageLayout title="Loading School..." description="Fetching school details..."><p>Loading school details...</p></PageLayout>;
   }
 */
+=======
+
+  if (loading) {
+    return <PageLayout title="Loading School..." description="Fetching school details..."><p>Loading school details...</p></PageLayout>;
+  }
+
+>>>>>>> 7b33594a43002ee4975b28d823c2c907582df8fc
   if (error) {
     return <PageLayout title="Error" description="Could not load school details."><p className="text-red-500">{error}</p></PageLayout>;
   }
@@ -58,6 +66,7 @@ export default function SchoolDetailsPage() {
     return <PageLayout title="Not Found" description="School details could not be found."><p>School not found or invalid ID.</p></PageLayout>;
   }
 
+<<<<<<< HEAD
   if (school.status !== 1) {
     return (
       <PageLayout title="Not Allowed" description="This school is not active.">
@@ -66,6 +75,8 @@ export default function SchoolDetailsPage() {
     );
   }
 
+=======
+>>>>>>> 7b33594a43002ee4975b28d823c2c907582df8fc
   return (
     <ProtectedRoute allowedRoles={["Admin", "Coordinator"]}>
       <PageLayout title={school.name || "School Details"} description={`Details for ${school.name || "the selected school"}`}>
@@ -76,6 +87,7 @@ export default function SchoolDetailsPage() {
               <CardDescription>Code: {school.code || "N/A"}</CardDescription>
             </CardHeader>
             <CardContent>
+<<<<<<< HEAD
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 text-base">
                 <div>
                   <span className="block font-semibold mb-2">Zone</span>
@@ -115,6 +127,49 @@ export default function SchoolDetailsPage() {
               <Button variant="outline" onClick={() => router.back()}>Back</Button>
               <Link href={`/schools/${school.id}/edit`}>
                 <Button className={cn(buttonVariants({ variant: "default" }))}>Edit School</Button>
+=======
+              {/* Tabular alignment using grid */}
+              <div className="grid grid-cols-2 gap-y-4 gap-x-8 text-sm">
+                <p><strong>Zone:</strong></p>
+                <p>{school.zoneName || "N/A"}</p>
+
+                <p><strong>Province:</strong></p>
+                <p>{school.provinceName || "N/A"}</p>
+
+                <p><strong>District:</strong></p>
+                <p>{school.districtName || "N/A"}</p>
+
+                <p><strong>Cluster:</strong></p>
+                <p>{school.cluster || "N/A"}</p>
+
+                <p><strong>Commune:</strong></p>
+                <p>{school.commune || "N/A"}</p>
+
+                <p><strong>Status:</strong></p>
+                <p>{school.status === 1 ? "Active" : "Inactive"}</p>
+              </div>
+
+              {school.image && (
+                <div className="mt-4">
+                  <p><strong>Image:</strong></p>
+                  <img src={school.image} alt="School Image" className="mt-2 max-w-xs" />
+                </div>
+              )}
+            </CardContent>
+            
+            {/* Edit and Back buttons moved inside the CardFooter */}
+            <CardFooter className="flex justify-between pt-4">
+              <Button
+                variant="outline"
+                onClick={() => router.back()}
+              >
+                Back
+              </Button>
+              <Link href={`/schools/${school.id}/edit`}>
+                <Button className={cn(buttonVariants({ variant: "default" }))}>
+                  Edit School
+                </Button>
+>>>>>>> 7b33594a43002ee4975b28d823c2c907582df8fc
               </Link>
             </CardFooter>
           </Card>

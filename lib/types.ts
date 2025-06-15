@@ -27,6 +27,7 @@ export interface School {
   name: string
   code?: string
   status?: number
+<<<<<<< HEAD
   zoneName?: string
   provinceName?: string
   districtName?: string
@@ -34,6 +35,16 @@ export interface School {
   totalTeachers?: number
   totalTeachersFemale?: number
   totalStudentsFemale?: number
+=======
+  image?: string
+  createdAt: string
+  updatedAt: string
+  zoneName: string;
+  provinceName: string;
+  districtName: string;
+  totalStudents?: number;
+  totalTeachers?: number;
+>>>>>>> 7b33594a43002ee4975b28d823c2c907582df8fc
 }
 
 export interface User {

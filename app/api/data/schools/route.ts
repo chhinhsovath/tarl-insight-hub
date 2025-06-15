@@ -32,11 +32,11 @@ export async function GET(request: Request) {
       params.push(`%${searchTerm}%`);
     }
     if (filterZone) {
-      whereClauses.push(`"sclZoneName" ILIKE $${paramIndex++}`);
+      whereClauses.push(`"sclZoneName\" ILIKE $${paramIndex++}`);
       params.push(`%${filterZone}%`);
     }
     if (filterProvince) {
-      whereClauses.push(`"sclProvinceName" ILIKE $${paramIndex++}`);
+      whereClauses.push(`"sclProvinceName\" ILIKE $${paramIndex++}`);
       params.push(`%${filterProvince}%`);
     }
     if (status !== null) {

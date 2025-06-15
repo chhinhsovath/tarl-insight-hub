@@ -1,4 +1,4 @@
-import { User, School, Role, Page, RolePermission, PermissionMatrix, BulkPermissionUpdate } from "@/lib/types";
+import { User, School } from "@/lib/types";
 
 // This file is used to provide an API for database operations.
 // It should be used by client-side components to interact with the database.
@@ -216,19 +216,18 @@ export class DatabaseService {
     }
   }
 
-// In lib/database.ts, update the getSchoolById method:
-static async getSchoolById(id: number) {
-  try {
-    const response = await fetch(`/api/data/schools/${id}`); // Changed from ?id=${id}
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+  static async getSchoolById(id: number) {
+    try {
+      const response = await fetch(`/api/data/schools/${id}`); // Changed from ?id=${id}
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching school by ID:", error);
+      return null;
     }
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching school by ID:", error);
-    return null;
   }
-}
 
   // =====================================================
   // USERS
