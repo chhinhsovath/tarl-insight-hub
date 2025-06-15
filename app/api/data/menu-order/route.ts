@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Pool } from "pg";
 import { cookies } from "next/headers";
+import { AuditLogger } from "@/lib/audit-logger";
 
 const pool = new Pool({
   user: process.env.PGUSER,
@@ -22,9 +23,9 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify session and check if user is admin
+    // Verify session and get user info for audit
     const sessionResult = await client.query(
-      "SELECT id, role_id FROM tbl_tarl_users WHERE session_token = $1 AND session_expires > NOW()",
+      "SELECT u.id, u.full_name, r.name as role_name FROM tbl_tarl_users u JOIN tbl_tarl_roles r ON u.role_id = r.id WHERE u.session_token = $1 AND u.session_expires > NOW()",
       [sessionToken]
     );
 
@@ -34,11 +35,7 @@ export async function PUT(request: Request) {
 
     const currentUser = sessionResult.rows[0];
     
-    // Get current user's role name
-    const roleRes = await client.query("SELECT name FROM tbl_tarl_roles WHERE id = $1", [currentUser.role_id]);
-    const currentUserRole = roleRes.rows[0]?.name;
-    
-    if (!currentUserRole || currentUserRole.toLowerCase() !== 'admin') {
+    if (!currentUser.role_name || currentUser.role_name.toLowerCase() !== 'admin') {
       return NextResponse.json({ error: "Access denied. Admin role required." }, { status: 403 });
     }
 
@@ -72,6 +69,14 @@ export async function PUT(request: Request) {
     }
 
     await client.query('COMMIT');
+
+    // Log audit entry
+    await AuditLogger.logMenuOrderChange(
+      currentUser.id,
+      pageOrders.length,
+      currentUser.full_name,
+      currentUser.role_name
+    );
 
     return NextResponse.json({ 
       success: true, 

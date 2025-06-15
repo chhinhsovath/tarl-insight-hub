@@ -608,21 +608,39 @@ export class DatabaseService {
     }
   }
 
-  static async getPermissionAuditLog(roleId?: number, pageId?: number, limit: number = 50) {
+  static async getPermissionAuditLog(actionType?: string, entityType?: string, limit: number = 50, offset: number = 0) {
     try {
       const query = new URLSearchParams();
-      if (roleId) query.append("roleId", roleId.toString());
-      if (pageId) query.append("pageId", pageId.toString());
+      if (actionType) query.append("actionType", actionType);
+      if (entityType) query.append("entityType", entityType);
       query.append("limit", limit.toString());
+      query.append("offset", offset.toString());
 
-      const response = await fetch(`/api/data/permissions/audit?${query.toString()}`);
+      const response = await fetch(`/api/audit-trail?${query.toString()}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.json();
+      return result.entries || [];
+    } catch (error) {
+      console.error("Error fetching permission audit log:", error);
+      return [];
+    }
+  }
+
+  static async setupAuditSystem() {
+    try {
+      const response = await fetch("/api/setup-audit-system", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      });
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       return await response.json();
     } catch (error) {
-      console.error("Error fetching permission audit log:", error);
-      return [];
+      console.error("Error setting up audit system:", error);
+      throw error;
     }
   }
 }

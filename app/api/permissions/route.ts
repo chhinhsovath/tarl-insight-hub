@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { Pool } from "pg"
+import { cookies } from "next/headers"
+import { AuditLogger } from "@/lib/audit-logger"
 
 interface Page {
   id: number
@@ -85,21 +87,79 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const client = await pool.connect();
+  
   try {
     const { role, pageId, isAllowed } = await request.json()
-    const client = await pool.connect();
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get("session-token")?.value;
+
+    if (!sessionToken) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify session and get user info for audit
+    const sessionResult = await client.query(
+      "SELECT u.id, u.full_name, r.name as role_name FROM tbl_tarl_users u JOIN tbl_tarl_roles r ON u.role_id = r.id WHERE u.session_token = $1 AND u.session_expires > NOW()",
+      [sessionToken]
+    );
+
+    if (sessionResult.rows.length === 0) {
+      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    }
+
+    const currentUser = sessionResult.rows[0];
+
+    // Get page info for audit
+    const pageResult = await client.query(
+      "SELECT page_name, page_path FROM page_permissions WHERE id = $1",
+      [pageId]
+    );
+
+    if (pageResult.rows.length === 0) {
+      return NextResponse.json({ error: "Page not found" }, { status: 404 });
+    }
+
+    const pageInfo = pageResult.rows[0];
+
+    // Get current permission value for audit
+    const currentPermResult = await client.query(
+      "SELECT is_allowed FROM role_page_permissions WHERE role = $1 AND page_id = $2",
+      [role, pageId]
+    );
+
+    const currentValue = currentPermResult.rows[0]?.is_allowed;
 
     // Update permission
     const updateQuery = 'UPDATE role_page_permissions SET is_allowed = $1 WHERE role = $2 AND page_id = $3';
     const { rowCount } = await client.query(updateQuery, [isAllowed, role, pageId]);
 
-    client.release();
+    if (rowCount === 0) {
+      // Permission doesn't exist, create it
+      await client.query(
+        'INSERT INTO role_page_permissions (role, page_id, is_allowed, created_at, updated_at) VALUES ($1, $2, $3, NOW(), NOW())',
+        [role, pageId, isAllowed]
+      );
+    }
 
-    if (rowCount === 0) throw new Error("Permission not found or not updated");
+    // Log audit entry (only if permission actually changed)
+    if (currentValue !== isAllowed) {
+      await AuditLogger.logPermissionChange(
+        isAllowed ? 'granted' : 'revoked',
+        role,
+        pageInfo.page_name,
+        pageInfo.page_path,
+        currentUser.id,
+        currentUser.full_name,
+        currentUser.role_name
+      );
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error updating permission:", error)
     return NextResponse.json({ error: "Failed to update permission" }, { status: 500 })
+  } finally {
+    client.release();
   }
 } 

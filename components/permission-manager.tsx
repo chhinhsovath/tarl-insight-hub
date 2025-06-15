@@ -130,6 +130,23 @@ export function PermissionManager({ className }: PermissionManagerProps) {
     return { granted, total };
   };
 
+  const setupAuditSystem = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      
+      await DatabaseService.setupAuditSystem();
+      setSuccess('Audit system initialized successfully!');
+      await loadData(); // Reload to show initial audit entries
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError('Failed to setup audit system');
+      console.error('Error setting up audit system:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -320,29 +337,39 @@ export function PermissionManager({ className }: PermissionManagerProps) {
             <CardContent>
               <div className="space-y-4">
                 {auditLog.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">
-                    No audit entries found
-                  </p>
+                  <div className="text-center py-8 space-y-4">
+                    <p className="text-muted-foreground">
+                      No audit entries found
+                    </p>
+                    <Button 
+                      onClick={setupAuditSystem}
+                      variant="outline"
+                      disabled={saving}
+                    >
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                      Setup Audit System
+                    </Button>
+                  </div>
                 ) : (
                   auditLog.map(entry => (
                     <div key={entry.id} className="flex items-start gap-3 p-3 border rounded-lg">
                       <div className="flex-shrink-0">
                         <Badge variant={
-                          entry.action === 'granted' ? 'default' : 
-                          entry.action === 'revoked' ? 'destructive' : 
+                          entry.action_type?.includes('granted') ? 'default' : 
+                          entry.action_type?.includes('revoked') ? 'destructive' : 
+                          entry.action_type?.includes('created') ? 'default' :
+                          entry.action_type?.includes('deleted') ? 'destructive' :
                           'secondary'
                         }>
-                          {entry.action}
+                          {entry.action_type?.replace('_', ' ') || 'action'}
                         </Badge>
                       </div>
                       <div className="flex-1 space-y-1">
                         <div className="text-sm">
-                          <span className="font-medium">{entry.role_name}</span> role access to{' '}
-                          <span className="font-medium">{entry.page_name}</span> was{' '}
-                          <span className="font-medium">{entry.action}</span>
+                          {entry.description}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          Changed by {entry.changed_by_name} on{' '}
+                          Changed by {entry.changed_by_username || 'System'} ({entry.changed_by_role}) on{' '}
                           {new Date(entry.created_at).toLocaleDateString()} at{' '}
                           {new Date(entry.created_at).toLocaleTimeString()}
                         </div>
