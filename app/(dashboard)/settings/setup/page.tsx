@@ -65,6 +65,34 @@ export default function SetupPage() {
     }
   };
 
+  const setupMenuOrdering = async () => {
+    setLoading(true);
+    setError(null);
+    setResult(null);
+
+    try {
+      const response = await fetch('/api/setup-menu-ordering', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setResult({
+          success: true,
+          message: data.message,
+          results: [{ step: 'Menu Ordering', data: `${data.pages?.length || 0} pages configured` }]
+        });
+      } else {
+        setError(data.error || 'Failed to setup menu ordering');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to setup menu ordering');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!user || user.role.toLowerCase() !== 'admin') {
     return (
       <div className="container mx-auto p-6">
@@ -119,6 +147,20 @@ export default function SetupPage() {
                 <>
                   <Shield className="h-4 w-4 mr-2" />
                   Quick Fix: Add Page Management Only
+                </>
+              )}
+            </Button>
+
+            <Button onClick={setupMenuOrdering} disabled={loading} variant="outline" className="w-full">
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Setting up menu ordering...
+                </>
+              ) : (
+                <>
+                  <Shield className="h-4 w-4 mr-2" />
+                  Setup Menu Ordering System
                 </>
               )}
             </Button>

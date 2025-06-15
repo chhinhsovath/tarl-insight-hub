@@ -30,10 +30,19 @@ export async function GET() {
     }
 
     // Fetch all pages from the existing page_permissions table
+    // Check if sort_order column exists
+    const columnCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'page_permissions' AND column_name = 'sort_order'
+    `);
+    
+    const hasSortOrder = columnCheck.rows.length > 0;
+    
     const result = await pool.query(`
-      SELECT id, page_path, page_name, icon_name, created_at, updated_at 
+      SELECT id, page_path, page_name, icon_name, created_at, updated_at ${hasSortOrder ? ', sort_order' : ''} 
       FROM page_permissions 
-      ORDER BY page_name ASC
+      ORDER BY ${hasSortOrder ? 'sort_order ASC, ' : ''}page_name ASC
     `);
     
     return NextResponse.json(result.rows);

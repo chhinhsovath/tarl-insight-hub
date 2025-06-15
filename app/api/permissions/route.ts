@@ -35,8 +35,18 @@ export async function GET() {
   try {
     const client = await pool.connect();
 
-    // Get all pages
-    const pagesRes = await client.query('SELECT * FROM page_permissions');
+    // Get all pages ordered by sort_order if available
+    const columnCheck = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'page_permissions' AND column_name = 'sort_order'
+    `);
+    
+    const hasSortOrder = columnCheck.rows.length > 0;
+    const pagesRes = await client.query(`
+      SELECT * FROM page_permissions 
+      ORDER BY ${hasSortOrder ? 'sort_order ASC, ' : ''}page_name ASC
+    `);
     const pages: Page[] = pagesRes.rows;
 
     // Get all role permissions

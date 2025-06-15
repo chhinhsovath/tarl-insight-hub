@@ -4,6 +4,8 @@ import { useAuth } from "@/lib/auth-context";
 import { PageLayout } from "@/components/page-layout";
 import { PermissionManager } from "@/components/permission-manager";
 import { PageManager } from "@/components/page-manager";
+import { MenuOrderManager } from "@/components/menu-order-manager";
+import { RoleManager } from "@/components/role-manager";
 import { PermissionProtectedRoute } from "@/components/permission-protected-route";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -28,17 +30,27 @@ export default function PagePermissionsPage() {
         description="Manage pages and role-based access permissions"
       >
         <Tabs defaultValue="permissions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="permissions">Permission Management</TabsTrigger>
+            <TabsTrigger value="roles">Role Management</TabsTrigger>
             <TabsTrigger value="pages">Page Management</TabsTrigger>
+            <TabsTrigger value="menu-order">Menu Order</TabsTrigger>
           </TabsList>
           
           <TabsContent value="permissions">
             <PermissionManager />
           </TabsContent>
           
+          <TabsContent value="roles">
+            <RoleManager />
+          </TabsContent>
+          
           <TabsContent value="pages">
             <PageManager />
+          </TabsContent>
+          
+          <TabsContent value="menu-order">
+            <MenuOrderManager />
           </TabsContent>
         </Tabs>
       </PageLayout>
