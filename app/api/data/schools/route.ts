@@ -15,10 +15,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const searchTerm = searchParams.get("search");
     const countOnly = searchParams.get("count") === "true";
-    const limit = parseInt(searchParams.get("limit") || '25', 10);
+    const limit = parseInt(searchParams.get("limit") || '24', 10);
     const offset = parseInt(searchParams.get("offset") || '0', 10);
     const filterZone = searchParams.get("zone");
     const filterProvince = searchParams.get("province");
+    const status = searchParams.get("status");
     
     const client = await pool.connect();
     let query;
@@ -38,6 +39,10 @@ export async function GET(request: Request) {
       whereClauses.push(`"sclProvinceName" ILIKE $${paramIndex++}`);
       params.push(`%${filterProvince}%`);
     }
+    if (status !== null) {
+      whereClauses.push(`"sclStatus" = $${paramIndex++}`);
+      params.push(parseInt(status));
+    }
 
     const whereClause = whereClauses.length > 0 ? " WHERE " + whereClauses.join(" AND ") : "";
 
@@ -49,17 +54,14 @@ export async function GET(request: Request) {
           "sclAutoID" as id,
           "sclName" as name,
           "sclCode" as code,
-          "sclCluster" as cluster,
-          "sclCommune" as commune,
-          "sclDistrict" as district,
-          "sclProvince" as province,
-          "sclZone" as zone,
-          "sclOrder" as order,
           "sclStatus" as status,
-          "sclImage" as image,
           "sclZoneName" as "zoneName",
           "sclProvinceName" as "provinceName",
-          "sclDistrictName" as "districtName"
+          "sclDistrictName" as "districtName",
+          "total_students" as "totalStudents",
+          "total_teachers" as "totalTeachers",
+          "total_teachers_female" as "totalTeachersFemale",
+          "total_students_female" as "totalStudentsFemale"
         FROM
           tbl_tarl_schools
         ${whereClause}

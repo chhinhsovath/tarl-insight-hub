@@ -26,21 +26,14 @@ export interface School {
   id: number
   name: string
   code?: string
-  cluster?: string
-  commune?: string
-  district?: string
-  province?: string
-  zone?: string
-  order?: number
   status?: number
-  image?: string
-  createdAt: string
-  updatedAt: string
-  zoneName: string;
-  provinceName: string;
-  districtName: string;
-  totalStudents?: number;
-  totalTeachers?: number;
+  zoneName?: string
+  provinceName?: string
+  districtName?: string
+  totalStudents?: number
+  totalTeachers?: number
+  totalTeachersFemale?: number
+  totalStudentsFemale?: number
 }
 
 export interface User {
@@ -325,4 +318,71 @@ export interface Village {
   commune_id: number;
   created_at: string;
   updated_at: string;
+}
+
+// =====================================================
+// PERMISSION SYSTEM TYPES
+// =====================================================
+
+export interface Role {
+  id: number;
+  name: string;
+  description?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface Page {
+  id: number;
+  name: string;
+  path: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RolePermission {
+  id: number;
+  role_id: number;
+  page_id: number;
+  can_access: boolean;
+  created_at: string;
+  updated_at: string;
+  role?: Role;
+  page?: Page;
+}
+
+export interface PermissionAudit {
+  id: number;
+  role_id: number;
+  page_id: number;
+  action: 'granted' | 'revoked' | 'created' | 'deleted';
+  previous_value?: boolean;
+  new_value?: boolean;
+  changed_by: number;
+  created_at: string;
+  role?: Role;
+  page?: Page;
+  changed_by_user?: User;
+}
+
+export interface PermissionMatrix {
+  roleId: number;
+  roleName: string;
+  permissions: {
+    [pageId: number]: {
+      pageId: number;
+      pageName: string;
+      pagePath: string;
+      canAccess: boolean;
+    };
+  };
+}
+
+export interface BulkPermissionUpdate {
+  roleId: number;
+  permissions: {
+    pageId: number;
+    canAccess: boolean;
+  }[];
 }

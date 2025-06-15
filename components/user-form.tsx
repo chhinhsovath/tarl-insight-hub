@@ -25,23 +25,50 @@ interface UserFormProps {
   initialData?: Partial<User>
 }
 
+// Extend the User type for formData to include role_id
+interface UserFormState extends Partial<User> {
+  role_id?: number;
+}
+
 export function UserForm({ onSuccess, onCancel, initialData }: UserFormProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState<Partial<User>>(
-    initialData || {
-      full_name: "",
-      email: "",
-      phone: "",
-      position: "",
-      role: "Teacher",
-      school_id: null,
-      is_active: true,
-    },
+  const [roles, setRoles] = useState<{ id: number; name: string }[]>([])
+  const [formData, setFormData] = useState<UserFormState>(
+    initialData
+      ? { ...initialData, role_id: (initialData as any).role_id, role: undefined }
+      : {
+          full_name: "",
+          email: "",
+          phone: "",
+          position: "",
+          role_id: undefined,
+          school_id: null,
+          is_active: true,
+        }
   )
 
-  const handleChange = (field: keyof User, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+  useEffect(() => {
+    fetch("/api/data/roles")
+      .then((res) => res.json())
+      .then((data) => setRoles(data))
+  }, [])
+
+  // If editing, set role_id from role name if needed
+  useEffect(() => {
+    if (
+      initialData &&
+      typeof initialData.role === "string" &&
+      roles.length > 0 &&
+      !formData.role_id
+    ) {
+      const found = roles.find((r) => r.name.toLowerCase() === initialData.role!.toLowerCase())
+      if (found) setFormData((prev) => ({ ...prev, role_id: found.id }))
+    }
+  }, [initialData, roles])
+
+  const handleChange = (field: string, value: any) => {
+    setFormData((prev: any) => ({ ...prev, [field]: value }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,7 +77,7 @@ export function UserForm({ onSuccess, onCancel, initialData }: UserFormProps) {
 
     try {
       // Validate required fields
-      if (!formData.full_name || !formData.role) {
+      if (!formData.full_name || !formData.role_id) {
         throw new Error("Please fill in all required fields")
       }
 
@@ -61,7 +88,7 @@ export function UserForm({ onSuccess, onCancel, initialData }: UserFormProps) {
         result = await DatabaseService.updateUser(initialData.id, formData)
       } else {
         // Create new user
-        result = await DatabaseService.createUser(formData as Omit<User, "id" | "created_at" | "updated_at">)
+        result = await DatabaseService.createUser(formData)
       }
 
       if (result) {
@@ -132,17 +159,23 @@ export function UserForm({ onSuccess, onCancel, initialData }: UserFormProps) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="role">
+          <Label htmlFor="role_id">
             Role <span className="text-red-500">*</span>
           </Label>
-          <Select value={formData.role || "Teacher"} onValueChange={(value) => handleChange("role", value)} required>
-            <SelectTrigger id="role">
+          <Select
+            value={formData.role_id ? String(formData.role_id) : ""}
+            onValueChange={(value) => handleChange("role_id", Number(value))}
+            required
+          >
+            <SelectTrigger id="role_id">
               <SelectValue placeholder="Select role" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Admin">Admin</SelectItem>
-              <SelectItem value="Teacher">Teacher</SelectItem>
-              <SelectItem value="Collector">Collector</SelectItem>
+              {roles.map((role) => (
+                <SelectItem key={role.id} value={String(role.id)}>
+                  {role.name.charAt(0).toUpperCase() + role.name.slice(1)}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

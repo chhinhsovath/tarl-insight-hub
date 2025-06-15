@@ -1,10 +1,12 @@
-"use client"
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { useAuth } from "@/lib/auth-context"
-import { Button } from "@/components/ui/button"
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-context";
+import { usePermissions } from "@/hooks/use-permissions";
+import { Button } from "@/components/ui/button";
 import {
   BarChart3,
   Users,
@@ -20,82 +22,289 @@ import {
   ChevronLeft,
   LogOut,
   BookOpen,
-} from "lucide-react"
+  Shield,
+  Calendar,
+  MapPin,
+  PieChart,
+  Database,
+  UserCheck,
+  FileEdit,
+  Home,
+  Building,
+  UserCog,
+  Activity,
+} from "lucide-react";
 
 interface SidebarNavProps {
-  open: boolean
-  setOpen: (open: boolean) => void
+  open: boolean;
+  setOpen: (open: boolean) => void;
 }
 
-const adminNavItems = [
-  { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
-  { name: "Schools", href: "/schools", icon: School },
-  { name: "Users", href: "/users", icon: Users },
+interface NavItem {
+  name: string;
+  href: string;
+  icon: any;
+  children?: NavItem[];
+  requiresAdmin?: boolean;
+  category?: string;
+}
+
+// Complete navigation structure organized by categories
+const allNavItems: NavItem[] = [
+  // OVERVIEW
+  {
+    name: "Dashboard",
+    href: "/dashboard", 
+    icon: Home,
+    category: "overview"
+  },
+
+  // MANAGEMENT
+  {
+    name: "Schools",
+    href: "/schools",
+    icon: Building,
+    category: "management"
+  },
+  {
+    name: "Users",
+    href: "/users",
+    icon: Users,
+    category: "management"
+  },
+  {
+    name: "Students",
+    href: "/students",
+    icon: GraduationCap,
+    category: "management"
+  },
+
+  // DATA COLLECTION
   {
     name: "Observations",
+    href: "/observations",
     icon: Eye,
+    category: "data",
     children: [
       { name: "Overview", href: "/observations", icon: BarChart3 },
       { name: "New Observation", href: "/observations/new", icon: Plus },
       { name: "All Observations", href: "/observations/list", icon: List },
-    ],
+    ]
   },
-  { name: "Progress", href: "/progress", icon: TrendingUp },
-  { name: "Training", href: "/training", icon: GraduationCap },
-  { name: "Reports", href: "/reports", icon: FileText },
-  { name: "Settings", href: "/settings", icon: Settings },
-]
-
-const teacherNavItems = [
-  { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
-  { name: "Students", href: "/students", icon: Users },
   {
-    name: "Observations",
-    icon: Eye,
-    children: [
-      { name: "Overview", href: "/observations", icon: BarChart3 },
-      { name: "New Observation", href: "/observations/new", icon: Plus },
-      { name: "My Observations", href: "/observations/list", icon: List },
-    ],
+    name: "Data Collection", 
+    href: "/collection",
+    icon: ClipboardList,
+    category: "data"
   },
-  { name: "Progress", href: "/progress", icon: TrendingUp },
-  { name: "Training", href: "/training", icon: GraduationCap },
-  { name: "Settings", href: "/settings", icon: Settings },
-]
-
-const collectorNavItems = [
-  { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
   {
-    name: "Observations",
-    icon: Eye,
-    children: [
-      { name: "Overview", href: "/observations", icon: BarChart3 },
-      { name: "New Observation", href: "/observations/new", icon: Plus },
-      { name: "My Observations", href: "/observations/list", icon: List },
-    ],
+    name: "Visits",
+    href: "/visits",
+    icon: MapPin,
+    category: "data"
   },
-  { name: "Data Collection", href: "/collection", icon: ClipboardList },
-  { name: "Settings", href: "/settings", icon: Settings },
-]
+
+  // ANALYTICS & REPORTS
+  {
+    name: "Analytics",
+    href: "/analytics",
+    icon: PieChart,
+    category: "analytics"
+  },
+  {
+    name: "Reports",
+    href: "/reports",
+    icon: FileText,
+    category: "analytics"
+  },
+  {
+    name: "Progress",
+    href: "/progress",
+    icon: TrendingUp,
+    category: "analytics"
+  },
+
+  // LEARNING
+  {
+    name: "Training",
+    href: "/training",
+    icon: BookOpen,
+    category: "learning"
+  },
+
+  // ADMINISTRATION
+  {
+    name: "Settings",
+    href: "/settings",
+    icon: Settings,
+    category: "admin",
+    children: [
+      { name: "General", href: "/settings", icon: Settings },
+      { name: "Page Permissions", href: "/settings/page-permissions", icon: Shield, requiresAdmin: true },
+    ]
+  },
+  {
+    name: "Page Management",
+    href: "/settings/page-permissions",
+    icon: Shield,
+    category: "admin",
+    requiresAdmin: true
+  }
+];
+
+const categoryLabels = {
+  overview: "Overview",
+  management: "Management", 
+  data: "Data Collection",
+  analytics: "Analytics & Reports",
+  learning: "Learning",
+  admin: "Administration",
+  other: "Other"
+};
 
 export function SidebarNav({ open, setOpen }: SidebarNavProps) {
-  const pathname = usePathname()
-  const { user, logout } = useAuth()
+  const pathname = usePathname();
+  const { user, logout } = useAuth();
+  const { hasPermission } = usePermissions();
 
-  const getNavItems = () => {
-    switch (user?.role) {
-      case "admin":
-        return adminNavItems
-      case "teacher":
-        return teacherNavItems
-      case "collector":
-        return collectorNavItems
-      default:
-        return []
+  // Filter nav items based on user permissions
+  const getFilteredNavItems = () => {
+    if (!user) return [];
+
+    const filterNavItem = (item: NavItem): NavItem | null => {
+      // Check admin requirements first
+      if (item.requiresAdmin && user.role.toLowerCase() !== 'admin') {
+        return null;
+      }
+
+      // For admin users, show all items (including children)
+      if (user.role.toLowerCase() === 'admin') {
+        console.log(`Processing admin item: ${item.name}, has children: ${!!item.children}, children count: ${item.children?.length || 0}`);
+        
+        // For admin, include all children without filtering
+        if (item.children && item.children.length > 0) {
+          const processedChildren = item.children.map(child => {
+            console.log(`  Processing child: ${child.name}, requiresAdmin: ${child.requiresAdmin}`);
+            return child; // Return all children for admin
+          });
+          
+          return {
+            ...item,
+            children: processedChildren
+          };
+        }
+        return item;
+      }
+
+      // For non-admin users, check permissions normally
+      if (!hasPermission(item.href)) {
+        return null;
+      }
+
+      // Filter children recursively
+      if (item.children) {
+        const filteredChildren = item.children
+          .map(child => filterNavItem(child))
+          .filter(Boolean) as NavItem[];
+        
+        return {
+          ...item,
+          children: filteredChildren.length > 0 ? filteredChildren : undefined
+        };
+      }
+
+      return item;
+    };
+
+    return allNavItems
+      .map(item => filterNavItem(item))
+      .filter(Boolean) as NavItem[];
+  };
+
+  const filteredNavItems = getFilteredNavItems();
+
+  // Group items by category in specific order
+  const categoryOrder = ['overview', 'management', 'data', 'analytics', 'learning', 'admin'];
+  
+  const groupedNavItems = categoryOrder.reduce((acc, category) => {
+    const categoryItems = filteredNavItems.filter(item => item.category === category);
+    if (categoryItems.length > 0) {
+      acc[category] = categoryItems;
     }
+    return acc;
+  }, {} as Record<string, NavItem[]>);
+
+  // Add any items without categories to 'other'
+  const uncategorizedItems = filteredNavItems.filter(item => !item.category);
+  if (uncategorizedItems.length > 0) {
+    groupedNavItems['other'] = uncategorizedItems;
   }
 
-  const navItems = getNavItems()
+  const renderNavItem = (item: NavItem, depth = 0) => {
+    const isActive = pathname === item.href || (item.children && item.children.some(child => pathname === child.href));
+    
+    return (
+      <div key={`${item.name}-${item.href}`} className={cn(depth > 0 && "ml-4")}>
+        {item.children && item.children.length > 0 ? (
+          <div className="space-y-1">
+            {/* Parent item - clickable if it has an href */}
+            {item.href ? (
+              <Link href={item.href}>
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start rounded-lg",
+                    isActive
+                      ? "bg-blue-50 text-blue-700 hover:bg-blue-50"
+                      : "text-gray-600 hover:bg-gray-50",
+                    !open && "justify-center px-2",
+                  )}
+                >
+                  <item.icon className={cn("h-4 w-4", open && "mr-3")} />
+                  {open && <span>{item.name}</span>}
+                </Button>
+              </Link>
+            ) : (
+              <div
+                className={cn(
+                  "flex items-center px-3 py-2 text-sm font-medium rounded-lg",
+                  isActive ? "text-blue-700" : "text-gray-600",
+                  !open && "justify-center",
+                )}
+              >
+                <item.icon className="h-4 w-4" />
+                {open && <span className="ml-3">{item.name}</span>}
+              </div>
+            )}
+            
+            {/* Children - only show when sidebar is open */}
+            {open && (
+              <div className="ml-4 space-y-1">
+                {item.children.map((child) => renderNavItem(child, depth + 1))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <Link href={item.href}>
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start rounded-lg",
+                pathname === item.href
+                  ? "bg-blue-50 text-blue-700 hover:bg-blue-50"
+                  : "text-gray-600 hover:bg-gray-50",
+                !open && "justify-center px-2",
+                depth > 0 && "text-sm font-normal"
+              )}
+            >
+              <item.icon className={cn("h-4 w-4", open && "mr-3")} />
+              {open && <span>{item.name}</span>}
+            </Button>
+          </Link>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -119,60 +328,40 @@ export function SidebarNav({ open, setOpen }: SidebarNavProps) {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-auto py-4 px-2">
-        <div className="space-y-1">
-          {navItems.map((item) => (
-            <div key={item.name}>
-              {item.children ? (
-                <div className="space-y-1">
-                  <div
-                    className={cn(
-                      "flex items-center px-3 py-2 text-sm font-medium text-gray-600 rounded-lg",
-                      !open && "justify-center",
-                    )}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {open && <span className="ml-3">{item.name}</span>}
-                  </div>
-                  {open && (
-                    <div className="ml-4 space-y-1">
-                      {item.children.map((child) => (
-                        <Link key={child.href} href={child.href}>
-                          <Button
-                            variant="ghost"
-                            className={cn(
-                              "w-full justify-start text-sm font-normal rounded-lg",
-                              pathname === child.href
-                                ? "bg-blue-50 text-blue-700 hover:bg-blue-50"
-                                : "text-gray-600 hover:bg-gray-50",
-                            )}
-                          >
-                            <child.icon className="h-3 w-3 mr-3" />
-                            {child.name}
-                          </Button>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
+        <div className="space-y-6">
+          {Object.entries(groupedNavItems).map(([category, items]) => (
+            <div key={category} className="space-y-2">
+              {/* Category Label */}
+              {open && items.length > 0 && (
+                <div className="px-3 py-1">
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    {categoryLabels[category as keyof typeof categoryLabels] || category}
+                  </h3>
                 </div>
-              ) : (
-                <Link href={item.href}>
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      "w-full justify-start rounded-lg",
-                      pathname === item.href
-                        ? "bg-blue-50 text-blue-700 hover:bg-blue-50"
-                        : "text-gray-600 hover:bg-gray-50",
-                      !open && "justify-center px-2",
-                    )}
-                  >
-                    <item.icon className={cn("h-4 w-4", open && "mr-3")} />
-                    {open && <span>{item.name}</span>}
-                  </Button>
-                </Link>
               )}
+              
+              {/* Category Items */}
+              <div className="space-y-1">
+                {items.map((item) => renderNavItem(item))}
+              </div>
             </div>
           ))}
+          
+          {/* Permission Status Indicator */}
+          {open && user && (
+            <div className="px-3 py-2 mx-2 bg-gray-50 rounded-lg">
+              <div className="flex items-center text-xs text-gray-500">
+                <Shield className="h-3 w-3 mr-2" />
+                <span>Permission-based access</span>
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                Role: <span className="capitalize font-medium">{user.role}</span>
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                Items shown: {filteredNavItems.length}
+              </div>
+            </div>
+          )}
         </div>
       </nav>
 
@@ -181,7 +370,7 @@ export function SidebarNav({ open, setOpen }: SidebarNavProps) {
         <div className={cn("flex items-center", open ? "justify-between" : "justify-center")}>
           {open && (
             <div className="flex flex-col">
-              <span className="text-sm font-medium text-gray-900">{user?.name || user?.full_name}</span>
+              <span className="text-sm font-medium text-gray-900">{user?.full_name}</span>
               <span className="text-xs text-gray-500 capitalize">{user?.role}</span>
             </div>
           )}
@@ -197,5 +386,5 @@ export function SidebarNav({ open, setOpen }: SidebarNavProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }

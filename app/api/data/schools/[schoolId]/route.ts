@@ -32,11 +32,13 @@ export async function GET(request: Request) {
         "sclOrder" as order,
         "sclStatus" as status,
         "sclImage" as image,
-        "sclZoneName" as zoneName,
-        "sclProvinceName" as provinceName,
-        "sclDistrictName" as districtName,
-        "updated_at" as updatedAt,
-        "total_students" as totalStudents
+        "sclZoneName" as "zoneName",
+        "sclProvinceName" as "provinceName",
+        "sclDistrictName" as "districtName",
+        "total_students" as "totalStudents",
+        "total_teachers" as "totalTeachers",
+        "total_teachers_female" as "totalTeachersFemale",
+        "total_students_female" as "totalStudentsFemale"
       FROM
         tbl_tarl_schools
       WHERE "sclAutoID" = $1
@@ -90,6 +92,9 @@ export async function PUT(request: Request) {
     if (data.provinceName !== undefined) { updateFields.push(`"sclProvinceName" = $${paramIndex++}`); params.push(data.provinceName); }
     if (data.districtName !== undefined) { updateFields.push(`"sclDistrictName" = $${paramIndex++}`); params.push(data.districtName); }
     if (data.totalStudents !== undefined) { updateFields.push(`"total_students" = $${paramIndex++}`); params.push(data.totalStudents); }
+    if (data.totalTeachers !== undefined) { updateFields.push(`"total_teachers" = $${paramIndex++}`); params.push(data.totalTeachers); }
+    if (data.totalTeachersFemale !== undefined) { updateFields.push(`"total_teachers_female" = $${paramIndex++}`); params.push(data.totalTeachersFemale); }
+    if (data.totalStudentsFemale !== undefined) { updateFields.push(`"total_students_female" = $${paramIndex++}`); params.push(data.totalStudentsFemale); }
     
     if (updateFields.length === 0) {
       client.release();

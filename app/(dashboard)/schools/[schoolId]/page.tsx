@@ -45,17 +45,25 @@ export default function SchoolDetailsPage() {
 
     fetchSchool();
   }, [schoolId]);
-
+/*
   if (loading) {
     return <PageLayout title="Loading School..." description="Fetching school details..."><p>Loading school details...</p></PageLayout>;
   }
-
+*/
   if (error) {
     return <PageLayout title="Error" description="Could not load school details."><p className="text-red-500">{error}</p></PageLayout>;
   }
 
   if (!school) {
     return <PageLayout title="Not Found" description="School details could not be found."><p>School not found or invalid ID.</p></PageLayout>;
+  }
+
+  if (school.status !== 1) {
+    return (
+      <PageLayout title="Not Allowed" description="This school is not active.">
+        <p className="text-red-500">This school is not active.</p>
+      </PageLayout>
+    );
   }
 
   return (
@@ -68,18 +76,42 @@ export default function SchoolDetailsPage() {
               <CardDescription>Code: {school.code || "N/A"}</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 gap-y-4 gap-x-8 text-sm">
-                <p><strong>Zone:</strong></p>
-                <p>{school.zoneName || "N/A"}</p>
-                <p><strong>Province:</strong></p>
-                <p>{school.provinceName || "N/A"}</p>
-                <p><strong>District:</strong></p>
-                <p>{school.districtName || "N/A"}</p>
-                <p><strong>Status:</strong></p>
-                <p>{school.status === 1 ? "Active" : "Inactive"}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 text-base">
+                <div>
+                  <span className="block font-semibold mb-2">Zone</span>
+                  <div className="w-full rounded-lg border px-4 py-3 bg-gray-50">{school.zoneName || "N/A"}</div>
+                </div>
+                <div>
+                  <span className="block font-semibold mb-2">Province</span>
+                  <div className="w-full rounded-lg border px-4 py-3 bg-gray-50">{school.provinceName || "N/A"}</div>
+                </div>
+                <div>
+                  <span className="block font-semibold mb-2">District</span>
+                  <div className="w-full rounded-lg border px-4 py-3 bg-gray-50">{school.districtName || "N/A"}</div>
+                </div>
+                <div>
+                  <span className="block font-semibold mb-2">Status</span>
+                  <div className="w-full rounded-lg border px-4 py-3 bg-gray-50">{school.status === 1 ? "Active" : "Inactive"}</div>
+                </div>
+                <div>
+                  <span className="block font-semibold mb-2">Total Students</span>
+                  <div className="w-full rounded-lg border px-4 py-3 bg-gray-50">{school.totalStudents ?? "N/A"}</div>
+                </div>
+                <div>
+                  <span className="block font-semibold mb-2">Total Teachers</span>
+                  <div className="w-full rounded-lg border px-4 py-3 bg-gray-50">{school.totalTeachers ?? "N/A"}</div>
+                </div>
+                <div>
+                  <span className="block font-semibold mb-2">Total Female Teachers</span>
+                  <div className="w-full rounded-lg border px-4 py-3 bg-gray-50">{school.totalTeachersFemale ?? "N/A"}</div>
+                </div>
+                <div>
+                  <span className="block font-semibold mb-2">Total Female Students</span>
+                  <div className="w-full rounded-lg border px-4 py-3 bg-gray-50">{school.totalStudentsFemale ?? "N/A"}</div>
+                </div>
               </div>
             </CardContent>
-            <CardFooter className="flex justify-between pt-4">
+            <CardFooter className="md:col-span-2 flex justify-end gap-4 pt-4">
               <Button variant="outline" onClick={() => router.back()}>Back</Button>
               <Link href={`/schools/${school.id}/edit`}>
                 <Button className={cn(buttonVariants({ variant: "default" }))}>Edit School</Button>

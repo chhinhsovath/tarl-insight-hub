@@ -34,14 +34,18 @@ export function UserCard({ user, onUpdate }: UserCardProps) {
   const isAdmin = isAllowed(['admin'])
 
   const getRoleBadge = (role: string) => {
-    const roleColors = {
+    const roleColors: Record<string, string> = {
       admin: "bg-red-100 text-red-800",
       teacher: "bg-blue-100 text-blue-800",
       collector: "bg-green-100 text-green-800",
       coordinator: "bg-purple-100 text-purple-800",
+      partner: "bg-cyan-100 text-cyan-800",
+      director: "bg-pink-100 text-pink-800",
+      intern: "bg-gray-100 text-gray-800",
     }
+    const color = roleColors[role.toLowerCase()] || "bg-gray-100 text-gray-800"
     return (
-      <Badge className={roleColors[role as keyof typeof roleColors] || "bg-gray-100 text-gray-800"}>
+      <Badge className={color}>
         {role.charAt(0).toUpperCase() + role.slice(1)}
       </Badge>
     )

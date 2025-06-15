@@ -1,4 +1,4 @@
-import { User, School } from "@/lib/types";
+import { User, School, Role, Page, RolePermission, PermissionMatrix, BulkPermissionUpdate } from "@/lib/types";
 
 // This file is used to provide an API for database operations.
 // It should be used by client-side components to interact with the database.
@@ -91,7 +91,7 @@ export class DatabaseService {
   // =====================================================
   // SCHOOLS
   // =====================================================
-  static async getSchools(filters: { search?: string; count?: boolean; id?: number; limit?: number; offset?: number; zone?: string; province?: string } = {}) {
+  static async getSchools(filters: { search?: string; count?: boolean; id?: number; limit?: number; offset?: number; zone?: string; province?: string; status?: number } = {}) {
     try {
       const query = new URLSearchParams();
       if (filters.search) {
@@ -114,6 +114,9 @@ export class DatabaseService {
       }
       if (filters.province) {
         query.append("province", filters.province);
+      }
+      if (filters.status !== undefined) {
+        query.append("status", filters.status.toString());
       }
 
       const response = await fetch(`/api/data/schools?${query.toString()}`);
@@ -529,6 +532,97 @@ static async getSchoolById(id: number) {
       return await response.json();
     } catch (error) {
       console.error("Error fetching observation stats:", error);
+      return [];
+    }
+  }
+
+  // =====================================================
+  // PERMISSIONS & ROLES
+  // =====================================================
+  static async getRoles(): Promise<Role[]> {
+    try {
+      const response = await fetch("/api/data/roles");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching roles:", error);
+      return [];
+    }
+  }
+
+  static async getPages(): Promise<Page[]> {
+    try {
+      const response = await fetch("/api/data/pages");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching pages:", error);
+      return [];
+    }
+  }
+
+  static async getPermissionMatrix(): Promise<PermissionMatrix[]> {
+    try {
+      const response = await fetch("/api/data/permissions/matrix");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching permission matrix:", error);
+      return [];
+    }
+  }
+
+  static async updateRolePermissions(data: BulkPermissionUpdate): Promise<boolean> {
+    try {
+      const response = await fetch("/api/data/permissions", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return true;
+    } catch (error) {
+      console.error("Error updating role permissions:", error);
+      return false;
+    }
+  }
+
+  static async checkUserPermission(userId: number, pagePath: string): Promise<boolean> {
+    try {
+      const response = await fetch(`/api/data/permissions/check?userId=${userId}&pagePath=${encodeURIComponent(pagePath)}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const result = await response.json();
+      return result.hasAccess;
+    } catch (error) {
+      console.error("Error checking user permission:", error);
+      return false;
+    }
+  }
+
+  static async getPermissionAuditLog(roleId?: number, pageId?: number, limit: number = 50) {
+    try {
+      const query = new URLSearchParams();
+      if (roleId) query.append("roleId", roleId.toString());
+      if (pageId) query.append("pageId", pageId.toString());
+      query.append("limit", limit.toString());
+
+      const response = await fetch(`/api/data/permissions/audit?${query.toString()}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching permission audit log:", error);
       return [];
     }
   }

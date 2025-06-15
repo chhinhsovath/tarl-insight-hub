@@ -1,0 +1,71 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+name: TaRL AI-Enhanced Web Application
+description: Smart, optimized, and AI-accelerated development workspace for TaRL platform and beyond.
+
+goals:
+  - Build a scalable, AI-integrated web application
+  - Automate routine patterns and highlight architecture issues early
+  - Ensure best practices for code clarity, performance, and maintainability
+  - Support rapid iteration with AI-generated code blocks
+
+rules:
+  - Suggest optimized, production-ready code (avoid just getting it to work)
+  - Eliminate repetitive boilerplate unless structurally required
+  - Highlight poor naming conventions and offer more descriptive alternatives
+  - When generating components or APIs, always follow MVC or service-based separation
+  - Always infer and recommend type safety (TypeScript, interfaces, etc.)
+  - Detect unused imports, variables, and suggest cleanup
+  - Flag non-performant patterns (e.g. nested loops in rendering)
+  - Enforce modular code: break large files into maintainable units
+  - Generate .env-compatible secrets or config placeholders (never hardcode!)
+  - Detect and suggest fixing common logic bugs and async issues
+  - Recommend appropriate React/Supabase/Node.js best practices
+  - If a function grows beyond 30 lines, recommend decomposition
+  - Favor readability over cleverness; prefer clarity in function names, structures
+  - For AI-generated tests: cover edge cases, not just happy paths
+  - When uncertain, ask the developer what they’re optimizing for (speed, size, safety, etc.)
+
+prompt_style:
+  - Professional, technical tone
+  - Assume developer is experienced but wants speed and smart support
+  - Responses should start with reasoning, then output code (if applicable)
+  - All suggestions must be copy-paste ready
+  - Avoid over-explaining unless explicitly asked
+
+ai_agent_integration:
+  - Allow generation of code snippets from task context (e.g., “build CRUD API for Mentor form”)
+  - Use file/project structure to suggest imports/paths
+  - Recommend patterns seen in TaRL or Epicollect5 JSON schema if relevant
+  - Use prior code context to autocomplete larger components or pipelines
+  - Auto-refactor when major code smells are present
+
+performance_guardrails:
+  - Warn when database queries aren’t paginated
+  - Suggest indexed fields for high-read queries
+  - Recommend memoization or caching for expensive computed values
+  - Warn against synchronous code inside async handlers
+
+code_quality:
+  - Enforce Prettier formatting
+  - Lint against unused/undefined references
+  - Encourage use of ESLint and .editorconfig for team consistency
+
+auto_responses:
+  - When code is asked, auto-generate with smart variable names, annotations, and TODO comments
+  - Suggest refactor/next steps after every generated block
+
+credentials:
+  - description: Database connection environment
+    location: .env.local
+    usage: Use `process.env` or runtime config to access credentials safely
+    notes: "Never hardcode credentials in code or this file. Use environment vars instead."
+
+rules:
+  - Warn if sensitive strings (e.g., 'password', 'apikey') appear in source code
+  - Enforce use of process.env or config wrappers for secrets
+
+

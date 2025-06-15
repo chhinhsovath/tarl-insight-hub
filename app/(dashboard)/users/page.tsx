@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Shield } from "lucide-react"
+import { Plus, Shield, Users as UsersIcon, User as UserIcon, GraduationCap } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { DatabaseService } from "@/lib/database"
 import { User } from "@/lib/types"
@@ -11,6 +11,7 @@ import { UserCard } from "@/components/user-card"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/lib/auth-context"
+import { StatsCard } from "@/components/stats-card"
 
 export default function UsersPage() {
   const router = useRouter()
@@ -60,23 +61,58 @@ export default function UsersPage() {
     )
   }
 
+  const totalUsers = users.length
+  const totalAdmins = users.filter(user => user.role.toLowerCase() === "admin").length
+  const totalCoordinators = users.filter(user => user.role.toLowerCase() === "coordinator").length
+  const totalCollectors = users.filter(user => user.role.toLowerCase() === "collector").length
+  const totalTeachers = users.filter(user => user.role.toLowerCase() === "teacher").length
+
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Users Management</h1>
-        <Button onClick={() => router.push("/users/new")}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add User
-        </Button>
+    <div className="flex flex-col space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
+        <StatsCard
+          title="Total Users"
+          value={totalUsers.toString()}
+          icon={UsersIcon}
+          iconColor="text-blue-500"
+        />
+        <StatsCard
+          title="Admins"
+          value={totalAdmins.toString()}
+          icon={Shield}
+          iconColor="text-red-500"
+        />
+        <StatsCard
+          title="Coordinators"
+          value={totalCoordinators.toString()}
+          icon={UserIcon}
+          iconColor="text-green-500"
+        />
+        <StatsCard
+          title="Collectors"
+          value={totalCollectors.toString()}
+          icon={UserIcon}
+          iconColor="text-yellow-500"
+        />
+        <StatsCard
+          title="Teachers"
+          value={totalTeachers.toString()}
+          icon={GraduationCap}
+          iconColor="text-purple-500"
+        />
       </div>
 
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center justify-between mb-4">
         <Input
           placeholder="Search users..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="max-w-sm"
+          className="max-w-sm w-full"
         />
+        <Button onClick={() => router.push("/users/new")} className="ml-4">
+          <Plus className="mr-2 h-4 w-4" />
+          Add User
+        </Button>
       </div>
 
       {loading ? (

@@ -32,10 +32,11 @@ export async function POST(request: Request) {
     try {
       // Find user by email or username
       const result = await client.query(
-        `SELECT id, full_name, email, username, role, school_id, 
-                password, failed_login_attempts, account_locked_until, is_active
-         FROM tbl_tarl_users 
-         WHERE (email = $1 OR username = $2)`,
+        `SELECT u.id, u.full_name, u.email, u.username, r.name as role, u.school_id, 
+                u.password, u.failed_login_attempts, u.account_locked_until, u.is_active
+         FROM tbl_tarl_users u
+         JOIN tbl_tarl_roles r ON u.role_id = r.id
+         WHERE (u.email = $1 OR u.username = $2)`,
         [email || username, username || email]
       )
 

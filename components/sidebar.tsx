@@ -22,6 +22,9 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Shield,
+  Plus,
+  List,
 } from "lucide-react"
 
 const iconMap = {
@@ -37,6 +40,9 @@ const iconMap = {
   Database,
   MapPin,
   PieChart,
+  Shield,
+  Plus,
+  List,
 }
 
 interface NavigationItem {
@@ -61,27 +67,85 @@ export function Sidebar() {
     if (!user) return
 
     try {
-      const response = await fetch("/api/permissions")
-      const data = await response.json()
+      console.log(`Fetching navigation for user role: ${user.role}`);
       
-      console.log("API Permissions Data:", data)
-      console.log("User Role:", user.role)
-      console.log("Permissions for user role:", data[user.role.toLowerCase()])
+      // Always try page_permissions table first since it exists
+      const response = await fetch("/api/data/page-permissions")
+      if (!response.ok) {
+        console.error("Failed to fetch page permissions:", response.status)
+        throw new Error("Failed to fetch page permissions");
+      }
+      
+      const data = await response.json()
+      console.log("Page permissions from database:", data)
 
-      const userRole = user.role.toLowerCase()
-      if (data[userRole]) {
-        const items = data[userRole].map((item: any) => ({
+      // For admin users, show all pages from database
+      if (user.role.toLowerCase() === 'admin') {
+        const items = data.map((item: any) => ({
           name: item.page_name,
           href: item.page_path,
           icon: item.icon_name,
         }))
+        console.log(`Admin user: showing ${items.length} items`);
         setNavigation(items)
       } else {
-        setNavigation([]) // Clear navigation if no permissions for role
+        // Try to get role-based permissions for non-admin users
+        try {
+          const permResponse = await fetch(`/api/data/user-permissions?role=${user.role.toLowerCase()}`)
+          
+          if (permResponse.ok && permResponse.status !== 404) {
+            // Use role-based permissions if available
+            const permData = await permResponse.json()
+            console.log("Role-based permissions:", permData)
+            
+            const items = permData.map((item: any) => ({
+              name: item.page_name,
+              href: item.page_path,
+              icon: item.icon_name,
+            }))
+            setNavigation(items)
+          } else {
+            // Fallback for non-admin users when role permissions don't exist
+            const basicPages = data.filter((item: any) => 
+              ['/dashboard', '/students', '/training'].includes(item.page_path)
+            )
+            const items = basicPages.map((item: any) => ({
+              name: item.page_name,
+              href: item.page_path,
+              icon: item.icon_name,
+            }))
+            console.log(`Non-admin fallback: showing ${items.length} items`);
+            setNavigation(items)
+          }
+        } catch (roleError) {
+          console.log("Role permissions failed, using basic fallback for non-admin");
+          const basicPages = data.filter((item: any) => 
+            ['/dashboard', '/students', '/training'].includes(item.page_path)
+          )
+          const items = basicPages.map((item: any) => ({
+            name: item.page_name,
+            href: item.page_path,
+            icon: item.icon_name,
+          }))
+          setNavigation(items)
+        }
       }
     } catch (error) {
       console.error("Error fetching navigation items:", error)
-      setNavigation([]) // Clear navigation on error
+      // Ultimate fallback navigation
+      if (user.role.toLowerCase() === 'admin') {
+        setNavigation([
+          { name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
+          { name: "Users", href: "/users", icon: "Users" },
+          { name: "Schools", href: "/schools", icon: "School" },
+          { name: "Settings", href: "/settings", icon: "Settings" },
+          { name: "Page Management", href: "/settings/page-permissions", icon: "Shield" }
+        ])
+      } else {
+        setNavigation([
+          { name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" }
+        ])
+      }
     }
   }
 

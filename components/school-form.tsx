@@ -30,11 +30,7 @@ export function SchoolForm({ onSuccess, onCancel, initialData, hideExtraFields }
     zoneName: "",
     provinceName: "",
     districtName: "",
-    cluster: "",
-    commune: "",
-    order: 0,
     status: 1,
-    image: "",
     totalStudents: 0,
     totalTeachers: 0,
     ...initialData,
@@ -54,11 +50,7 @@ export function SchoolForm({ onSuccess, onCancel, initialData, hideExtraFields }
         zoneName: "",
         provinceName: "",
         districtName: "",
-        cluster: "",
-        commune: "",
-        order: 0,
         status: 1,
-        image: "",
         totalStudents: 0,
         totalTeachers: 0,
         ...initialData,
@@ -137,12 +129,8 @@ export function SchoolForm({ onSuccess, onCancel, initialData, hideExtraFields }
         zoneName: formData.zoneName?.trim(),
         provinceName: formData.provinceName?.trim(),
         districtName: formData.districtName?.trim() || undefined,
-        cluster: formData.cluster?.trim() || undefined,
-        commune: formData.commune?.trim() || undefined,
-        image: formData.image?.trim() || undefined,
         totalStudents: Math.max(0, formData.totalStudents || 0),
         totalTeachers: Math.max(0, formData.totalTeachers || 0),
-        order: Math.max(0, formData.order || 0)
       }
 
       let result
@@ -173,32 +161,33 @@ export function SchoolForm({ onSuccess, onCancel, initialData, hideExtraFields }
   }
 
   return (
-    <form id="school-edit-form" onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="bg-white rounded-2xl shadow p-8 w-full">
+      <h2 className="text-2xl font-bold mb-1">{initialData?.id ? 'Edit School' : 'Add School'}</h2>
+      <p className="text-gray-500 mb-8">Update school information</p>
+      <form id="school-edit-form" onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
         <div>
-          <Label htmlFor="name">School Name <span className="text-red-500">*</span></Label>
+          <label htmlFor="name" className="block font-semibold mb-2">School Name</label>
           <Input
             id="name"
+            className="w-full rounded-lg border px-4 py-3"
             value={formData.name || ""}
             onChange={(e) => handleChange("name", e.target.value)}
             required
           />
         </div>
         <div>
-          <Label htmlFor="code">School Code</Label>
+          <label htmlFor="code" className="block font-semibold mb-2">School Code</label>
           <Input
             id="code"
+            className="w-full rounded-lg border px-4 py-3"
             value={formData.code || ""}
             onChange={(e) => handleChange("code", e.target.value)}
           />
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <Label htmlFor="zoneName">Zone <span className="text-red-500">*</span></Label>
+          <label htmlFor="zoneName" className="block font-semibold mb-2">Zone</label>
           <Select onValueChange={(value) => handleChange("zoneName", value)} value={formData.zoneName || ""} required disabled={isLoadingFilters}>
-            <SelectTrigger id="zoneName">
+            <SelectTrigger id="zoneName" className="w-full rounded-lg border px-4 py-3">
               <SelectValue placeholder={isLoadingFilters ? "Loading zones..." : "Select Zone"} />
             </SelectTrigger>
             <SelectContent>
@@ -211,9 +200,9 @@ export function SchoolForm({ onSuccess, onCancel, initialData, hideExtraFields }
           </Select>
         </div>
         <div>
-          <Label htmlFor="provinceName">Province <span className="text-red-500">*</span></Label>
+          <label htmlFor="provinceName" className="block font-semibold mb-2">Province</label>
           <Select onValueChange={(value) => handleChange("provinceName", value)} value={formData.provinceName || ""} required disabled={isLoadingFilters}>
-            <SelectTrigger id="provinceName">
+            <SelectTrigger id="provinceName" className="w-full rounded-lg border px-4 py-3">
               <SelectValue placeholder={isLoadingFilters ? "Loading provinces..." : "Select Province"} />
             </SelectTrigger>
             <SelectContent>
@@ -226,99 +215,57 @@ export function SchoolForm({ onSuccess, onCancel, initialData, hideExtraFields }
           </Select>
         </div>
         <div>
-          <Label htmlFor="districtName">District</Label>
+          <label htmlFor="districtName" className="block font-semibold mb-2">District</label>
           <Input
             id="districtName"
+            className="w-full rounded-lg border px-4 py-3"
             value={formData.districtName || ""}
             onChange={(e) => handleChange("districtName", e.target.value)}
           />
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="cluster">Cluster</Label>
-          <Input
-            id="cluster"
-            value={formData.cluster || ""}
-            onChange={(e) => handleChange("cluster", e.target.value)}
-          />
-        </div>
-        <div>
-          <Label htmlFor="commune">Commune</Label>
-          <Input
-            id="commune"
-            value={formData.commune || ""}
-            onChange={(e) => handleChange("commune", e.target.value)}
-          />
-        </div>
-      </div>
-
-      {!hideExtraFields && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="order">Order</Label>
-            <Input
-              id="order"
-              type="number"
-              min="0"
-              value={formData.order || 0}
-              onChange={(e) => handleChange("order", Math.max(0, parseInt(e.target.value) || 0))}
-            />
-          </div>
-          <div>
-            <Label htmlFor="status">Status</Label>
-            <div className="flex items-center space-x-2 mt-2">
-              <Switch
-                id="status"
-                checked={formData.status === 1}
-                onCheckedChange={(checked) => handleChange("status", checked ? 1 : 0)}
+        {!hideExtraFields && (
+          <>
+            <div>
+              <label htmlFor="totalStudents" className="block font-semibold mb-2">Total Students</label>
+              <Input
+                id="totalStudents"
+                type="number"
+                min="0"
+                className="w-full rounded-lg border px-4 py-3"
+                value={formData.totalStudents || 0}
+                onChange={(e) => handleChange("totalStudents", Math.max(0, parseInt(e.target.value) || 0))}
               />
-              <Label htmlFor="status">{formData.status === 1 ? "Active" : "Inactive"}</Label>
             </div>
-          </div>
+            <div>
+              <label htmlFor="totalTeachers" className="block font-semibold mb-2">Total Teachers</label>
+              <Input
+                id="totalTeachers"
+                type="number"
+                min="0"
+                className="w-full rounded-lg border px-4 py-3"
+                value={formData.totalTeachers || 0}
+                onChange={(e) => handleChange("totalTeachers", Math.max(0, parseInt(e.target.value) || 0))}
+              />
+            </div>
+            <div className="flex flex-col justify-end">
+              <label htmlFor="status" className="block font-semibold mb-2">Status</label>
+              <div className="flex items-center h-full">
+                <Switch
+                  id="status"
+                  checked={formData.status === 1}
+                  onCheckedChange={(checked) => handleChange("status", checked ? 1 : 0)}
+                />
+                <span className="ml-2 font-medium">{formData.status === 1 ? "Active" : "Inactive"}</span>
+              </div>
+            </div>
+          </>
+        )}
+        <div className="md:col-span-2 flex justify-end mt-4">
+          <Button type="submit" className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2">
+            Update School
+          </Button>
         </div>
-      )}
-
-      <div>
-        <Label htmlFor="image">Image URL</Label>
-        <Input
-          id="image"
-          value={formData.image || ""}
-          onChange={(e) => handleChange("image", e.target.value)}
-        />
-      </div>
-
-      {!hideExtraFields && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="totalStudents">Total Students</Label>
-            <Input
-              id="totalStudents"
-              type="number"
-              min="0"
-              value={formData.totalStudents || 0}
-              onChange={(e) => handleChange("totalStudents", Math.max(0, parseInt(e.target.value) || 0))}
-            />
-          </div>
-          <div>
-            <Label htmlFor="totalTeachers">Total Teachers</Label>
-            <Input
-              id="totalTeachers"
-              type="number"
-              min="0"
-              value={formData.totalTeachers || 0}
-              onChange={(e) => handleChange("totalTeachers", Math.max(0, parseInt(e.target.value) || 0))}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Remove the submit button from here as it will be moved to the parent component */}
-      {/* <Button type="submit" className="w-fit" disabled={loading}>
-        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : ""}
-        {initialData?.id ? "Update School" : "Create School"}
-      </Button> */}
-    </form>
+      </form>
+    </div>
   )
 }
