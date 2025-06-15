@@ -31,9 +31,16 @@ export default function UsersPage() {
     setLoading(true)
     try {
       const data = await DatabaseService.getUsers({ search })
-      setUsers(data)
+      // Ensure data is an array
+      if (Array.isArray(data)) {
+        setUsers(data)
+      } else {
+        console.warn("Users data is not an array:", data)
+        setUsers([])
+      }
     } catch (error) {
       console.error("Error loading users:", error)
+      setUsers([]) // Reset to empty array on error
       toast({
         title: "Error",
         description: "Failed to load users. Please try again.",
@@ -61,11 +68,14 @@ export default function UsersPage() {
     )
   }
 
-  const totalUsers = users.length
-  const totalAdmins = users.filter(user => user.role.toLowerCase() === "admin").length
-  const totalCoordinators = users.filter(user => user.role.toLowerCase() === "coordinator").length
-  const totalCollectors = users.filter(user => user.role.toLowerCase() === "collector").length
-  const totalTeachers = users.filter(user => user.role.toLowerCase() === "teacher").length
+  // Ensure users is always an array before filtering
+  const usersArray = Array.isArray(users) ? users : []
+  
+  const totalUsers = usersArray.length
+  const totalAdmins = usersArray.filter(user => user.role?.toLowerCase() === "admin").length
+  const totalCoordinators = usersArray.filter(user => user.role?.toLowerCase() === "coordinator").length
+  const totalCollectors = usersArray.filter(user => user.role?.toLowerCase() === "collector").length
+  const totalTeachers = usersArray.filter(user => user.role?.toLowerCase() === "teacher").length
 
   return (
     <div className="flex flex-col space-y-4">
@@ -119,7 +129,7 @@ export default function UsersPage() {
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
         </div>
-      ) : users.length === 0 ? (
+      ) : usersArray.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center h-64">
             <p className="text-gray-500">No users found</p>
@@ -135,7 +145,7 @@ export default function UsersPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {users.map((user) => (
+          {usersArray.map((user) => (
             <UserCard
               key={user.id}
               user={user}
