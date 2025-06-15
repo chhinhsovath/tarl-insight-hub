@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Save, Shield, Users, FileText, History } from 'lucide-react';
+import { Loader2, Save, Shield, Users, FileText, History, Settings } from 'lucide-react';
 import { DatabaseService } from '@/lib/database';
 import { PermissionMatrix, Role, Page, PermissionAudit } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -21,6 +21,8 @@ export function PermissionManager({ className }: PermissionManagerProps) {
   const [roles, setRoles] = useState<Role[]>([]);
   const [pages, setPages] = useState<Page[]>([]);
   const [auditLog, setAuditLog] = useState<PermissionAudit[]>([]);
+  const [actionPermissions, setActionPermissions] = useState<any>({});
+  const [actionPermissionsLoading, setActionPermissionsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +31,7 @@ export function PermissionManager({ className }: PermissionManagerProps) {
 
   useEffect(() => {
     loadData();
+    loadActionPermissions();
   }, []);
 
   const loadData = async () => {
@@ -147,6 +150,65 @@ export function PermissionManager({ className }: PermissionManagerProps) {
     }
   };
 
+  const loadActionPermissions = async () => {
+    try {
+      setActionPermissionsLoading(true);
+      const response = await fetch('/api/action-permissions');
+      if (response.ok) {
+        const data = await response.json();
+        setActionPermissions(data.permissions || {});
+      }
+    } catch (err) {
+      console.error('Error loading action permissions:', err);
+    } finally {
+      setActionPermissionsLoading(false);
+    }
+  };
+
+  const setupActionPermissions = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      
+      const response = await fetch('/api/setup-action-permissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.ok) {
+        setSuccess('Action permission system initialized successfully!');
+        await loadActionPermissions();
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        throw new Error('Failed to setup action permissions');
+      }
+    } catch (err) {
+      setError('Failed to setup action permission system');
+      console.error('Error setting up action permissions:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateActionPermission = async (pageId: number, role: string, actionName: string, isAllowed: boolean) => {
+    try {
+      const response = await fetch('/api/action-permissions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pageId, role, actionName, isAllowed })
+      });
+      
+      if (response.ok) {
+        await loadActionPermissions();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Error updating action permission:', err);
+      return false;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -185,6 +247,7 @@ export function PermissionManager({ className }: PermissionManagerProps) {
       <Tabs defaultValue="matrix" className="space-y-4">
         <TabsList>
           <TabsTrigger value="matrix">Permission Matrix</TabsTrigger>
+          <TabsTrigger value="actions">Action Permissions</TabsTrigger>
           <TabsTrigger value="roles">Role Overview</TabsTrigger>
           <TabsTrigger value="audit">Audit Trail</TabsTrigger>
         </TabsList>
@@ -271,6 +334,106 @@ export function PermissionManager({ className }: PermissionManagerProps) {
                     })}
                   </tbody>
                 </table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="actions" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Action-Level Permissions
+              </CardTitle>
+              <CardDescription>
+                Fine-grained control over what actions users can perform on each page
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {Object.keys(actionPermissions).length === 0 ? (
+                  <div className="text-center py-8 space-y-4">
+                    <p className="text-muted-foreground">
+                      Action permission system not initialized
+                    </p>
+                    <Button 
+                      onClick={setupActionPermissions}
+                      variant="outline"
+                      disabled={saving}
+                    >
+                      {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                      Setup Action Permissions
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">
+                        Configure specific actions each role can perform on each page
+                      </p>
+                      <Button 
+                        onClick={loadActionPermissions}
+                        variant="outline"
+                        size="sm"
+                        disabled={actionPermissionsLoading}
+                      >
+                        {actionPermissionsLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                        Refresh
+                      </Button>
+                    </div>
+                    
+                    {Object.entries(actionPermissions).map(([pageName, pageData]: [string, any]) => (
+                      <Card key={pageName} className="border-l-4 border-l-primary">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="text-lg capitalize">{pageName}</CardTitle>
+                          <CardDescription>
+                            Configure actions for {pageData.page_path}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead>
+                                <tr className="border-b">
+                                  <th className="text-left p-2 font-medium">Role</th>
+                                  <th className="text-center p-2 font-medium">View</th>
+                                  <th className="text-center p-2 font-medium">Create</th>
+                                  <th className="text-center p-2 font-medium">Update</th>
+                                  <th className="text-center p-2 font-medium">Delete</th>
+                                  <th className="text-center p-2 font-medium">Export</th>
+                                  <th className="text-center p-2 font-medium">Bulk Update</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {Object.entries(pageData.roles || {}).map(([roleName, roleData]: [string, any]) => (
+                                  <tr key={roleName} className="border-b hover:bg-muted/50">
+                                    <td className="p-2 font-medium capitalize">{roleName}</td>
+                                    {['view', 'create', 'update', 'delete', 'export', 'bulk_update'].map(action => (
+                                      <td key={action} className="text-center p-2">
+                                        <Checkbox
+                                          checked={roleData.actions?.[action] || false}
+                                          onCheckedChange={(checked) => 
+                                            updateActionPermission(
+                                              pageData.page_id, 
+                                              roleName, 
+                                              action, 
+                                              checked as boolean
+                                            )
+                                          }
+                                        />
+                                      </td>
+                                    ))}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
