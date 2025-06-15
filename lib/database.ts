@@ -241,40 +241,57 @@ export class DatabaseService {
     endDate?: string
   } = {}) {
     try {
-      const query = new URLSearchParams();
+      // Use GET method with query parameters for simpler request
+      const queryParams = new URLSearchParams();
       if (filters.search) {
-        query.append("search", filters.search);
+        queryParams.append("search", filters.search);
       }
       if (filters.role) {
-        query.append("role", filters.role);
+        queryParams.append("role", filters.role);
       }
       if (filters.schoolId) {
-        query.append("schoolId", filters.schoolId);
+        queryParams.append("schoolId", filters.schoolId);
       }
-      if (filters.isActive) {
-        query.append("isActive", filters.isActive.toString());
+      if (filters.isActive !== undefined) {
+        queryParams.append("isActive", filters.isActive.toString());
       }
       if (filters.startDate) {
-        query.append("startDate", filters.startDate);
+        queryParams.append("startDate", filters.startDate);
       }
       if (filters.endDate) {
-        query.append("endDate", filters.endDate);
+        queryParams.append("endDate", filters.endDate);
       }
 
-      const response = await fetch("/api/data/users", {
-        method: "POST",
+      const url = `/api/data/users${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+      const response = await fetch(url, {
+        method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(query),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch users");
+        const errorText = await response.text();
+        console.error("Failed to fetch users:", {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText,
+          url: url
+        });
+        return [];
       }
 
       const data = await response.json();
-      return Array.isArray(data) ? data : [];
+      
+      // Handle both response formats
+      if (data.users && Array.isArray(data.users)) {
+        return data.users; // New format with pagination
+      } else if (Array.isArray(data)) {
+        return data; // Direct array format
+      } else {
+        console.warn("Unexpected users data format:", data);
+        return [];
+      }
     } catch (error) {
       console.error("Error fetching users:", error);
       return []; // Return empty array instead of throwing

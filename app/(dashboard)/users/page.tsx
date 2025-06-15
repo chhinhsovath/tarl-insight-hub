@@ -22,6 +22,10 @@ export default function UsersPage() {
   const [search, setSearch] = useState("")
   
   const isAdmin = isAllowed(['admin'])
+  
+  // Debug logging
+  console.log("Current user:", currentUser)
+  console.log("Is admin:", isAdmin)
 
   useEffect(() => {
     loadUsers()
@@ -30,10 +34,14 @@ export default function UsersPage() {
   const loadUsers = async () => {
     setLoading(true)
     try {
+      console.log("Loading users with search:", search) // Debug log
       const data = await DatabaseService.getUsers({ search })
+      console.log("Received users data:", data) // Debug log
+      
       // Ensure data is an array
       if (Array.isArray(data)) {
         setUsers(data)
+        console.log("Set users:", data.length, "users loaded") // Debug log
       } else {
         console.warn("Users data is not an array:", data)
         setUsers([])
