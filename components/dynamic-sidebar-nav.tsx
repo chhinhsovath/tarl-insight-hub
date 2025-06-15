@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
+import { useMenu } from "@/lib/menu-context";
 import {
   ChevronLeft,
   LogOut,
@@ -97,20 +98,30 @@ const categoryLabels = {
 export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { refreshTrigger } = useMenu();
   const [pages, setPages] = useState<PagePermission[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadPages();
-  }, []);
+  }, [refreshTrigger]); // Re-load when menu context changes
 
   const loadPages = async () => {
     try {
       setLoading(true);
       
-      // For now, let's fetch from the existing page_permissions table structure
-      // We'll need to create an API endpoint for this
+      // First try to get user's personal menu order
+      const userMenuResponse = await fetch('/api/user/menu-order');
+      if (userMenuResponse.ok) {
+        const userData = await userMenuResponse.json();
+        if (userData.pages && userData.pages.length > 0) {
+          setPages(userData.pages);
+          return;
+        }
+      }
+      
+      // Fallback to system default pages
       const response = await fetch('/api/data/page-permissions');
       if (response.ok) {
         const pagesData = await response.json();

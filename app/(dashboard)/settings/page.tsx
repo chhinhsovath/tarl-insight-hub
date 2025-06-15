@@ -10,7 +10,8 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/lib/auth-context"
 import { useToast } from "@/hooks/use-toast"
-import { User, Bell, Shield, Save } from "lucide-react"
+import { User, Bell, Shield, Save, Menu } from "lucide-react"
+import { PersonalMenuOrder } from "@/components/personal-menu-order"
 
 export default function SettingsPage() {
   const { user } = useAuth()
@@ -41,9 +42,10 @@ export default function SettingsPage() {
     <PageLayout title="Settings" description="Manage your account settings and preferences">
       <div className="max-w-4xl mx-auto">
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="menu-order">Menu Order</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
           </TabsList>
 
@@ -82,6 +84,10 @@ export default function SettingsPage() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="menu-order" className="space-y-6">
+            <PersonalMenuOrder />
           </TabsContent>
 
           <TabsContent value="notifications" className="space-y-6">
