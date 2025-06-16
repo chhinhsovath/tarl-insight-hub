@@ -1,27 +1,49 @@
-import { NextResponse } from "next/server"
-import { db } from "@/lib/drizzle"
-import { communes } from "@/lib/schema"
-import { eq } from "drizzle-orm"
+import { NextRequest, NextResponse } from "next/server";
+import { Pool } from "pg";
 
-export async function GET(request: Request) {
+const pool = new Pool({
+  user: process.env.PGUSER,
+  host: process.env.PGHOST,
+  database: process.env.PGDATABASE,
+  password: process.env.PGPASSWORD,
+  port: parseInt(process.env.PGPORT || '5432', 10),
+});
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const districtId = searchParams.get("district_id");
+
+  const client = await pool.connect();
+
   try {
-    const { searchParams } = new URL(request.url)
-    const districtId = searchParams.get("district_id")
+    let query = `
+      SELECT 
+        id,
+        commune_name,
+        district_id,
+        created_at
+      FROM tbl_tarl_communes
+      WHERE 1=1
+    `;
 
-    let allCommunes
+    const params = [];
+    let paramIndex = 1;
 
     if (districtId) {
-      allCommunes = await db.select().from(communes).where(eq(communes.district_id, parseInt(districtId)))
-    } else {
-      allCommunes = await db.select().from(communes)
+      query += ` AND district_id = $${paramIndex}`;
+      params.push(parseInt(districtId));
+      paramIndex++;
     }
+
+    query += ` ORDER BY commune_name`;
+
+    const result = await client.query(query, params);
     
-    return NextResponse.json(allCommunes)
-  } catch (error: any) {
-    console.error("Error fetching communes:", error)
-    return NextResponse.json(
-      { error: "Failed to fetch communes", details: error.message },
-      { status: 500 }
-    )
+    return NextResponse.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching communes:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } finally {
+    client.release();
   }
-} 
+}

@@ -46,7 +46,7 @@ export class HierarchyPermissionManager {
           u.id, u.role, 
           r.hierarchy_level, r.can_manage_hierarchy, r.max_hierarchy_depth
         FROM tbl_tarl_users u
-        LEFT JOIN tbl_tarl_roles r ON u.role = r.role_name
+        LEFT JOIN tbl_tarl_roles r ON u.role = r.name
         WHERE u.id = $1
       `, [userId]);
 
@@ -57,7 +57,7 @@ export class HierarchyPermissionManager {
       const user = userResult.rows[0];
 
       // For Admin, return with global access
-      if (user.role === 'Admin') {
+      if (user.role === 'admin' || user.role === 'Admin') {
         return {
           user_id: userId,
           role: user.role,
@@ -138,7 +138,7 @@ export class HierarchyPermissionManager {
       if (!hierarchy) return false;
 
       // Admin has access to everything
-      if (hierarchy.role === 'Admin') return true;
+      if (hierarchy.role === 'admin' || hierarchy.role === 'Admin') return true;
 
       // Get data scope permissions for user's role
       const scopeResult = await client.query(`

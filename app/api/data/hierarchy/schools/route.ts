@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Admin gets all schools
-    if (hierarchy.role === 'Admin') {
+    if (hierarchy.role === 'admin' || hierarchy.role === 'Admin') {
       const result = await client.query(`
         SELECT 
           s.*,
@@ -84,9 +84,9 @@ export async function GET(request: NextRequest) {
 
     if (conditions.length > 0) {
       query += ` AND (${conditions.join(' OR ')})`;
-    } else if (hierarchy.role !== 'Admin') {
-      // If no specific assignments, return empty result for non-admin users
-      query += ' AND 1=0';
+    } else if (hierarchy.role !== 'admin' && hierarchy.role !== 'Admin') {
+      // If no specific assignments, still return schools where user has explicit access
+      query += ` AND uas.user_id IS NOT NULL`;
     }
 
     query += ' ORDER BY s.school_name';

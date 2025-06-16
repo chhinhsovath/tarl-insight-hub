@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   try {
     // Validate session and get user info
     const sessionResult = await client.query(
-      'SELECT user_id, username, role FROM user_sessions WHERE session_token = $1 AND expires_at > NOW()',
+      'SELECT user_id, username, role FROM tbl_tarl_sessions WHERE session_token = $1 AND expires_at > NOW()',
       [sessionToken]
     );
 

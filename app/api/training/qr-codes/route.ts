@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Pool } from "pg";
-import { cookies } from "next/headers";
 import * as QRCode from 'qrcode';
+import { validateTrainingAccess } from "@/lib/training-permissions";
 
 const pool = new Pool({
   user: process.env.PGUSER,
@@ -17,34 +17,17 @@ export async function GET(request: NextRequest) {
   const sessionId = searchParams.get('session_id');
   const codeType = searchParams.get('type');
   
-  // Get session token from cookies
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get('session-token')?.value;
-
-  if (!sessionToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Validate training access
+  const authResult = await validateTrainingAccess('training-qr-codes', 'view');
+  
+  if (!authResult.success) {
+    return NextResponse.json({ error: authResult.error }, { status: 401 });
   }
 
+  const user = authResult.user!;
   const client = await pool.connect();
 
   try {
-    // Validate session and get user info
-    const sessionResult = await client.query(
-      'SELECT user_id, username, role FROM user_sessions WHERE session_token = $1 AND expires_at > NOW()',
-      [sessionToken]
-    );
-
-    if (sessionResult.rows.length === 0) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
-    }
-
-    const user = sessionResult.rows[0];
-
-    // Check if user can view QR codes
-    const allowedRoles = ['admin', 'director', 'partner', 'coordinator', 'teacher'];
-    if (!allowedRoles.includes(user.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
-    }
 
     let query = `
       SELECT 
@@ -88,34 +71,17 @@ export async function GET(request: NextRequest) {
 
 // POST - Generate new QR code
 export async function POST(request: NextRequest) {
-  // Get session token from cookies
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get('session-token')?.value;
-
-  if (!sessionToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Validate training access
+  const authResult = await validateTrainingAccess('training-qr-codes', 'create');
+  
+  if (!authResult.success) {
+    return NextResponse.json({ error: authResult.error }, { status: 401 });
   }
 
+  const user = authResult.user!;
   const client = await pool.connect();
 
   try {
-    // Validate session and get user info
-    const sessionResult = await client.query(
-      'SELECT user_id, username, role FROM user_sessions WHERE session_token = $1 AND expires_at > NOW()',
-      [sessionToken]
-    );
-
-    if (sessionResult.rows.length === 0) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
-    }
-
-    const user = sessionResult.rows[0];
-
-    // Check if user can generate QR codes
-    const allowedRoles = ['admin', 'director', 'partner', 'coordinator'];
-    if (!allowedRoles.includes(user.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions to generate QR codes' }, { status: 403 });
-    }
 
     const body = await request.json();
     const { session_id, code_type, expires_at, max_usage } = body;
@@ -218,34 +184,17 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'QR code ID is required' }, { status: 400 });
   }
 
-  // Get session token from cookies
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get('session-token')?.value;
-
-  if (!sessionToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Validate training access
+  const authResult = await validateTrainingAccess('training-qr-codes', 'update');
+  
+  if (!authResult.success) {
+    return NextResponse.json({ error: authResult.error }, { status: 401 });
   }
 
+  const user = authResult.user!;
   const client = await pool.connect();
 
   try {
-    // Validate session and get user info
-    const sessionResult = await client.query(
-      'SELECT user_id, username, role FROM user_sessions WHERE session_token = $1 AND expires_at > NOW()',
-      [sessionToken]
-    );
-
-    if (sessionResult.rows.length === 0) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
-    }
-
-    const user = sessionResult.rows[0];
-
-    // Check if user can update QR codes
-    const allowedRoles = ['admin', 'director', 'partner', 'coordinator'];
-    if (!allowedRoles.includes(user.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions to update QR codes' }, { status: 403 });
-    }
 
     const body = await request.json();
     const { is_active, expires_at, max_usage } = body;

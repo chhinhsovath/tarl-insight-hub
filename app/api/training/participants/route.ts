@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Pool } from "pg";
 import { cookies } from "next/headers";
+import { validateTrainingAccess } from "@/lib/training-permissions";
 
 const pool = new Pool({
   user: process.env.PGUSER,
@@ -16,34 +17,17 @@ export async function GET(request: NextRequest) {
   const sessionId = searchParams.get('session_id');
   const status = searchParams.get('status');
   
-  // Get session token from cookies
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get('session-token')?.value;
-
-  if (!sessionToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Validate training access
+  const authResult = await validateTrainingAccess('training-participants', 'view');
+  
+  if (!authResult.success) {
+    return NextResponse.json({ error: authResult.error }, { status: 401 });
   }
 
+  const user = authResult.user!;
   const client = await pool.connect();
 
   try {
-    // Validate session and get user info
-    const sessionResult = await client.query(
-      'SELECT user_id, username, role FROM user_sessions WHERE session_token = $1 AND expires_at > NOW()',
-      [sessionToken]
-    );
-
-    if (sessionResult.rows.length === 0) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
-    }
-
-    const user = sessionResult.rows[0];
-
-    // Check if user can view participants
-    const allowedRoles = ['admin', 'director', 'partner', 'coordinator', 'teacher'];
-    if (!allowedRoles.includes(user.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
-    }
 
     let query = `
       SELECT 
@@ -110,30 +94,13 @@ export async function POST(request: NextRequest) {
     
     // If not public registration, validate session
     if (!isPublic) {
-      const cookieStore = await cookies();
-      const sessionToken = cookieStore.get('session-token')?.value;
-
-      if (!sessionToken) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      const authResult = await validateTrainingAccess('training-participants', 'create');
+      
+      if (!authResult.success) {
+        return NextResponse.json({ error: authResult.error }, { status: 401 });
       }
 
-      // Validate session and get user info
-      const sessionResult = await client.query(
-        'SELECT user_id, username, role FROM user_sessions WHERE session_token = $1 AND expires_at > NOW()',
-        [sessionToken]
-      );
-
-      if (sessionResult.rows.length === 0) {
-        return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
-      }
-
-      user = sessionResult.rows[0];
-
-      // Check if user can manage participants
-      const allowedRoles = ['admin', 'director', 'partner', 'coordinator'];
-      if (!allowedRoles.includes(user.role)) {
-        return NextResponse.json({ error: 'Insufficient permissions to register participants' }, { status: 403 });
-      }
+      user = authResult.user!;
     }
 
     const body = await request.json();
@@ -244,34 +211,17 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Participant ID is required' }, { status: 400 });
   }
 
-  // Get session token from cookies
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get('session-token')?.value;
-
-  if (!sessionToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Validate training access
+  const authResult = await validateTrainingAccess('training-participants', 'update');
+  
+  if (!authResult.success) {
+    return NextResponse.json({ error: authResult.error }, { status: 401 });
   }
 
+  const user = authResult.user!;
   const client = await pool.connect();
 
   try {
-    // Validate session and get user info
-    const sessionResult = await client.query(
-      'SELECT user_id, username, role FROM user_sessions WHERE session_token = $1 AND expires_at > NOW()',
-      [sessionToken]
-    );
-
-    if (sessionResult.rows.length === 0) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
-    }
-
-    const user = sessionResult.rows[0];
-
-    // Check if user can update participants
-    const allowedRoles = ['admin', 'director', 'partner', 'coordinator', 'teacher'];
-    if (!allowedRoles.includes(user.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions to update participants' }, { status: 403 });
-    }
 
     const body = await request.json();
     const { registration_status, attendance_confirmed, notes } = body;

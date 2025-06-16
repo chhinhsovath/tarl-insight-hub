@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Pool } from "pg";
-import { cookies } from "next/headers";
+import { validateTrainingAccess, getActionFromMethod } from "@/lib/training-permissions";
 
 const pool = new Pool({
   user: process.env.PGUSER,
@@ -12,34 +12,17 @@ const pool = new Pool({
 
 // GET - Fetch training programs
 export async function GET(request: NextRequest) {
-  // Get session token from cookies
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get('session-token')?.value;
-
-  if (!sessionToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Validate training access
+  const authResult = await validateTrainingAccess('training-programs', 'view');
+  
+  if (!authResult.success) {
+    return NextResponse.json({ error: authResult.error }, { status: 401 });
   }
 
+  const user = authResult.user!;
   const client = await pool.connect();
 
   try {
-    // Validate session and get user info
-    const sessionResult = await client.query(
-      'SELECT user_id, username, role FROM user_sessions WHERE session_token = $1 AND expires_at > NOW()',
-      [sessionToken]
-    );
-
-    if (sessionResult.rows.length === 0) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
-    }
-
-    const user = sessionResult.rows[0];
-
-    // Check if user can view training programs
-    const allowedRoles = ['admin', 'director', 'partner', 'coordinator', 'teacher'];
-    if (!allowedRoles.includes(user.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
-    }
 
     const query = `
       SELECT 
@@ -69,34 +52,17 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new training program
 export async function POST(request: NextRequest) {
-  // Get session token from cookies
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get('session-token')?.value;
-
-  if (!sessionToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Validate training access
+  const authResult = await validateTrainingAccess('training-programs', 'create');
+  
+  if (!authResult.success) {
+    return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
+  const user = authResult.user!;
   const client = await pool.connect();
 
   try {
-    // Validate session and get user info
-    const sessionResult = await client.query(
-      'SELECT user_id, username, role FROM user_sessions WHERE session_token = $1 AND expires_at > NOW()',
-      [sessionToken]
-    );
-
-    if (sessionResult.rows.length === 0) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
-    }
-
-    const user = sessionResult.rows[0];
-
-    // Check if user can create training programs
-    const allowedRoles = ['admin', 'director', 'partner'];
-    if (!allowedRoles.includes(user.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions to create training programs' }, { status: 403 });
-    }
 
     const body = await request.json();
     const { program_name, description, program_type, duration_hours } = body;
@@ -154,34 +120,17 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Program ID is required' }, { status: 400 });
   }
 
-  // Get session token from cookies
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get('session-token')?.value;
-
-  if (!sessionToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Validate training access
+  const authResult = await validateTrainingAccess('training-programs', 'update');
+  
+  if (!authResult.success) {
+    return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
+  const user = authResult.user!;
   const client = await pool.connect();
 
   try {
-    // Validate session and get user info
-    const sessionResult = await client.query(
-      'SELECT user_id, username, role FROM user_sessions WHERE session_token = $1 AND expires_at > NOW()',
-      [sessionToken]
-    );
-
-    if (sessionResult.rows.length === 0) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
-    }
-
-    const user = sessionResult.rows[0];
-
-    // Check if user can update training programs
-    const allowedRoles = ['admin', 'director', 'partner'];
-    if (!allowedRoles.includes(user.role)) {
-      return NextResponse.json({ error: 'Insufficient permissions to update training programs' }, { status: 403 });
-    }
 
     const body = await request.json();
     const { program_name, description, program_type, duration_hours } = body;
@@ -226,33 +175,17 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Program ID is required' }, { status: 400 });
   }
 
-  // Get session token from cookies
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get('session-token')?.value;
-
-  if (!sessionToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // Validate training access
+  const authResult = await validateTrainingAccess('training-programs', 'delete');
+  
+  if (!authResult.success) {
+    return NextResponse.json({ error: authResult.error }, { status: 403 });
   }
 
+  const user = authResult.user!;
   const client = await pool.connect();
 
   try {
-    // Validate session and get user info
-    const sessionResult = await client.query(
-      'SELECT user_id, username, role FROM user_sessions WHERE session_token = $1 AND expires_at > NOW()',
-      [sessionToken]
-    );
-
-    if (sessionResult.rows.length === 0) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
-    }
-
-    const user = sessionResult.rows[0];
-
-    // Check if user can delete training programs (admin only)
-    if (user.role !== 'admin') {
-      return NextResponse.json({ error: 'Only admins can delete training programs' }, { status: 403 });
-    }
 
     // Check if program has active sessions
     const sessionCheck = await client.query(`

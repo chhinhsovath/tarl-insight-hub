@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { 
@@ -10,17 +9,20 @@ import {
   Users, 
   QrCode, 
   ClipboardList, 
-  Settings,
   Plus,
   Calendar,
   Clock,
   MapPin,
   CheckCircle,
   Circle,
-  AlertCircle
+  AlertCircle,
+  ArrowRight,
+  TrendingUp,
+  Activity
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
+import Link from 'next/link';
 
 interface TrainingSession {
   id: number;
@@ -48,47 +50,84 @@ interface TrainingProgram {
   total_participants: number;
 }
 
-export default function TrainingManagementPage() {
+interface QuickStats {
+  totalSessions: number;
+  totalPrograms: number;
+  totalParticipants: number;
+  confirmedParticipants: number;
+  activeQrCodes: number;
+  upcomingSessions: number;
+  completedSessions: number;
+  ongoingSessions: number;
+}
+
+export default function TrainingOverviewPage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('sessions');
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [programs, setPrograms] = useState<TrainingProgram[]>([]);
+  const [stats, setStats] = useState<QuickStats>({
+    totalSessions: 0,
+    totalPrograms: 0,
+    totalParticipants: 0,
+    confirmedParticipants: 0,
+    activeQrCodes: 0,
+    upcomingSessions: 0,
+    completedSessions: 0,
+    ongoingSessions: 0
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchSessions();
-    fetchPrograms();
+    fetchData();
   }, []);
 
-  const fetchSessions = async () => {
+  const fetchData = async () => {
     try {
-      const response = await fetch('/api/training/sessions');
-      if (response.ok) {
-        const data = await response.json();
-        setSessions(data);
+      // Fetch sessions and programs in parallel
+      const [sessionsResponse, programsResponse] = await Promise.all([
+        fetch('/api/training/sessions', {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }
+        }),
+        fetch('/api/training/programs', {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }
+        })
+      ]);
+
+      if (sessionsResponse.ok && programsResponse.ok) {
+        const sessionsData = await sessionsResponse.json();
+        const programsData = await programsResponse.json();
+        
+        setSessions(sessionsData);
+        setPrograms(programsData);
+
+        // Calculate stats
+        const totalParticipants = sessionsData.reduce((sum: number, session: TrainingSession) => 
+          sum + (session.participant_count || 0), 0);
+        const confirmedParticipants = sessionsData.reduce((sum: number, session: TrainingSession) => 
+          sum + (session.confirmed_count || 0), 0);
+        
+        setStats({
+          totalSessions: sessionsData.length,
+          totalPrograms: programsData.length,
+          totalParticipants,
+          confirmedParticipants,
+          activeQrCodes: 0, // This would need a separate API call
+          upcomingSessions: sessionsData.filter((s: TrainingSession) => s.session_status === 'scheduled').length,
+          completedSessions: sessionsData.filter((s: TrainingSession) => s.session_status === 'completed').length,
+          ongoingSessions: sessionsData.filter((s: TrainingSession) => s.session_status === 'ongoing').length
+        });
       } else {
-        toast.error('Failed to fetch training sessions');
+        toast.error('Failed to fetch training data');
       }
     } catch (error) {
-      console.error('Error fetching sessions:', error);
-      toast.error('Error loading training sessions');
+      console.error('Error fetching training data:', error);
+      toast.error('Error loading training overview');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchPrograms = async () => {
-    try {
-      const response = await fetch('/api/training/programs');
-      if (response.ok) {
-        const data = await response.json();
-        setPrograms(data);
-      } else {
-        toast.error('Failed to fetch training programs');
-      }
-    } catch (error) {
-      console.error('Error fetching programs:', error);
-      toast.error('Error loading training programs');
     }
   };
 
@@ -99,6 +138,22 @@ export default function TrainingManagementPage() {
       </div>
     );
   }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (timeString: string) => {
+    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -122,24 +177,19 @@ export default function TrainingManagementPage() {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const formatTime = (timeString: string) => {
-    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  };
-
   const canCreateSessions = ['admin', 'director', 'partner', 'coordinator'].includes(user.role);
   const canCreatePrograms = ['admin', 'director', 'partner'].includes(user.role);
+
+  // Get recent sessions (last 5)
+  const recentSessions = sessions
+    .sort((a, b) => new Date(b.session_date).getTime() - new Date(a.session_date).getTime())
+    .slice(0, 5);
+
+  // Get upcoming sessions
+  const upcomingSessions = sessions
+    .filter(s => new Date(s.session_date) > new Date() && s.session_status === 'scheduled')
+    .sort((a, b) => new Date(a.session_date).getTime() - new Date(b.session_date).getTime())
+    .slice(0, 3);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -148,7 +198,7 @@ export default function TrainingManagementPage() {
         <div>
           <h1 className="text-3xl font-bold">Training Management</h1>
           <p className="text-muted-foreground mt-1">
-            Manage training programs, sessions, and participants
+            Overview of training programs, sessions, and participants
           </p>
         </div>
         <Badge className="bg-blue-100 text-blue-800" variant="secondary">
@@ -163,7 +213,10 @@ export default function TrainingManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Sessions</p>
-                <p className="text-2xl font-bold">{sessions.length}</p>
+                <p className="text-2xl font-bold">{stats.totalSessions}</p>
+                <p className="text-xs text-muted-foreground">
+                  {stats.upcomingSessions} upcoming
+                </p>
               </div>
               <CalendarDays className="h-8 w-8 text-blue-600" />
             </div>
@@ -175,7 +228,10 @@ export default function TrainingManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Active Programs</p>
-                <p className="text-2xl font-bold">{programs.length}</p>
+                <p className="text-2xl font-bold">{stats.totalPrograms}</p>
+                <p className="text-xs text-muted-foreground">
+                  {programs.reduce((sum, p) => sum + p.session_count, 0)} total sessions
+                </p>
               </div>
               <ClipboardList className="h-8 w-8 text-green-600" />
             </div>
@@ -187,8 +243,9 @@ export default function TrainingManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Participants</p>
-                <p className="text-2xl font-bold">
-                  {sessions.reduce((sum, session) => sum + (session.participant_count || 0), 0)}
+                <p className="text-2xl font-bold">{stats.totalParticipants}</p>
+                <p className="text-xs text-muted-foreground">
+                  {stats.confirmedParticipants} confirmed
                 </p>
               </div>
               <Users className="h-8 w-8 text-purple-600" />
@@ -200,257 +257,215 @@ export default function TrainingManagementPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Confirmed Attendance</p>
+                <p className="text-sm text-muted-foreground">Completion Rate</p>
                 <p className="text-2xl font-bold">
-                  {sessions.reduce((sum, session) => sum + (session.confirmed_count || 0), 0)}
+                  {stats.totalSessions > 0 
+                    ? Math.round((stats.completedSessions / stats.totalSessions) * 100)
+                    : 0}%
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {stats.completedSessions} completed
                 </p>
               </div>
-              <CheckCircle className="h-8 w-8 text-orange-600" />
+              <TrendingUp className="h-8 w-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 max-w-2xl mx-auto">
-          <TabsTrigger value="sessions" className="flex items-center gap-2">
-            <CalendarDays className="h-4 w-4" />
-            Sessions
-          </TabsTrigger>
-          <TabsTrigger value="programs" className="flex items-center gap-2">
-            <ClipboardList className="h-4 w-4" />
-            Programs
-          </TabsTrigger>
-          <TabsTrigger value="participants" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Participants
-          </TabsTrigger>
-          <TabsTrigger value="qr-codes" className="flex items-center gap-2">
-            <QrCode className="h-4 w-4" />
-            QR Codes
-          </TabsTrigger>
-        </TabsList>
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link href="/training/sessions">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">Manage Sessions</h3>
+                      <p className="text-sm text-muted-foreground">
+                        View and create training sessions
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CalendarDays className="h-6 w-6 text-blue-600" />
+                      <ArrowRight className="h-4 w-4" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
 
-        {/* Training Sessions Tab */}
-        <TabsContent value="sessions" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Training Sessions</CardTitle>
+            <Link href="/training/programs">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">Manage Programs</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Create and edit training programs
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ClipboardList className="h-6 w-6 text-green-600" />
+                      <ArrowRight className="h-4 w-4" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link href="/training/participants">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">Manage Participants</h3>
+                      <p className="text-sm text-muted-foreground">
+                        View and manage registrations
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Users className="h-6 w-6 text-purple-600" />
+                      <ArrowRight className="h-4 w-4" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <Link href="/training/qr-codes">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold">QR Codes</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Generate and manage QR codes
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <QrCode className="h-6 w-6 text-orange-600" />
+                      <ArrowRight className="h-4 w-4" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Upcoming Sessions */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Upcoming Sessions</CardTitle>
+              <Link href="/training/sessions">
+                <Button variant="outline" size="sm">
+                  View All <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <p className="text-muted-foreground">Loading...</p>
+            ) : upcomingSessions.length === 0 ? (
+              <div className="text-center py-8">
+                <Calendar className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                <p className="text-muted-foreground">No upcoming sessions</p>
                 {canCreateSessions && (
-                  <Button className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    New Session
-                  </Button>
+                  <Link href="/training/sessions">
+                    <Button className="mt-2" size="sm">
+                      <Plus className="h-4 w-4 mr-1" />
+                      Create Session
+                    </Button>
+                  </Link>
                 )}
               </div>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">Loading sessions...</p>
-                </div>
-              ) : sessions.length === 0 ? (
-                <div className="text-center py-8">
-                  <CalendarDays className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No training sessions found.</p>
-                  {canCreateSessions && (
-                    <Button className="mt-4" variant="outline">
-                      Create your first session
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {sessions.map((session) => (
-                    <Card key={session.id} className="border-l-4 border-l-blue-500">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <h3 className="font-semibold text-lg">{session.session_title}</h3>
-                                <p className="text-sm text-muted-foreground mb-2">{session.program_name}</p>
-                                
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                  <div className="flex items-center gap-1">
-                                    <Calendar className="h-4 w-4" />
-                                    {formatDate(session.session_date)}
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Clock className="h-4 w-4" />
-                                    {formatTime(session.session_time)}
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <MapPin className="h-4 w-4" />
-                                    {session.location}
-                                  </div>
-                                </div>
+            ) : (
+              <div className="space-y-3">
+                {upcomingSessions.map((session) => (
+                  <div key={session.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <h4 className="font-medium">{session.session_title}</h4>
+                      <p className="text-sm text-muted-foreground">{session.program_name}</p>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        {formatDate(session.session_date)}
+                        <Clock className="h-3 w-3" />
+                        {formatTime(session.session_time)}
+                      </div>
+                    </div>
+                    <Badge className={getStatusBadge(session.session_status)} variant="secondary">
+                      {session.session_status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-                                <div className="flex items-center gap-4 mt-2">
-                                  <span className="text-sm">
-                                    <strong>{session.participant_count || 0}</strong> participants
-                                  </span>
-                                  <span className="text-sm">
-                                    <strong>{session.confirmed_count || 0}</strong> confirmed
-                                  </span>
-                                  {session.trainer_name && (
-                                    <span className="text-sm text-muted-foreground">
-                                      Trainer: {session.trainer_name}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                              
-                              <Badge className={getStatusBadge(session.session_status)} variant="secondary">
-                                {session.session_status}
-                              </Badge>
-                            </div>
-
-                            {/* Three-Stage Flow Status */}
-                            <div className="mt-4 pt-4 border-t">
-                              <p className="text-sm font-medium mb-2">Training Flow Progress:</p>
-                              <div className="flex items-center gap-6">
-                                <div className="flex items-center gap-2">
-                                  {getStatusIcon(session.before_status || 'pending')}
-                                  <span className="text-sm">Before</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {getStatusIcon(session.during_status || 'pending')}
-                                  <span className="text-sm">During</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {getStatusIcon(session.after_status || 'pending')}
-                                  <span className="text-sm">After</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 ml-4">
-                            <Button variant="outline" size="sm">
-                              <Settings className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <QrCode className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Training Programs Tab */}
-        <TabsContent value="programs" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Training Programs</CardTitle>
+        {/* Recent Programs */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Training Programs</CardTitle>
+              <Link href="/training/programs">
+                <Button variant="outline" size="sm">
+                  View All <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <p className="text-muted-foreground">Loading...</p>
+            ) : programs.length === 0 ? (
+              <div className="text-center py-8">
+                <ClipboardList className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                <p className="text-muted-foreground">No training programs</p>
                 {canCreatePrograms && (
-                  <Button className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    New Program
-                  </Button>
+                  <Link href="/training/programs">
+                    <Button className="mt-2" size="sm">
+                      <Plus className="h-4 w-4 mr-1" />
+                      Create Program
+                    </Button>
+                  </Link>
                 )}
               </div>
-            </CardHeader>
-            <CardContent>
-              {programs.length === 0 ? (
-                <div className="text-center py-8">
-                  <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No training programs found.</p>
-                  {canCreatePrograms && (
-                    <Button className="mt-4" variant="outline">
-                      Create your first program
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {programs.map((program) => (
-                    <Card key={program.id} className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-4">
-                        <div className="space-y-3">
-                          <div>
-                            <h3 className="font-semibold">{program.program_name}</h3>
-                            <p className="text-sm text-muted-foreground line-clamp-2">
-                              {program.description || 'No description available'}
-                            </p>
-                          </div>
-                          
-                          <div className="flex items-center justify-between text-sm">
-                            <Badge variant="outline">{program.program_type}</Badge>
-                            <span className="text-muted-foreground">{program.duration_hours}h</span>
-                          </div>
-                          
-                          <div className="flex items-center justify-between text-sm">
-                            <span><strong>{program.session_count}</strong> sessions</span>
-                            <span><strong>{program.total_participants}</strong> participants</span>
-                          </div>
-                          
-                          <Button variant="outline" size="sm" className="w-full">
-                            View Details
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Participants Tab */}
-        <TabsContent value="participants" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Participant Management</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                View and manage training participants across all sessions
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Participant management interface coming soon.</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  This will include participant lists, attendance tracking, and bulk management features.
-                </p>
+            ) : (
+              <div className="space-y-3">
+                {programs.slice(0, 3).map((program) => (
+                  <div key={program.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <h4 className="font-medium">{program.program_name}</h4>
+                      <p className="text-sm text-muted-foreground line-clamp-1">
+                        {program.description || 'No description'}
+                      </p>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                        <span>{program.duration_hours}h duration</span>
+                        <span>{program.session_count} sessions</span>
+                        <span>{program.total_participants} participants</span>
+                      </div>
+                    </div>
+                    <Badge variant="outline">{program.program_type}</Badge>
+                  </div>
+                ))}
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-        {/* QR Codes Tab */}
-        <TabsContent value="qr-codes" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>QR Code Management</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Generate and manage QR codes for registration, attendance, and feedback
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <QrCode className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">QR code management interface coming soon.</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Generate QR codes for session registration, attendance confirmation, and feedback collection.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Help Section */}
+      {/* Training Workflow Help */}
       <Card>
         <CardHeader>
           <CardTitle>Training Management Workflow</CardTitle>
@@ -461,7 +476,7 @@ export default function TrainingManagementPage() {
               <Circle className="h-8 w-8 mx-auto mb-2 text-blue-600" />
               <h3 className="font-medium">1. Before Training</h3>
               <p className="text-sm text-muted-foreground">
-                Create sessions, generate QR codes, send invitations
+                Create programs and sessions, generate QR codes, send invitations
               </p>
             </div>
             <div className="text-center p-4 border rounded-lg">
