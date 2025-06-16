@@ -8,19 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { 
-  CheckCircle, 
-  Calendar, 
-  Clock, 
-  MapPin, 
-  User, 
-  Mail, 
-  Phone,
-  School,
-  QrCode,
-  Loader2
-} from 'lucide-react';
+import { QrCode, Calendar, Clock, MapPin, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface TrainingSession {
@@ -29,67 +17,38 @@ interface TrainingSession {
   session_date: string;
   session_time: string;
   location: string;
-  venue_address: string;
   program_name: string;
-  trainer_name: string;
-  max_participants: number;
-  registration_deadline: string;
-}
-
-interface RegistrationForm {
-  participant_name: string;
-  participant_email: string;
-  participant_phone: string;
-  participant_role: string;
-  school_name: string;
-  district: string;
-  province: string;
-  years_experience: string;
-  subjects_taught: string;
-  grade_levels: string;
-  previous_tarl_training: boolean;
-  expectations: string;
+  max_participants?: number;
+  registration_deadline?: string;
 }
 
 export default function TrainingRegistrationPage() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session');
   const qrId = searchParams.get('qr');
-
+  
   const [session, setSession] = useState<TrainingSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [registered, setRegistered] = useState(false);
-  
-  const [formData, setFormData] = useState<RegistrationForm>({
+  const [submitted, setSubmitted] = useState(false);
+  const [formData, setFormData] = useState({
     participant_name: '',
     participant_email: '',
     participant_phone: '',
     participant_role: '',
     school_name: '',
     district: '',
-    province: '',
-    years_experience: '',
-    subjects_taught: '',
-    grade_levels: '',
-    previous_tarl_training: false,
-    expectations: ''
+    province: ''
   });
 
   useEffect(() => {
     if (sessionId) {
-      fetchSessionDetails();
+      fetchSession();
     }
-    
-    // Log QR code usage if accessed via QR
-    if (qrId && sessionId) {
-      logQrUsage();
-    }
-  }, [sessionId, qrId]);
+  }, [sessionId]);
 
-  const fetchSessionDetails = async () => {
+  const fetchSession = async () => {
     try {
-      setLoading(true);
       const response = await fetch(`/api/training/sessions?id=${sessionId}`);
       if (response.ok) {
         const data = await response.json();
@@ -99,35 +58,17 @@ export default function TrainingRegistrationPage() {
           toast.error('Training session not found');
         }
       } else {
-        toast.error('Failed to load session details');
+        toast.error('Failed to load session information');
       }
     } catch (error) {
       console.error('Error fetching session:', error);
-      toast.error('Error loading session details');
+      toast.error('Error loading session');
     } finally {
       setLoading(false);
     }
   };
 
-  const logQrUsage = async () => {
-    try {
-      await fetch(`/api/training/qr-codes?qr_id=${qrId}&session_id=${sessionId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action_type: 'registration',
-          user_agent: navigator.userAgent,
-          scan_data: { page: 'registration', timestamp: new Date().toISOString() }
-        }),
-      });
-    } catch (error) {
-      console.error('Error logging QR usage:', error);
-    }
-  };
-
-  const handleInputChange = (field: keyof RegistrationForm, value: string | boolean) => {
+  const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -137,45 +78,49 @@ export default function TrainingRegistrationPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!session) return;
-
-    // Basic validation
-    if (!formData.participant_name.trim() || !formData.participant_email.trim()) {
-      toast.error('Please fill in all required fields');
+    if (!formData.participant_name || !formData.participant_email) {
+      toast.error('Please fill in your name and email');
       return;
     }
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.participant_email)) {
-      toast.error('Please enter a valid email address');
+    if (!sessionId) {
+      toast.error('Invalid session');
       return;
     }
 
     setSubmitting(true);
 
     try {
+      const payload = {
+        session_id: parseInt(sessionId),
+        ...formData
+      };
+
       const response = await fetch('/api/training/participants?public=true', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          session_id: session.id,
-          ...formData,
-          registration_data: {
-            source: qrId ? 'qr_code' : 'direct_link',
-            qr_id: qrId,
-            timestamp: new Date().toISOString(),
-            user_agent: navigator.userAgent
-          }
-        }),
+        body: JSON.stringify(payload)
       });
 
       if (response.ok) {
         const result = await response.json();
-        setRegistered(true);
+        setSubmitted(true);
         toast.success('Registration successful!');
+        
+        // Log QR code usage
+        if (qrId) {
+          await fetch(`/api/training/qr-codes?qr_id=${qrId}&session_id=${sessionId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action_type: 'registration',
+              user_agent: navigator.userAgent,
+              scan_data: { participant_email: formData.participant_email }
+            })
+          });
+        }
       } else {
         const error = await response.json();
         toast.error(error.error || 'Registration failed');
@@ -207,10 +152,10 @@ export default function TrainingRegistrationPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading training session...</p>
+          <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading session information...</p>
         </div>
       </div>
     );
@@ -218,34 +163,31 @@ export default function TrainingRegistrationPage() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
-            <h2 className="text-xl font-semibold mb-2">Session Not Found</h2>
-            <p className="text-muted-foreground">
-              The training session you're looking for could not be found or may no longer be available for registration.
-            </p>
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Session Not Found</h2>
+            <p className="text-gray-600">The training session you're trying to register for could not be found.</p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  if (registered) {
+  if (submitted) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="p-6 text-center">
-            <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Registration Successful!</h2>
-            <p className="text-muted-foreground mb-4">
-              You have been successfully registered for the training session. 
-              You should receive a confirmation email shortly.
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Registration Successful!</h2>
+            <p className="text-gray-600 mb-4">
+              You have successfully registered for <strong>{session.session_title}</strong>.
             </p>
-            
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-              <h3 className="font-medium text-blue-900">{session.session_title}</h3>
-              <div className="text-sm text-blue-700 mt-2 space-y-1">
+            <div className="bg-blue-50 rounded-lg p-4 text-left">
+              <h3 className="font-semibold text-blue-900 mb-2">Session Details:</h3>
+              <div className="space-y-2 text-sm text-blue-800">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
                   {formatDate(session.session_date)}
@@ -260,32 +202,9 @@ export default function TrainingRegistrationPage() {
                 </div>
               </div>
             </div>
-
-            <p className="text-sm text-muted-foreground">
-              Please save this information and arrive 15 minutes early on the training day.
+            <p className="text-sm text-gray-500 mt-4">
+              You will receive a confirmation email shortly with further details.
             </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Check if registration deadline has passed
-  const isRegistrationClosed = session.registration_deadline && 
-    new Date() > new Date(session.registration_deadline);
-
-  if (isRegistrationClosed) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <h2 className="text-xl font-semibold mb-2">Registration Closed</h2>
-            <p className="text-muted-foreground mb-4">
-              Registration for this training session has closed.
-            </p>
-            <Badge variant="outline" className="text-red-600 border-red-600">
-              Deadline: {new Date(session.registration_deadline).toLocaleDateString()}
-            </Badge>
           </CardContent>
         </Card>
       </div>
@@ -293,293 +212,153 @@ export default function TrainingRegistrationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4 max-w-2xl">
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-md mx-auto">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            {qrId && <QrCode className="h-6 w-6 text-blue-600" />}
-            <h1 className="text-3xl font-bold">Training Registration</h1>
+        <div className="text-center mb-6">
+          <div className="bg-blue-600 rounded-full p-3 inline-flex mb-4">
+            <QrCode className="h-6 w-6 text-white" />
           </div>
-          <p className="text-muted-foreground">
-            Register for the upcoming training session
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">Training Registration</h1>
+          <p className="text-gray-600 mt-1">Complete your registration below</p>
         </div>
 
-        {/* Session Details */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              {session.session_title}
-            </CardTitle>
+        {/* Session Info */}
+        <Card className="mb-6">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">{session.session_title}</CardTitle>
+            <p className="text-sm text-gray-600">{session.program_name}</p>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm font-medium">Program</Label>
-                <p className="text-sm text-muted-foreground">{session.program_name}</p>
+          <CardContent className="pt-0">
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2 text-gray-600">
+                <Calendar className="h-4 w-4" />
+                {formatDate(session.session_date)}
               </div>
-              <div>
-                <Label className="text-sm font-medium">Trainer</Label>
-                <p className="text-sm text-muted-foreground">{session.trainer_name || 'TBD'}</p>
+              <div className="flex items-center gap-2 text-gray-600">
+                <Clock className="h-4 w-4" />
+                {formatTime(session.session_time)}
               </div>
-              <div>
-                <Label className="text-sm font-medium">Date & Time</Label>
-                <div className="text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    {formatDate(session.session_date)}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {formatTime(session.session_time)}
-                  </div>
-                </div>
-              </div>
-              <div>
-                <Label className="text-sm font-medium">Location</Label>
-                <div className="text-sm text-muted-foreground">
-                  <div className="flex items-start gap-1">
-                    <MapPin className="h-3 w-3 mt-0.5" />
-                    <div>
-                      <p>{session.location}</p>
-                      {session.venue_address && (
-                        <p className="text-xs">{session.venue_address}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
+              <div className="flex items-center gap-2 text-gray-600">
+                <MapPin className="h-4 w-4" />
+                {session.location}
               </div>
             </div>
-
-            {session.registration_deadline && (
-              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-                <p className="text-sm text-yellow-800">
-                  <strong>Registration Deadline:</strong> {' '}
-                  {new Date(session.registration_deadline).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
-                </p>
-              </div>
-            )}
           </CardContent>
         </Card>
 
         {/* Registration Form */}
         <Card>
           <CardHeader>
-            <CardTitle>Registration Form</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Please fill out the form below to register for this training session.
-            </p>
+            <CardTitle>Your Information</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Personal Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Personal Information</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="name">Full Name *</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="name"
-                        placeholder="Enter your full name"
-                        value={formData.participant_name}
-                        onChange={(e) => handleInputChange('participant_name', e.target.value)}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="email">Email Address *</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="your.email@example.com"
-                        value={formData.participant_email}
-                        onChange={(e) => handleInputChange('participant_email', e.target.value)}
-                        className="pl-10"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="phone"
-                        placeholder="+1 (555) 123-4567"
-                        value={formData.participant_phone}
-                        onChange={(e) => handleInputChange('participant_phone', e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="role">Your Role</Label>
-                    <Select value={formData.participant_role} onValueChange={(value) => handleInputChange('participant_role', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="teacher">Teacher</SelectItem>
-                        <SelectItem value="coordinator">Coordinator</SelectItem>
-                        <SelectItem value="principal">Principal</SelectItem>
-                        <SelectItem value="administrator">Administrator</SelectItem>
-                        <SelectItem value="trainer">Trainer</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Name */}
+              <div className="space-y-2">
+                <Label htmlFor="participant_name">Full Name *</Label>
+                <Input
+                  id="participant_name"
+                  value={formData.participant_name}
+                  onChange={(e) => handleInputChange('participant_name', e.target.value)}
+                  placeholder="Enter your full name"
+                  required
+                />
               </div>
 
-              {/* School Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">School Information</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="school">School Name</Label>
-                    <div className="relative">
-                      <School className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="school"
-                        placeholder="Your school name"
-                        value={formData.school_name}
-                        onChange={(e) => handleInputChange('school_name', e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="district">District</Label>
-                    <Input
-                      id="district"
-                      placeholder="Your district"
-                      value={formData.district}
-                      onChange={(e) => handleInputChange('district', e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="province">Province/State</Label>
-                    <Input
-                      id="province"
-                      placeholder="Your province or state"
-                      value={formData.province}
-                      onChange={(e) => handleInputChange('province', e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="experience">Years of Experience</Label>
-                    <Select value={formData.years_experience} onValueChange={(value) => handleInputChange('years_experience', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select experience" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0-1">0-1 years</SelectItem>
-                        <SelectItem value="2-5">2-5 years</SelectItem>
-                        <SelectItem value="6-10">6-10 years</SelectItem>
-                        <SelectItem value="11-15">11-15 years</SelectItem>
-                        <SelectItem value="16+">16+ years</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+              {/* Email */}
+              <div className="space-y-2">
+                <Label htmlFor="participant_email">Email Address *</Label>
+                <Input
+                  id="participant_email"
+                  type="email"
+                  value={formData.participant_email}
+                  onChange={(e) => handleInputChange('participant_email', e.target.value)}
+                  placeholder="Enter your email"
+                  required
+                />
               </div>
 
-              {/* Teaching Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Teaching Information</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="subjects">Subjects Taught</Label>
-                    <Input
-                      id="subjects"
-                      placeholder="e.g., Mathematics, English, Science"
-                      value={formData.subjects_taught}
-                      onChange={(e) => handleInputChange('subjects_taught', e.target.value)}
-                    />
-                  </div>
+              {/* Phone */}
+              <div className="space-y-2">
+                <Label htmlFor="participant_phone">Phone Number</Label>
+                <Input
+                  id="participant_phone"
+                  type="tel"
+                  value={formData.participant_phone}
+                  onChange={(e) => handleInputChange('participant_phone', e.target.value)}
+                  placeholder="Enter your phone number"
+                />
+              </div>
 
-                  <div>
-                    <Label htmlFor="grades">Grade Levels</Label>
-                    <Input
-                      id="grades"
-                      placeholder="e.g., Grades 3-5, Grade 8"
-                      value={formData.grade_levels}
-                      onChange={(e) => handleInputChange('grade_levels', e.target.value)}
-                    />
-                  </div>
-                </div>
+              {/* Role */}
+              <div className="space-y-2">
+                <Label htmlFor="participant_role">Your Role</Label>
+                <Select value={formData.participant_role} onValueChange={(value) => handleInputChange('participant_role', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="teacher">Teacher</SelectItem>
+                    <SelectItem value="coordinator">Coordinator</SelectItem>
+                    <SelectItem value="principal">Principal</SelectItem>
+                    <SelectItem value="staff">Staff</SelectItem>
+                    <SelectItem value="volunteer">Volunteer</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                <div>
-                  <Label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={formData.previous_tarl_training}
-                      onChange={(e) => handleInputChange('previous_tarl_training', e.target.checked)}
-                      className="rounded"
-                    />
-                    I have attended TaRL training before
-                  </Label>
-                </div>
+              {/* School */}
+              <div className="space-y-2">
+                <Label htmlFor="school_name">School Name</Label>
+                <Input
+                  id="school_name"
+                  value={formData.school_name}
+                  onChange={(e) => handleInputChange('school_name', e.target.value)}
+                  placeholder="Enter your school name"
+                />
+              </div>
 
-                <div>
-                  <Label htmlFor="expectations">What do you hope to gain from this training?</Label>
-                  <Textarea
-                    id="expectations"
-                    placeholder="Share your expectations and goals for this training session..."
-                    value={formData.expectations}
-                    onChange={(e) => handleInputChange('expectations', e.target.value)}
-                    rows={3}
-                  />
-                </div>
+              {/* District */}
+              <div className="space-y-2">
+                <Label htmlFor="district">District</Label>
+                <Input
+                  id="district"
+                  value={formData.district}
+                  onChange={(e) => handleInputChange('district', e.target.value)}
+                  placeholder="Enter your district"
+                />
+              </div>
+
+              {/* Province */}
+              <div className="space-y-2">
+                <Label htmlFor="province">Province</Label>
+                <Input
+                  id="province"
+                  value={formData.province}
+                  onChange={(e) => handleInputChange('province', e.target.value)}
+                  placeholder="Enter your province"
+                />
               </div>
 
               {/* Submit Button */}
-              <div className="pt-4 border-t">
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  size="lg"
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Registering...
-                    </>
-                  ) : (
-                    'Complete Registration'
-                  )}
-                </Button>
-                <p className="text-xs text-muted-foreground mt-2 text-center">
-                  By submitting this form, you confirm that the information provided is accurate 
-                  and you agree to participate in the training session.
-                </p>
-              </div>
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={submitting}
+                size="lg"
+              >
+                {submitting ? 'Registering...' : 'Complete Registration'}
+              </Button>
             </form>
           </CardContent>
         </Card>
+
+        {/* Footer */}
+        <p className="text-center text-xs text-gray-500 mt-6">
+          By registering, you agree to participate in this training session.
+        </p>
       </div>
     </div>
   );

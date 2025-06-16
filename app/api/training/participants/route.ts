@@ -196,6 +196,14 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error registering participant:', error);
+    
+    // Check for duplicate email constraint
+    if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {
+      return NextResponse.json({ 
+        error: 'This email is already registered for this session' 
+      }, { status: 409 });
+    }
+    
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   } finally {
     client.release();
@@ -206,25 +214,30 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const participantId = searchParams.get('id');
+  const isPublic = searchParams.get('public') === 'true';
 
   if (!participantId) {
     return NextResponse.json({ error: 'Participant ID is required' }, { status: 400 });
   }
 
-  // Validate training access
-  const authResult = await validateTrainingAccess('training-participants', 'update');
+  let user = null;
   
-  if (!authResult.success) {
-    return NextResponse.json({ error: authResult.error }, { status: 401 });
-  }
+  // If not public update, validate training access
+  if (!isPublic) {
+    const authResult = await validateTrainingAccess('training-participants', 'update');
+    
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: 401 });
+    }
 
-  const user = authResult.user!;
+    user = authResult.user!;
+  }
   const client = await pool.connect();
 
   try {
 
     const body = await request.json();
-    const { registration_status, attendance_confirmed, notes } = body;
+    const { registration_status, attendance_confirmed } = body;
 
     let updateFields = [];
     let updateValues = [];
@@ -243,9 +256,11 @@ export async function PUT(request: NextRequest) {
       
       if (attendance_confirmed) {
         updateFields.push(`attendance_time = NOW()`);
-        updateFields.push(`confirmed_by = $${paramIndex}`);
-        updateValues.push(user.user_id);
-        paramIndex++;
+        if (user) {
+          updateFields.push(`confirmed_by = $${paramIndex}`);
+          updateValues.push(user.user_id);
+          paramIndex++;
+        }
       }
     }
 

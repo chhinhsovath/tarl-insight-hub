@@ -124,11 +124,8 @@ async function setupTrainingPermissions() {
           // Set permissions based on role and page
           let hasAccess = true;
           
-          // Restrict access based on role
-          if (role === 'teacher') {
-            // Teachers can only access sessions and participants for their own sessions
-            hasAccess = ['training', 'training-sessions', 'training-participants'].includes(pageName);
-          }
+          // FULL ACCESS: All roles can access all training pages
+          hasAccess = true;
 
           if (hasAccess) {
             await client.query(`
@@ -158,32 +155,8 @@ async function setupTrainingPermissions() {
           );
 
           if (existingActionPermission.rows.length === 0) {
-            // Set action permissions based on role and page
-            let isAllowed = false;
-
-            switch (role) {
-              case 'admin':
-              case 'director':
-                isAllowed = true; // Full access
-                break;
-              case 'partner':
-                isAllowed = ['view', 'create', 'update', 'export'].includes(action);
-                break;
-              case 'coordinator':
-                if (pageName === 'training-programs') {
-                  isAllowed = ['view', 'export'].includes(action);
-                } else {
-                  isAllowed = ['view', 'create', 'update', 'export'].includes(action);
-                }
-                break;
-              case 'teacher':
-                if (['training-sessions', 'training-participants'].includes(pageName)) {
-                  isAllowed = ['view', 'update'].includes(action);
-                } else if (pageName === 'training') {
-                  isAllowed = action === 'view';
-                }
-                break;
-            }
+            // FULL ACCESS: All roles can perform all actions on all training pages
+            let isAllowed = true;
 
             if (isAllowed) {
               await client.query(`

@@ -70,7 +70,8 @@ export async function validateTrainingAccess(
     }
 
     const pagePermission = pagePermissionResult.rows[0];
-    if (!pagePermission.is_allowed) {
+    // Default to allowing access if permission is null/undefined
+    if (pagePermission.is_allowed === false) {
       return { success: false, error: 'Insufficient permissions to access this page' };
     }
 
@@ -87,7 +88,8 @@ export async function validateTrainingAccess(
     }
 
     const actionPermission = actionPermissionResult.rows[0];
-    if (!actionPermission.is_allowed) {
+    // Default to allowing access if permission is null/undefined
+    if (actionPermission.is_allowed === false) {
       return { success: false, error: `Insufficient permissions to ${requiredAction} on this page` };
     }
 
@@ -104,8 +106,8 @@ export async function validateTrainingAccess(
 // Legacy permission check for backward compatibility
 function checkLegacyTrainingPermissions(
   user: UserSession, 
-  page: string, 
-  action: string
+  _page: string, 
+  _action: string
 ): { success: boolean; user?: UserSession; error?: string } {
   
   const allowedRoles = ['admin', 'director', 'partner', 'coordinator', 'teacher'];
@@ -114,24 +116,8 @@ function checkLegacyTrainingPermissions(
     return { success: false, error: 'Insufficient role permissions' };
   }
 
-  // Role-based restrictions
-  if (user.role === 'teacher') {
-    // Teachers can only view sessions and participants for their own sessions
-    if (page === 'training-programs' || page === 'training-qr-codes') {
-      if (action !== 'view') {
-        return { success: false, error: 'Teachers can only view this resource' };
-      }
-    }
-  }
-
-  if (user.role === 'coordinator') {
-    // Coordinators cannot create/update/delete programs
-    if (page === 'training-programs' && ['create', 'update', 'delete'].includes(action)) {
-      return { success: false, error: 'Coordinators cannot modify training programs' };
-    }
-  }
-
-  // If no specific restrictions, allow access
+  // DEFAULT: Full access to all training features for all roles
+  // All roles can view, create, update, delete, and export any training resource
   return { success: true, user };
 }
 

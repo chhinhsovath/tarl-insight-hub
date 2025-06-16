@@ -94,6 +94,17 @@ export async function GET() {
     let pagesQuery;
     let queryParams;
 
+    // Check if hierarchical columns exist
+    const hierarchyCheck = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'page_permissions' 
+      AND column_name IN ('parent_page_id', 'is_parent_menu', 'menu_level')
+    `);
+    
+    const hasHierarchy = hierarchyCheck.rows.length >= 3;
+    const hierarchyColumns = hasHierarchy ? ', pp.parent_page_id, pp.is_parent_menu, pp.menu_level' : '';
+
     if (usePersonalOrder) {
       // Get pages with user's custom sort order
       pagesQuery = `
@@ -103,12 +114,15 @@ export async function GET() {
           pp.page_path,
           pp.icon_name,
           pp.sort_order,
-          COALESCE(umo.sort_order, pp.sort_order, 999) as user_sort_order
+          COALESCE(umo.sort_order, pp.sort_order, 999) as user_sort_order,
+          pp.created_at,
+          pp.updated_at
+          ${hierarchyColumns}
         FROM page_permissions pp
         JOIN role_page_permissions rpp ON pp.id = rpp.page_id
         LEFT JOIN user_menu_order umo ON pp.id = umo.page_id AND umo.user_id = $1
         WHERE rpp.role = $2 AND rpp.is_allowed = true
-        ORDER BY user_sort_order ASC, pp.page_name ASC
+        ORDER BY ${hasHierarchy ? 'pp.parent_page_id NULLS FIRST, ' : ''}user_sort_order ASC, pp.page_name ASC
       `;
       queryParams = [currentUser.id, currentUser.role_name];
     } else {
@@ -120,11 +134,14 @@ export async function GET() {
           pp.page_path,
           pp.icon_name,
           pp.sort_order,
-          pp.sort_order as user_sort_order
+          pp.sort_order as user_sort_order,
+          pp.created_at,
+          pp.updated_at
+          ${hierarchyColumns}
         FROM page_permissions pp
         JOIN role_page_permissions rpp ON pp.id = rpp.page_id
         WHERE rpp.role = $1 AND rpp.is_allowed = true
-        ORDER BY pp.sort_order ASC, pp.page_name ASC
+        ORDER BY ${hasHierarchy ? 'pp.parent_page_id NULLS FIRST, ' : ''}pp.sort_order ASC, pp.page_name ASC
       `;
       queryParams = [currentUser.role_name];
     }
@@ -137,7 +154,7 @@ export async function GET() {
       userRole: currentUser.role_name
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching user menu order:", error);
     return NextResponse.json({ 
       error: "Internal server error", 
@@ -215,7 +232,7 @@ export async function PUT(request: Request) {
         : "Menu preferences updated (using default order)"
     });
 
-  } catch (error) {
+  } catch (error: any) {
     await client.query('ROLLBACK');
     console.error("Error saving user menu order:", error);
     return NextResponse.json({ 
@@ -276,7 +293,7 @@ export async function DELETE() {
       message: "Menu order reset to default successfully" 
     });
 
-  } catch (error) {
+  } catch (error: any) {
     await client.query('ROLLBACK');
     console.error("Error resetting user menu order:", error);
     return NextResponse.json({ 

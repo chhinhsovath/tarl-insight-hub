@@ -7,37 +7,38 @@ import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
-  BarChart3,
-  School,
   Users,
   FileText,
   Settings,
-  BookOpen,
   Eye,
   TrendingUp,
   Database,
   MapPin,
   PieChart,
-  LayoutDashboard,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LogOut,
   Shield,
   Plus,
   List,
+  Building,
+  Home,
+  ClipboardList,
+  GraduationCap,
 } from "lucide-react"
 
 const iconMap = {
-  LayoutDashboard,
-  School,
+  LayoutDashboard: Home,
+  School: Building,
   Users,
-  BarChart3,
+  BarChart3: PieChart,
   FileText,
   Settings,
-  BookOpen,
+  BookOpen: GraduationCap,
   Eye,
   TrendingUp,
-  Database,
+  Database: ClipboardList,
   MapPin,
   PieChart,
   Shield,
@@ -46,14 +47,30 @@ const iconMap = {
 }
 
 interface NavigationItem {
+  id: number
   name: string
   href: string
   icon: string
+  children?: NavigationItem[]
+  isParent?: boolean
+  parentId?: number
 }
+
+// Function to determine if a page should be hidden from sidebar
+const shouldHideFromSidebar = (path: string): boolean => {
+  const hiddenPaths = [
+    '/training/sessions',
+    '/training/programs', 
+    '/training/participants',
+    '/training/qr-codes'
+  ];
+  return hiddenPaths.includes(path);
+};
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const [navigation, setNavigation] = useState<NavigationItem[]>([])
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
   const pathname = usePathname()
   const { user, logout } = useAuth()
 
@@ -67,9 +84,8 @@ export function Sidebar() {
     if (!user) return
 
     try {
-      console.log(`Fetching navigation for user role: ${user.role}`);
+      console.log(`Fetching hierarchical navigation for user role: ${user.role}`);
       
-      // Always try page_permissions table first since it exists
       const response = await fetch("/api/data/page-permissions")
       if (!response.ok) {
         console.error("Failed to fetch page permissions:", response.status)
@@ -79,74 +95,192 @@ export function Sidebar() {
       const data = await response.json()
       console.log("Page permissions from database:", data)
 
-      // For admin users, show all pages from database
-      if (user.role.toLowerCase() === 'admin') {
-        const items = data.map((item: any) => ({
-          name: item.page_name,
-          href: item.page_path,
-          icon: item.icon_name,
-        }))
-        console.log(`Admin user: showing ${items.length} items`);
-        setNavigation(items)
-      } else {
-        // Try to get role-based permissions for non-admin users
-        try {
-          const permResponse = await fetch(`/api/data/user-permissions?role=${user.role.toLowerCase()}`)
-          
-          if (permResponse.ok && permResponse.status !== 404) {
-            // Use role-based permissions if available
-            const permData = await permResponse.json()
-            console.log("Role-based permissions:", permData)
-            
-            const items = permData.map((item: any) => ({
-              name: item.page_name,
-              href: item.page_path,
-              icon: item.icon_name,
-            }))
-            setNavigation(items)
-          } else {
-            // Fallback for non-admin users when role permissions don't exist
-            const basicPages = data.filter((item: any) => 
-              ['/dashboard', '/students', '/training'].includes(item.page_path)
-            )
-            const items = basicPages.map((item: any) => ({
-              name: item.page_name,
-              href: item.page_path,
-              icon: item.icon_name,
-            }))
-            console.log(`Non-admin fallback: showing ${items.length} items`);
-            setNavigation(items)
+      // Filter out training sub-pages and build hierarchical structure
+      const filteredPages = data.filter((item: any) => !shouldHideFromSidebar(item.page_path))
+      
+      // Convert to navigation items
+      const allItems: NavigationItem[] = filteredPages.map((item: any) => ({
+        id: item.id,
+        name: item.page_name,
+        href: item.page_path,
+        icon: item.icon_name || 'FileText',
+        isParent: item.is_parent_menu || false,
+        parentId: item.parent_page_id,
+        children: []
+      }))
+
+      console.log('All navigation items:', allItems);
+
+      // Build hierarchical structure
+      const rootItems: NavigationItem[] = []
+      const itemsMap = new Map<number, NavigationItem>()
+      
+      // Create a map for quick lookup
+      allItems.forEach(item => {
+        itemsMap.set(item.id, item)
+      })
+
+      // Build the hierarchy
+      allItems.forEach(item => {
+        if (item.parentId && itemsMap.has(item.parentId)) {
+          // This is a child item
+          const parent = itemsMap.get(item.parentId)!
+          if (!parent.children) {
+            parent.children = []
           }
-        } catch (roleError) {
-          console.log("Role permissions failed, using basic fallback for non-admin");
-          const basicPages = data.filter((item: any) => 
-            ['/dashboard', '/students', '/training'].includes(item.page_path)
-          )
-          const items = basicPages.map((item: any) => ({
-            name: item.page_name,
-            href: item.page_path,
-            icon: item.icon_name,
-          }))
-          setNavigation(items)
+          parent.children.push(item)
+          console.log(`Added child ${item.name} to parent ${parent.name}`)
+        } else {
+          // This is a root item
+          rootItems.push(item)
+          console.log(`Added root item: ${item.name}`)
         }
+      })
+
+      // Sort children within each parent
+      rootItems.forEach(item => {
+        if (item.children && item.children.length > 0) {
+          item.children.sort((a, b) => a.name.localeCompare(b.name))
+          console.log(`Parent ${item.name} has ${item.children.length} children:`, item.children.map(c => c.name))
+        }
+      })
+
+      console.log('Final hierarchical navigation:', rootItems);
+
+      // Apply role-based filtering
+      if (user.role.toLowerCase() === 'admin') {
+        console.log(`Admin user: showing all ${rootItems.length} items`);
+        setNavigation(rootItems)
+      } else {
+        // For non-admin users, filter to basic pages
+        const allowedPaths = ['/dashboard', '/students', '/training', '/schools']
+        const filteredItems = rootItems.filter(item => 
+          allowedPaths.includes(item.href) || 
+          (item.children && item.children.some(child => allowedPaths.includes(child.href)))
+        )
+        console.log(`Non-admin user: showing ${filteredItems.length} items`);
+        setNavigation(filteredItems)
       }
     } catch (error) {
       console.error("Error fetching navigation items:", error)
       // Ultimate fallback navigation
       if (user.role.toLowerCase() === 'admin') {
         setNavigation([
-          { name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
-          { name: "Users", href: "/users", icon: "Users" },
-          { name: "Schools", href: "/schools", icon: "School" },
-          { name: "Settings", href: "/settings", icon: "Settings" },
-          { name: "Page Management", href: "/settings/page-permissions", icon: "Shield" }
+          { id: 1, name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
+          { id: 2, name: "Users", href: "/users", icon: "Users" },
+          { id: 3, name: "Schools", href: "/schools", icon: "School" },
+          { id: 4, name: "Settings", href: "/settings", icon: "Settings" },
+          { id: 5, name: "Page Management", href: "/settings/page-permissions", icon: "Shield" }
         ])
       } else {
         setNavigation([
-          { name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" }
+          { id: 1, name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" }
         ])
       }
     }
+  }
+
+  const toggleExpanded = (itemName: string) => {
+    const newExpanded = new Set(expandedItems)
+    if (newExpanded.has(itemName)) {
+      newExpanded.delete(itemName)
+    } else {
+      newExpanded.add(itemName)
+    }
+    setExpandedItems(newExpanded)
+    console.log('Toggled item:', itemName, 'Expanded items:', Array.from(newExpanded))
+  }
+
+  const renderNavigationItem = (item: NavigationItem) => {
+    const Icon = iconMap[item.icon as keyof typeof iconMap] || FileText
+    const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+    const hasChildren = item.children && item.children.length > 0
+    const isExpanded = expandedItems.has(item.name)
+
+    console.log(`Rendering ${item.name}: hasChildren=${hasChildren}, isExpanded=${isExpanded}`)
+
+    return (
+      <li key={item.id} className="space-y-1">
+        {hasChildren ? (
+          // Parent item with children
+          <div>
+            <div
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors cursor-pointer ${
+                isActive
+                  ? "bg-blue-100 text-blue-700 font-medium"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+              }`}
+              onClick={() => {
+                // Navigate to parent page if it's a real page
+                if (item.href && item.href !== '#') {
+                  window.location.href = item.href
+                }
+              }}
+            >
+              <Icon className="w-5 h-5 flex-shrink-0" />
+              {!collapsed && (
+                <>
+                  <span className="flex-1">{item.name}</span>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      toggleExpanded(item.name)
+                    }}
+                    className="p-1 hover:bg-gray-200 rounded transition-colors"
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="w-3 h-3" />
+                    ) : (
+                      <ChevronRight className="w-3 h-3" />
+                    )}
+                  </button>
+                </>
+              )}
+            </div>
+            
+            {/* Render children if expanded and sidebar is not collapsed */}
+            {!collapsed && isExpanded && (
+              <ul className="ml-6 space-y-1 border-l border-gray-200 pl-3 mt-1">
+                {item.children!.map(child => {
+                  const ChildIcon = iconMap[child.icon as keyof typeof iconMap] || FileText
+                  const childIsActive = pathname === child.href || pathname.startsWith(child.href + '/')
+                  
+                  return (
+                    <li key={child.id}>
+                      <Link
+                        href={child.href}
+                        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm ${
+                          childIsActive
+                            ? "bg-blue-100 text-blue-700 font-medium"
+                            : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+                        }`}
+                      >
+                        <ChildIcon className="w-4 h-4 flex-shrink-0" />
+                        <span>{child.name}</span>
+                      </Link>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+        ) : (
+          // Regular navigation item
+          <Link
+            href={item.href}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+              isActive
+                ? "bg-blue-100 text-blue-700 font-medium"
+                : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
+            }`}
+          >
+            <Icon className="w-5 h-5 flex-shrink-0" />
+            {!collapsed && <span>{item.name}</span>}
+          </Link>
+        )}
+      </li>
+    )
   }
 
   if (!user) return null
@@ -173,29 +307,22 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
+      <nav className="flex-1 p-4 overflow-auto">
         <ul className="space-y-2">
-          {navigation.map((item) => {
-            const Icon = iconMap[item.icon as keyof typeof iconMap] || BarChart3
-            const isActive = pathname === item.href
-
-            return (
-              <li key={item.name}>
-                <Link
-                  href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                    isActive
-                      ? "bg-blue-100 text-blue-700 font-medium"
-                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-800"
-                  }`}
-                >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
-                  {!collapsed && <span>{item.name}</span>}
-                </Link>
-              </li>
-            )
-          })}
+          {navigation.map(item => renderNavigationItem(item))}
         </ul>
+        
+        {/* Debug info */}
+        {!collapsed && user && (
+          <div className="mt-6 p-3 bg-gray-50 rounded-lg text-xs text-gray-500">
+            <div className="flex items-center gap-2 mb-1">
+              <Database className="w-3 h-3" />
+              <span>Hierarchical menu</span>
+            </div>
+            <div>Role: {user.role}</div>
+            <div>Items: {navigation.length}</div>
+          </div>
+        )}
       </nav>
 
       {/* User Info & Logout */}

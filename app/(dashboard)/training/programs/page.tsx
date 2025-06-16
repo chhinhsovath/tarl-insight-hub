@@ -15,7 +15,10 @@ import {
   BookOpen,
   Clock,
   Users,
-  Calendar
+  Calendar,
+  FileText,
+  ExternalLink,
+  Paperclip
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
@@ -30,6 +33,7 @@ interface TrainingProgram {
   duration_hours: number;
   session_count: number;
   total_participants: number;
+  materials_count: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -219,7 +223,11 @@ export default function TrainingProgramsPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Total Sessions</p>
                 <p className="text-2xl font-bold">
-                  {programs.reduce((sum, program) => sum + (program.session_count || 0), 0)}
+                  {programs.reduce((sum, program) => {
+                    const count = program.session_count;
+                    const numericCount = typeof count === 'string' ? parseInt(count, 10) : (count || 0);
+                    return sum + numericCount;
+                  }, 0)}
                 </p>
               </div>
               <Calendar className="h-8 w-8 text-green-600" />
@@ -233,7 +241,11 @@ export default function TrainingProgramsPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Total Participants</p>
                 <p className="text-2xl font-bold">
-                  {programs.reduce((sum, program) => sum + (program.total_participants || 0), 0)}
+                  {programs.reduce((sum, program) => {
+                    const count = program.total_participants;
+                    const numericCount = typeof count === 'string' ? parseInt(count, 10) : (count || 0);
+                    return sum + numericCount;
+                  }, 0)}
                 </p>
               </div>
               <Users className="h-8 w-8 text-purple-600" />
@@ -354,8 +366,8 @@ export default function TrainingProgramsPage() {
                           <span>{program.total_participants} participants</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <BookOpen className="h-4 w-4 text-muted-foreground" />
-                          <span>Active</span>
+                          <Paperclip className="h-4 w-4 text-muted-foreground" />
+                          <span>{program.materials_count || 0} materials</span>
                         </div>
                       </div>
 

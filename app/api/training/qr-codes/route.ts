@@ -110,52 +110,54 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Training session not found' }, { status: 404 });
     }
 
-    // Generate unique QR data URL
+    // Generate unique QR data URL - we'll update with actual ID after creating the record
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const qrId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
-    let qrData;
+    let qrDataTemplate;
     switch (code_type) {
       case 'registration':
-        qrData = `${baseUrl}/training/register?session=${session_id}&qr=${qrId}`;
+        qrDataTemplate = `${baseUrl}/training/register?session=${session_id}&qr=`;
         break;
       case 'attendance':
-        qrData = `${baseUrl}/training/attendance?session=${session_id}&qr=${qrId}`;
+        qrDataTemplate = `${baseUrl}/training/attendance?session=${session_id}&qr=`;
         break;
       case 'feedback':
-        qrData = `${baseUrl}/training/feedback?session=${session_id}&qr=${qrId}`;
+        qrDataTemplate = `${baseUrl}/training/public-feedback?session=${session_id}&qr=`;
         break;
       case 'materials':
-        qrData = `${baseUrl}/training/materials?session=${session_id}&qr=${qrId}`;
+        qrDataTemplate = `${baseUrl}/training/materials?session=${session_id}&qr=`;
         break;
       default:
-        qrData = `${baseUrl}/training/session/${session_id}?qr=${qrId}`;
+        qrDataTemplate = `${baseUrl}/training/session/${session_id}?qr=`;
     }
 
-    // Create the QR code record
+    // Create the QR code record first with temporary data
     const result = await client.query(`
       INSERT INTO tbl_tarl_qr_codes (
         code_type, session_id, qr_data, expires_at, max_usage, created_by, is_active
       ) VALUES ($1, $2, $3, $4, $5, $6, true)
-      RETURNING id, code_type, qr_data, expires_at, max_usage, created_at
+      RETURNING id, code_type, expires_at, max_usage, created_at
     `, [
       code_type,
       parseInt(session_id),
-      qrData,
+      'temp', // temporary data
       expires_at ? new Date(expires_at) : null,
       max_usage || null,
       user.user_id
     ]);
 
     const newQrCode = result.rows[0];
+    
+    // Now generate the final QR data with the actual ID
+    const qrData = qrDataTemplate + newQrCode.id;
 
-    // Generate simple QR code data (you might want to use a proper QR code library)
+    // Generate QR code image
     const qrCodeImage = await generateQrCodeImage(qrData);
 
-    // Update with QR code image
+    // Update with final QR data and image
     await client.query(`
-      UPDATE tbl_tarl_qr_codes SET qr_code_image = $1 WHERE id = $2
-    `, [qrCodeImage, newQrCode.id]);
+      UPDATE tbl_tarl_qr_codes SET qr_data = $1, qr_code_image = $2 WHERE id = $3
+    `, [qrData, qrCodeImage, newQrCode.id]);
 
     return NextResponse.json({
       success: true,

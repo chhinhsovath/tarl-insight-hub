@@ -206,10 +206,10 @@ export function WithActionPermission({
   const { canPerform, loading } = useActionPermission(pageName, action, userRole);
   
   if (loading) {
-    return <>{fallback}</>;
+    return fallback;
   }
   
-  return canPerform ? <>{children}</> : <>{fallback}</>;
+  return canPerform ? children : fallback;
 }
 
 /**

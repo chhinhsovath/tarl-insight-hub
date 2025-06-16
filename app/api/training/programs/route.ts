@@ -3,10 +3,10 @@ import { Pool } from "pg";
 import { validateTrainingAccess, getActionFromMethod } from "@/lib/training-permissions";
 
 const pool = new Pool({
-  user: process.env.PGUSER,
-  host: process.env.PGHOST,
-  database: process.env.PGDATABASE,
-  password: process.env.PGPASSWORD,
+  user: process.env.PGUSER || 'user',
+  host: process.env.PGHOST || 'localhost',
+  database: process.env.PGDATABASE || 'tarl_insight_hub',
+  password: process.env.PGPASSWORD || '',
   port: parseInt(process.env.PGPORT || '5432', 10),
 });
 
@@ -28,18 +28,49 @@ export async function GET(request: NextRequest) {
       SELECT 
         tp.*,
         creator.full_name as created_by_name,
-        COUNT(DISTINCT ts.id) as session_count,
-        COUNT(DISTINCT tpt.id) as total_participants
+        COUNT(DISTINCT ts.id)::int as session_count,
+        COUNT(DISTINCT tpt.id)::int as total_participants,
+        COUNT(DISTINCT tm.id)::int as materials_count
       FROM tbl_tarl_training_programs tp
       LEFT JOIN tbl_tarl_users creator ON tp.created_by = creator.id
       LEFT JOIN tbl_tarl_training_sessions ts ON tp.id = ts.program_id AND ts.is_active = true
       LEFT JOIN tbl_tarl_training_participants tpt ON ts.id = tpt.session_id
+      LEFT JOIN tbl_tarl_training_materials tm ON tp.id = tm.program_id AND tm.is_active = true
       WHERE tp.is_active = true
       GROUP BY tp.id, creator.full_name
       ORDER BY tp.created_at DESC
     `;
 
     const result = await client.query(query);
+    
+    // For detailed view, also fetch materials for each program
+    const { searchParams } = new URL(request.url);
+    const includeDetails = searchParams.get('include_materials') === 'true';
+    
+    if (includeDetails && result.rows.length > 0) {
+      const programIds = result.rows.map(p => p.id);
+      const materialsQuery = `
+        SELECT 
+          tm.*,
+          creator.full_name as created_by_name
+        FROM tbl_tarl_training_materials tm
+        LEFT JOIN tbl_tarl_users creator ON tm.created_by = creator.id
+        WHERE tm.program_id = ANY($1) AND tm.is_active = true
+        ORDER BY tm.program_id, tm.sort_order ASC, tm.created_at DESC
+      `;
+      
+      const materialsResult = await client.query(materialsQuery, [programIds]);
+      const materialsByProgram = materialsResult.rows.reduce((acc, material) => {
+        if (!acc[material.program_id]) acc[material.program_id] = [];
+        acc[material.program_id].push(material);
+        return acc;
+      }, {} as Record<number, any[]>);
+      
+      // Add materials to each program
+      result.rows.forEach(program => {
+        program.materials = materialsByProgram[program.id] || [];
+      });
+    }
     
     return NextResponse.json(result.rows);
   } catch (error) {
@@ -95,7 +126,7 @@ export async function POST(request: NextRequest) {
       message: 'Training program created successfully'
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating training program:', error);
     
     // Check for duplicate program name
@@ -104,8 +135,24 @@ export async function POST(request: NextRequest) {
         error: 'A training program with this name already exists' 
       }, { status: 409 });
     }
+
+    // Check for table not found
+    if (error.code === '42P01') {
+      return NextResponse.json({ 
+        error: 'Training programs table not found. Please run database setup.' 
+      }, { status: 500 });
+    }
     
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    // Database connection error
+    if (error.code === 'ECONNREFUSED' || error.code === '28P01') {
+      return NextResponse.json({ 
+        error: 'Database connection failed. Please check database configuration.' 
+      }, { status: 500 });
+    }
+    
+    return NextResponse.json({ 
+      error: `Internal server error: ${error.message || 'Unknown error'}` 
+    }, { status: 500 });
   } finally {
     client.release();
   }
@@ -158,9 +205,11 @@ export async function PUT(request: NextRequest) {
       message: 'Training program updated successfully'
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating training program:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: `Internal server error: ${error.message || 'Unknown error'}` 
+    }, { status: 500 });
   } finally {
     client.release();
   }

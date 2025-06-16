@@ -18,7 +18,10 @@ import {
   AlertCircle,
   ArrowRight,
   TrendingUp,
-  Activity
+  Activity,
+  MessageSquare,
+  Star,
+  ThumbsUp
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
@@ -61,10 +64,38 @@ interface QuickStats {
   ongoingSessions: number;
 }
 
+interface FeedbackStats {
+  total_feedback: number;
+  positive_feedback: number;
+  negative_feedback: number;
+  average_rating: number;
+  would_recommend: number;
+  sessions_with_feedback: number;
+}
+
+interface RecentFeedback {
+  id: number;
+  overall_rating: number;
+  comments: string;
+  submission_time: string;
+  is_anonymous: boolean;
+  session_title: string;
+  program_name: string;
+}
+
 export default function TrainingOverviewPage() {
   const { user } = useAuth();
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [programs, setPrograms] = useState<TrainingProgram[]>([]);
+  const [feedbackStats, setFeedbackStats] = useState<FeedbackStats>({
+    total_feedback: 0,
+    positive_feedback: 0,
+    negative_feedback: 0,
+    average_rating: 0,
+    would_recommend: 0,
+    sessions_with_feedback: 0
+  });
+  const [recentFeedback, setRecentFeedback] = useState<RecentFeedback[]>([]);
   const [stats, setStats] = useState<QuickStats>({
     totalSessions: 0,
     totalPrograms: 0,
@@ -83,14 +114,19 @@ export default function TrainingOverviewPage() {
 
   const fetchData = async () => {
     try {
-      // Fetch sessions and programs in parallel
-      const [sessionsResponse, programsResponse] = await Promise.all([
+      // Fetch sessions, programs, and feedback in parallel
+      const [sessionsResponse, programsResponse, feedbackResponse] = await Promise.all([
         fetch('/api/training/sessions', {
           method: 'GET',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' }
         }),
         fetch('/api/training/programs', {
+          method: 'GET',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }
+        }),
+        fetch('/api/training/feedback?stats=true', {
           method: 'GET',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' }
@@ -104,11 +140,31 @@ export default function TrainingOverviewPage() {
         setSessions(sessionsData);
         setPrograms(programsData);
 
-        // Calculate stats
-        const totalParticipants = sessionsData.reduce((sum: number, session: TrainingSession) => 
-          sum + (session.participant_count || 0), 0);
-        const confirmedParticipants = sessionsData.reduce((sum: number, session: TrainingSession) => 
-          sum + (session.confirmed_count || 0), 0);
+        // Handle feedback data
+        if (feedbackResponse.ok) {
+          const feedbackData = await feedbackResponse.json();
+          setFeedbackStats(feedbackData.statistics || {
+            total_feedback: 0,
+            positive_feedback: 0,
+            negative_feedback: 0,
+            average_rating: 0,
+            would_recommend: 0,
+            sessions_with_feedback: 0
+          });
+          setRecentFeedback(feedbackData.recent_feedback || []);
+        }
+
+        // Calculate stats - ensure counts are numbers, not strings
+        const totalParticipants = sessionsData.reduce((sum: number, session: TrainingSession) => {
+          const count = session.participant_count;
+          const numericCount = typeof count === 'string' ? parseInt(count, 10) : (count || 0);
+          return sum + numericCount;
+        }, 0);
+        const confirmedParticipants = sessionsData.reduce((sum: number, session: TrainingSession) => {
+          const count = session.confirmed_count;
+          const numericCount = typeof count === 'string' ? parseInt(count, 10) : (count || 0);
+          return sum + numericCount;
+        }, 0);
         
         setStats({
           totalSessions: sessionsData.length,
@@ -207,7 +263,7 @@ export default function TrainingOverviewPage() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -219,21 +275,6 @@ export default function TrainingOverviewPage() {
                 </p>
               </div>
               <CalendarDays className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Active Programs</p>
-                <p className="text-2xl font-bold">{stats.totalPrograms}</p>
-                <p className="text-xs text-muted-foreground">
-                  {programs.reduce((sum, p) => sum + p.session_count, 0)} total sessions
-                </p>
-              </div>
-              <ClipboardList className="h-8 w-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
@@ -257,6 +298,57 @@ export default function TrainingOverviewPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
+                <p className="text-sm text-muted-foreground">Total Feedback</p>
+                <p className="text-2xl font-bold">{feedbackStats.total_feedback}</p>
+                <p className="text-xs text-muted-foreground">
+                  {feedbackStats.positive_feedback} positive
+                </p>
+              </div>
+              <MessageSquare className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Avg Rating</p>
+                <p className="text-2xl font-bold">
+                  {feedbackStats.average_rating ? feedbackStats.average_rating.toFixed(1) : '0.0'}
+                </p>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                  {feedbackStats.would_recommend} recommend
+                </p>
+              </div>
+              <Star className="h-8 w-8 text-yellow-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Secondary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Active Programs</p>
+                <p className="text-2xl font-bold">{stats.totalPrograms}</p>
+                <p className="text-xs text-muted-foreground">
+                  {programs.reduce((sum, p) => sum + p.session_count, 0)} total sessions
+                </p>
+              </div>
+              <ClipboardList className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm text-muted-foreground">Completion Rate</p>
                 <p className="text-2xl font-bold">
                   {stats.totalSessions > 0 
@@ -267,7 +359,43 @@ export default function TrainingOverviewPage() {
                   {stats.completedSessions} completed
                 </p>
               </div>
-              <TrendingUp className="h-8 w-8 text-orange-600" />
+              <TrendingUp className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Sessions w/ Feedback</p>
+                <p className="text-2xl font-bold">{feedbackStats.sessions_with_feedback}</p>
+                <p className="text-xs text-muted-foreground">
+                  {stats.totalSessions > 0 
+                    ? Math.round((feedbackStats.sessions_with_feedback / stats.totalSessions) * 100)
+                    : 0}% coverage
+                </p>
+              </div>
+              <Activity className="h-8 w-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Recommendation Rate</p>
+                <p className="text-2xl font-bold">
+                  {feedbackStats.total_feedback > 0 
+                    ? Math.round((feedbackStats.would_recommend / feedbackStats.total_feedback) * 100)
+                    : 0}%
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  would recommend
+                </p>
+              </div>
+              <ThumbsUp className="h-8 w-8 text-orange-600" />
             </div>
           </CardContent>
         </Card>
@@ -379,6 +507,28 @@ export default function TrainingOverviewPage() {
                   </CardContent>
                 </Card>
               </Link>
+
+              <Link href="/training/feedback">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-green-500">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold flex items-center gap-2">
+                          <MessageSquare className="h-5 w-5 text-green-600" />
+                          Training Feedback
+                        </h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          View and analyze training feedback
+                        </p>
+                        <div className="text-xs text-green-600 mt-2">
+                          {feedbackStats.total_feedback} feedback • {feedbackStats.average_rating ? feedbackStats.average_rating.toFixed(1) : '0.0'} avg rating
+                        </div>
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             </div>
           </div>
         </CardContent>
@@ -482,6 +632,72 @@ export default function TrainingOverviewPage() {
                       </div>
                     </div>
                     <Badge variant="outline">{program.program_type}</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent Feedback */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Recent Feedback</CardTitle>
+              <Link href="/training/feedback">
+                <Button variant="outline" size="sm">
+                  View All <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <p className="text-muted-foreground">Loading...</p>
+            ) : recentFeedback.length === 0 ? (
+              <div className="text-center py-8">
+                <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                <p className="text-muted-foreground">No feedback yet</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Feedback will appear here as participants submit responses
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentFeedback.map((feedback) => (
+                  <div key={feedback.id} className="p-3 border rounded-lg">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star 
+                              key={star}
+                              className={`h-4 w-4 ${
+                                star <= feedback.overall_rating 
+                                  ? 'fill-yellow-400 text-yellow-400' 
+                                  : 'text-gray-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm font-medium">{feedback.overall_rating}/5</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(feedback.submission_time).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <h4 className="font-medium text-sm">{feedback.session_title}</h4>
+                    <p className="text-sm text-muted-foreground">{feedback.program_name}</p>
+                    {feedback.comments && (
+                      <p className="text-sm mt-2 line-clamp-2 text-gray-700">
+                        "{feedback.comments}"
+                      </p>
+                    )}
+                    {feedback.is_anonymous && (
+                      <Badge variant="outline" className="mt-2 text-xs">
+                        Anonymous
+                      </Badge>
+                    )}
                   </div>
                 ))}
               </div>

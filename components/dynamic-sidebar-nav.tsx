@@ -15,12 +15,8 @@ import {
   ChevronRight,
   Settings,
   Shield,
-  BarChart3,
   Users,
-  School,
   Eye,
-  Plus,
-  List,
   FileText,
   TrendingUp,
   ClipboardList,
@@ -44,6 +40,9 @@ interface PagePermission {
   icon_name?: string;
   created_at: string;
   updated_at: string;
+  parent_page_id?: number;
+  is_parent_menu?: boolean;
+  menu_level?: number;
 }
 
 interface MenuItem {
@@ -54,6 +53,9 @@ interface MenuItem {
   children?: MenuItem[];
   category?: string;
   isActive?: boolean;
+  isParent?: boolean;
+  parentId?: number;
+  level?: number;
 }
 
 // Icon mapping
@@ -116,7 +118,7 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
 
   useEffect(() => {
     loadPages();
-  }, [refreshTrigger]); // Re-load when menu context changes
+  }, [refreshTrigger]);
 
   const loadPages = async () => {
     try {
@@ -139,41 +141,82 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
         setPages(pagesData);
       } else {
         console.error('Failed to fetch pages from database');
-        // Fallback to basic pages
         setPages([
           { id: 1, page_path: '/dashboard', page_name: 'Dashboard', icon_name: 'LayoutDashboard', created_at: '', updated_at: '' },
-          { id: 2, page_path: '/settings/page-permissions', page_name: 'Page Management', icon_name: 'Shield', created_at: '', updated_at: '' }
+          { id: 2, page_path: '/settings', page_name: 'Settings', icon_name: 'Settings', created_at: '', updated_at: '' }
         ]);
       }
     } catch (error) {
       console.error('Error loading pages:', error);
-      // Fallback
       setPages([
         { id: 1, page_path: '/dashboard', page_name: 'Dashboard', icon_name: 'LayoutDashboard', created_at: '', updated_at: '' },
-        { id: 2, page_path: '/settings/page-permissions', page_name: 'Page Management', icon_name: 'Shield', created_at: '', updated_at: '' }
+        { id: 2, page_path: '/settings', page_name: 'Settings', icon_name: 'Settings', created_at: '', updated_at: '' }
       ]);
     } finally {
       setLoading(false);
     }
   };
 
-  const organizeMenuItems = (): Record<string, MenuItem[]> => {
+  const buildHierarchicalMenu = (): Record<string, MenuItem[]> => {
     if (!user) return {};
 
-    // Convert pages to menu items, filtering out training sub-pages
-    const menuItems: MenuItem[] = pages
-      .filter(page => !shouldHideFromSidebar(page.page_path))
-      .map(page => ({
-        id: page.id,
-        name: page.page_name,
-        path: page.page_path,
-        icon: iconMap[page.icon_name || 'default'] || iconMap.default,
-        category: getCategoryFromPath(page.page_path),
-        isActive: pathname === page.page_path || pathname.startsWith(page.page_path + '/')
-      }));
+    console.log('Building hierarchical menu from pages:', pages);
 
-    // Group items by category
-    const grouped = menuItems.reduce((acc, item) => {
+    // Filter out training sub-pages and convert to menu items
+    const filteredPages = pages.filter(page => !shouldHideFromSidebar(page.page_path));
+    
+    // Create menu items
+    const allMenuItems: MenuItem[] = filteredPages.map(page => ({
+      id: page.id,
+      name: page.page_name,
+      path: page.page_path,
+      icon: iconMap[page.icon_name || 'default'] || iconMap.default,
+      category: getCategoryFromPath(page.page_path),
+      isActive: pathname === page.page_path || pathname.startsWith(page.page_path + '/'),
+      isParent: page.is_parent_menu || false,
+      parentId: page.parent_page_id,
+      level: page.menu_level || 0,
+      children: []
+    }));
+
+    console.log('All menu items:', allMenuItems);
+
+    // Build hierarchical structure
+    const rootItems: MenuItem[] = [];
+    const itemsMap = new Map<number, MenuItem>();
+    
+    // Create a map for quick lookup
+    allMenuItems.forEach(item => {
+      itemsMap.set(item.id, item);
+    });
+
+    // Build the hierarchy - separate root items and child items
+    allMenuItems.forEach(item => {
+      if (item.parentId && itemsMap.has(item.parentId)) {
+        // This is a child item
+        const parent = itemsMap.get(item.parentId)!;
+        if (!parent.children) {
+          parent.children = [];
+        }
+        parent.children.push(item);
+        console.log(`Added child ${item.name} to parent ${parent.name}`);
+      } else {
+        // This is a root item
+        rootItems.push(item);
+        console.log(`Added root item: ${item.name}`);
+      }
+    });
+
+    // Sort children within each parent
+    rootItems.forEach(item => {
+      if (item.children && item.children.length > 0) {
+        item.children.sort((a, b) => a.name.localeCompare(b.name));
+        console.log(`Parent ${item.name} has ${item.children.length} children:`, item.children.map(c => c.name));
+      }
+    });
+
+    // Group root items by category
+    const grouped = rootItems.reduce((acc, item) => {
       const category = item.category || 'other';
       if (!acc[category]) {
         acc[category] = [];
@@ -192,10 +235,11 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
       }
     });
 
+    console.log('Final grouped items:', sortedGrouped);
     return sortedGrouped;
   };
 
-  const groupedItems = organizeMenuItems();
+  const groupedItems = buildHierarchicalMenu();
 
   const toggleExpanded = (itemName: string) => {
     const newExpanded = new Set(expandedItems);
@@ -205,69 +249,97 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
       newExpanded.add(itemName);
     }
     setExpandedItems(newExpanded);
+    console.log('Toggled item:', itemName, 'Expanded items:', Array.from(newExpanded));
   };
 
   const renderMenuItem = (item: MenuItem) => {
     const isExpanded = expandedItems.has(item.name);
+    const hasChildren = item.children && item.children.length > 0;
+    
+    console.log(`Rendering menu item: ${item.name}, hasChildren: ${hasChildren}, isExpanded: ${isExpanded}`);
     
     return (
       <div key={item.id} className="space-y-1">
-        <Link href={item.path}>
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start rounded-lg group",
-              item.isActive
-                ? "bg-blue-50 text-blue-700 hover:bg-blue-50"
-                : "text-gray-600 hover:bg-gray-50",
-              !open && "justify-center px-2",
-            )}
-          >
-            <item.icon className={cn("h-4 w-4 flex-shrink-0", open && "mr-3")} />
-            {open && (
-              <>
-                <span className="flex-1 text-left">{item.name}</span>
-                {item.children && item.children.length > 0 && (
-                  <div 
+        {hasChildren ? (
+          // Parent item with children - render with toggle functionality
+          <div>
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start rounded-lg group",
+                item.isActive
+                  ? "bg-blue-50 text-blue-700 hover:bg-blue-50"
+                  : "text-gray-600 hover:bg-gray-50",
+                !open && "justify-center px-2"
+              )}
+              onClick={() => {
+                // Navigate to parent page if it's a real page
+                if (item.path && item.path !== '#') {
+                  window.location.href = item.path;
+                }
+              }}
+            >
+              <item.icon className={cn("h-4 w-4 flex-shrink-0", open && "mr-3")} />
+              {open && (
+                <>
+                  <span className="flex-1 text-left">{item.name}</span>
+                  <button
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       toggleExpanded(item.name);
                     }}
-                    className="ml-2 p-1 hover:bg-gray-200 rounded"
+                    className="ml-2 p-1 hover:bg-gray-200 rounded transition-colors"
                   >
                     {isExpanded ? (
                       <ChevronDown className="h-3 w-3" />
                     ) : (
                       <ChevronRight className="h-3 w-3" />
                     )}
-                  </div>
-                )}
-              </>
+                  </button>
+                </>
+              )}
+            </Button>
+            
+            {/* Render children if expanded */}
+            {open && isExpanded && (
+              <div className="ml-6 space-y-1 border-l border-gray-200 pl-3 mt-1">
+                {item.children!.map(child => (
+                  <Link key={child.id} href={child.path}>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start text-sm font-normal rounded-lg",
+                        child.isActive
+                          ? "bg-blue-50 text-blue-700 hover:bg-blue-50"
+                          : "text-gray-600 hover:bg-gray-50"
+                      )}
+                    >
+                      <child.icon className="h-3 w-3 mr-3" />
+                      {child.name}
+                    </Button>
+                  </Link>
+                ))}
+              </div>
             )}
-          </Button>
-        </Link>
-        
-        {/* Render children if expanded */}
-        {open && item.children && item.children.length > 0 && isExpanded && (
-          <div className="ml-6 space-y-1">
-            {item.children.map(child => (
-              <Link key={child.id} href={child.path}>
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    "w-full justify-start text-sm font-normal rounded-lg",
-                    child.isActive
-                      ? "bg-blue-50 text-blue-700 hover:bg-blue-50"
-                      : "text-gray-600 hover:bg-gray-50",
-                  )}
-                >
-                  <child.icon className="h-3 w-3 mr-3" />
-                  {child.name}
-                </Button>
-              </Link>
-            ))}
           </div>
+        ) : (
+          // Regular menu item - render as link
+          <Link href={item.path}>
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start rounded-lg group",
+                item.isActive
+                  ? "bg-blue-50 text-blue-700 hover:bg-blue-50"
+                  : "text-gray-600 hover:bg-gray-50",
+                !open && "justify-center px-2"
+              )}
+            >
+              <item.icon className={cn("h-4 w-4 flex-shrink-0", open && "mr-3")} />
+              {open && <span className="flex-1 text-left">{item.name}</span>}
+            </Button>
+          </Link>
         )}
       </div>
     );
@@ -329,7 +401,7 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
             <div className="px-3 py-2 mx-2 bg-gray-50 rounded-lg">
               <div className="flex items-center text-xs text-gray-500">
                 <Database className="h-3 w-3 mr-2" />
-                <span>Database-driven menu</span>
+                <span>Hierarchical menu</span>
               </div>
               <div className="text-xs text-gray-400 mt-1">
                 Role: <span className="capitalize font-medium">{user.role}</span>

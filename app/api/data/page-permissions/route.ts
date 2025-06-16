@@ -39,10 +39,22 @@ export async function GET() {
     
     const hasSortOrder = columnCheck.rows.length > 0;
     
+    // Check if hierarchical columns exist
+    const hierarchyCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'page_permissions' 
+      AND column_name IN ('parent_page_id', 'is_parent_menu', 'menu_level')
+    `);
+    
+    const hasHierarchy = hierarchyCheck.rows.length >= 3;
+    
     const result = await pool.query(`
-      SELECT id, page_path, page_name, icon_name, created_at, updated_at ${hasSortOrder ? ', sort_order' : ''} 
+      SELECT id, page_path, page_name, icon_name, created_at, updated_at
+      ${hasSortOrder ? ', sort_order' : ''}
+      ${hasHierarchy ? ', parent_page_id, is_parent_menu, menu_level' : ''}
       FROM page_permissions 
-      ORDER BY ${hasSortOrder ? 'sort_order ASC, ' : ''}page_name ASC
+      ORDER BY ${hasSortOrder ? 'sort_order ASC, ' : ''}parent_page_id NULLS FIRST, page_name ASC
     `);
     
     return NextResponse.json(result.rows);
@@ -92,7 +104,7 @@ export async function POST(request: Request) {
     );
 
     return NextResponse.json(result.rows[0]);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating page permission:", error);
     if (error.code === '23505') { // Unique constraint violation
       return NextResponse.json({ error: "Page path already exists" }, { status: 409 });

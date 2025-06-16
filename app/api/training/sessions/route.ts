@@ -39,8 +39,8 @@ export async function GET(request: NextRequest) {
         tp.duration_hours,
         trainer.full_name as trainer_name,
         coordinator.full_name as coordinator_name,
-        COUNT(DISTINCT tpt.id) as participant_count,
-        COUNT(DISTINCT CASE WHEN tpt.attendance_confirmed = true THEN tpt.id END) as confirmed_count,
+        COUNT(DISTINCT tpt.id)::int as participant_count,
+        COUNT(DISTINCT CASE WHEN tpt.attendance_confirmed = true THEN tpt.id END)::int as confirmed_count,
         tf_before.stage_status as before_status,
         tf_during.stage_status as during_status,
         tf_after.stage_status as after_status
