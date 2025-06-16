@@ -31,31 +31,34 @@ export async function validateTrainingAccess(
       return { success: false, error: 'No session token provided' };
     }
 
-    // Validate session and get user info
-    const sessionResult = await client.query(
-      'SELECT user_id, username, role FROM tbl_tarl_sessions WHERE session_token = $1 AND expires_at > NOW()',
+    // Validate session and get user info - use the same method as auth/check
+    const userResult = await client.query(
+      `SELECT id, full_name, email, username, role, school_id, is_active
+       FROM tbl_tarl_users
+       WHERE session_token = $1 AND session_expires > NOW()`,
       [sessionToken]
     );
 
-    if (sessionResult.rows.length === 0) {
+    if (userResult.rows.length === 0) {
       return { success: false, error: 'Invalid or expired session' };
     }
 
-    const user = sessionResult.rows[0] as UserSession;
-
-    // Get user's full name
-    const userDetailsResult = await client.query(
-      'SELECT full_name FROM tbl_tarl_users WHERE id = $1',
-      [user.user_id]
-    );
-
-    if (userDetailsResult.rows.length > 0) {
-      user.full_name = userDetailsResult.rows[0].full_name;
+    const userData = userResult.rows[0];
+    
+    if (!userData.is_active) {
+      return { success: false, error: 'Account is inactive' };
     }
+
+    const user: UserSession = {
+      user_id: userData.id,
+      username: userData.username,
+      role: userData.role.toLowerCase(),
+      full_name: userData.full_name
+    };
 
     // Check page permission
     const pagePermissionResult = await client.query(`
-      SELECT pp.id, pp.page_name, rpp.has_access
+      SELECT pp.id, pp.page_name, rpp.is_allowed
       FROM page_permissions pp
       LEFT JOIN role_page_permissions rpp ON pp.id = rpp.page_id AND rpp.role = $1
       WHERE pp.page_name = $2
@@ -67,7 +70,7 @@ export async function validateTrainingAccess(
     }
 
     const pagePermission = pagePermissionResult.rows[0];
-    if (!pagePermission.has_access) {
+    if (!pagePermission.is_allowed) {
       return { success: false, error: 'Insufficient permissions to access this page' };
     }
 

@@ -80,9 +80,20 @@ const getCategoryFromPath = (path: string): string => {
   if (['/schools', '/users', '/students'].includes(path)) return 'management';
   if (['/observations', '/collection', '/visits'].includes(path) || path.startsWith('/observations/')) return 'data';
   if (['/analytics', '/reports', '/progress'].includes(path)) return 'analytics';
-  if (['/training'].includes(path)) return 'learning';
+  if (['/training'].includes(path) || path.startsWith('/training/')) return 'learning';
   if (['/settings'].includes(path) || path.startsWith('/settings/')) return 'admin';
   return 'other';
+};
+
+// Function to determine if a page should be hidden from sidebar (shown only as sub-pages)
+const shouldHideFromSidebar = (path: string): boolean => {
+  const hiddenPaths = [
+    '/training/sessions',
+    '/training/programs', 
+    '/training/participants',
+    '/training/qr-codes'
+  ];
+  return hiddenPaths.includes(path);
 };
 
 const categoryLabels = {
@@ -149,15 +160,17 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
   const organizeMenuItems = (): Record<string, MenuItem[]> => {
     if (!user) return {};
 
-    // Convert pages to menu items
-    const menuItems: MenuItem[] = pages.map(page => ({
-      id: page.id,
-      name: page.page_name,
-      path: page.page_path,
-      icon: iconMap[page.icon_name || 'default'] || iconMap.default,
-      category: getCategoryFromPath(page.page_path),
-      isActive: pathname === page.page_path || pathname.startsWith(page.page_path + '/')
-    }));
+    // Convert pages to menu items, filtering out training sub-pages
+    const menuItems: MenuItem[] = pages
+      .filter(page => !shouldHideFromSidebar(page.page_path))
+      .map(page => ({
+        id: page.id,
+        name: page.page_name,
+        path: page.page_path,
+        icon: iconMap[page.icon_name || 'default'] || iconMap.default,
+        category: getCategoryFromPath(page.page_path),
+        isActive: pathname === page.page_path || pathname.startsWith(page.page_path + '/')
+      }));
 
     // Group items by category
     const grouped = menuItems.reduce((acc, item) => {

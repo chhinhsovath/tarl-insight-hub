@@ -13,6 +13,7 @@ const pool = new Pool({
 // GET - Fetch training sessions
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
+  const sessionId = searchParams.get('id');
   const trainerId = searchParams.get('trainer_id');
   const status = searchParams.get('status');
   const programId = searchParams.get('program_id');
@@ -57,22 +58,30 @@ export async function GET(request: NextRequest) {
     const params = [];
     let paramIndex = 1;
 
-    if (trainerId) {
-      query += ` AND ts.trainer_id = $${paramIndex}`;
-      params.push(parseInt(trainerId));
+    // If fetching a specific session by ID
+    if (sessionId) {
+      query += ` AND ts.id = $${paramIndex}`;
+      params.push(parseInt(sessionId));
       paramIndex++;
-    }
+    } else {
+      // Apply filters only when not fetching by ID
+      if (trainerId) {
+        query += ` AND ts.trainer_id = $${paramIndex}`;
+        params.push(parseInt(trainerId));
+        paramIndex++;
+      }
 
-    if (status) {
-      query += ` AND ts.session_status = $${paramIndex}`;
-      params.push(status);
-      paramIndex++;
-    }
+      if (status) {
+        query += ` AND ts.session_status = $${paramIndex}`;
+        params.push(status);
+        paramIndex++;
+      }
 
-    if (programId) {
-      query += ` AND ts.program_id = $${paramIndex}`;
-      params.push(parseInt(programId));
-      paramIndex++;
+      if (programId) {
+        query += ` AND ts.program_id = $${paramIndex}`;
+        params.push(parseInt(programId));
+        paramIndex++;
+      }
     }
 
     // Apply role-based filtering
@@ -215,11 +224,9 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: authResult.error }, { status: 401 });
   }
 
-  const user = authResult.user!;
   const client = await pool.connect();
 
   try {
-
     const body = await request.json();
     const {
       session_title,
@@ -234,25 +241,38 @@ export async function PUT(request: NextRequest) {
       session_status
     } = body;
 
+    console.log('Received update data:', {
+      session_title, session_date, session_time, location, venue_address,
+      max_participants, trainer_id, coordinator_id, registration_deadline, session_status
+    });
+
     const updateResult = await client.query(`
       UPDATE tbl_tarl_training_sessions SET
-        session_title = COALESCE($1, session_title),
-        session_date = COALESCE($2, session_date),
-        session_time = COALESCE($3, session_time),
-        location = COALESCE($4, location),
-        venue_address = COALESCE($5, venue_address),
-        max_participants = COALESCE($6, max_participants),
-        trainer_id = COALESCE($7, trainer_id),
-        coordinator_id = COALESCE($8, coordinator_id),
-        registration_deadline = COALESCE($9, registration_deadline),
-        session_status = COALESCE($10, session_status),
+        session_title = $1,
+        session_date = $2,
+        session_time = $3,
+        location = $4,
+        venue_address = $5,
+        max_participants = $6,
+        trainer_id = $7,
+        coordinator_id = $8,
+        registration_deadline = $9,
+        session_status = $10,
         updated_at = NOW()
       WHERE id = $11 AND is_active = true
-      RETURNING id, session_title, session_date, session_time, location, session_status
+      RETURNING id, session_title, session_date, session_time, location, session_status, registration_deadline
     `, [
-      session_title, session_date, session_time, location, venue_address,
-      max_participants, trainer_id, coordinator_id, registration_deadline,
-      session_status, parseInt(sessionId)
+      session_title,
+      session_date,
+      session_time,
+      location,
+      venue_address,
+      max_participants,
+      trainer_id,
+      coordinator_id,
+      registration_deadline,
+      session_status,
+      parseInt(sessionId)
     ]);
 
     if (updateResult.rows.length === 0) {
@@ -268,6 +288,119 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error('Error updating training session:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } finally {
+    client.release();
+  }
+}
+
+// DELETE - Delete training session
+export async function DELETE(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const sessionId = searchParams.get('id');
+  const forceDelete = searchParams.get('force') === 'true';
+
+  if (!sessionId) {
+    return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
+  }
+
+  // Validate training access
+  const authResult = await validateTrainingAccess('training-sessions', 'delete');
+  
+  if (!authResult.success) {
+    return NextResponse.json({ error: authResult.error }, { status: 401 });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // Check if session exists and get details
+    const sessionCheck = await client.query(`
+      SELECT id, session_title, session_status FROM tbl_tarl_training_sessions 
+      WHERE id = $1 AND is_active = true
+    `, [parseInt(sessionId)]);
+
+    if (sessionCheck.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ error: 'Training session not found' }, { status: 404 });
+    }
+
+    const session = sessionCheck.rows[0];
+
+    // Check if session has participants
+    const participantsCheck = await client.query(`
+      SELECT COUNT(*) as participant_count FROM tbl_tarl_training_participants 
+      WHERE session_id = $1
+    `, [parseInt(sessionId)]);
+
+    const participantCount = parseInt(participantsCheck.rows[0].participant_count);
+
+    if (participantCount > 0 && !forceDelete) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ 
+        error: 'Cannot delete session with registered participants. Please remove participants first.',
+        participantCount: participantCount,
+        canForceDelete: true
+      }, { status: 400 });
+    }
+
+    // If force delete is requested, first remove all participants
+    if (forceDelete && participantCount > 0) {
+      await client.query(`
+        DELETE FROM tbl_tarl_training_participants WHERE session_id = $1
+      `, [parseInt(sessionId)]);
+      console.log(`Force deleted ${participantCount} participants for session ${sessionId}`);
+    }
+
+    // Soft delete the session (set is_active = false)
+    await client.query(`
+      UPDATE tbl_tarl_training_sessions 
+      SET is_active = false, updated_at = NOW()
+      WHERE id = $1
+    `, [parseInt(sessionId)]);
+
+    // Also clean up related training flow entries
+    await client.query(`
+      DELETE FROM tbl_tarl_training_flow WHERE session_id = $1
+    `, [parseInt(sessionId)]);
+
+    // Clean up any QR codes for this session
+    await client.query(`
+      UPDATE tbl_tarl_qr_codes 
+      SET is_active = false, updated_at = NOW()
+      WHERE session_id = $1
+    `, [parseInt(sessionId)]);
+
+    await client.query('COMMIT');
+
+    let message = `Training session "${session.session_title}" deleted successfully`;
+    if (forceDelete && participantCount > 0) {
+      message += ` (${participantCount} participant registrations were also removed)`;
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: message
+    });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error deleting training session:', error);
+    console.error('Session ID:', sessionId);
+    console.error('Force Delete:', forceDelete);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error details:', {
+      message: errorMessage,
+      stack: error instanceof Error ? error.stack : 'No stack trace',
+      name: error instanceof Error ? error.name : 'Unknown'
+    });
+    
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: errorMessage
+    }, { status: 500 });
   } finally {
     client.release();
   }

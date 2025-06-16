@@ -273,88 +273,113 @@ export default function TrainingOverviewPage() {
         </Card>
       </div>
 
-      {/* Quick Actions */}
+      {/* Training Management Navigation */}
       <Card>
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+          <CardTitle>Training Management</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Access all training management functions from this centralized hub
+          </p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link href="/training/sessions">
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold">Manage Sessions</h3>
-                      <p className="text-sm text-muted-foreground">
-                        View and create training sessions
-                      </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Primary Actions */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-muted-foreground">Primary Functions</h3>
+              
+              <Link href="/training/sessions">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-blue-500">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold flex items-center gap-2">
+                          <CalendarDays className="h-5 w-5 text-blue-600" />
+                          Training Sessions
+                        </h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Create, schedule, and manage training sessions
+                        </p>
+                        <div className="text-xs text-blue-600 mt-2">
+                          {stats.totalSessions} sessions • {stats.upcomingSessions} upcoming
+                        </div>
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-muted-foreground" />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <CalendarDays className="h-6 w-6 text-blue-600" />
-                      <ArrowRight className="h-4 w-4" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  </CardContent>
+                </Card>
+              </Link>
 
-            <Link href="/training/programs">
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold">Manage Programs</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Create and edit training programs
-                      </p>
+              <Link href="/training/programs">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-green-500">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold flex items-center gap-2">
+                          <ClipboardList className="h-5 w-5 text-green-600" />
+                          Training Programs
+                        </h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Design and organize training curricula
+                        </p>
+                        <div className="text-xs text-green-600 mt-2">
+                          {stats.totalPrograms} programs available
+                        </div>
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-muted-foreground" />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <ClipboardList className="h-6 w-6 text-green-600" />
-                      <ArrowRight className="h-4 w-4" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
 
-            <Link href="/training/participants">
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold">Manage Participants</h3>
-                      <p className="text-sm text-muted-foreground">
-                        View and manage registrations
-                      </p>
+            {/* Secondary Actions */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-muted-foreground">Support Functions</h3>
+              
+              <Link href="/training/participants">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-purple-500">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold flex items-center gap-2">
+                          <Users className="h-5 w-5 text-purple-600" />
+                          Participants
+                        </h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Manage registrations and attendance
+                        </p>
+                        <div className="text-xs text-purple-600 mt-2">
+                          {stats.totalParticipants} registered • {stats.confirmedParticipants} confirmed
+                        </div>
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-muted-foreground" />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Users className="h-6 w-6 text-purple-600" />
-                      <ArrowRight className="h-4 w-4" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  </CardContent>
+                </Card>
+              </Link>
 
-            <Link href="/training/qr-codes">
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold">QR Codes</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Generate and manage QR codes
-                      </p>
+              <Link href="/training/qr-codes">
+                <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-orange-500">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold flex items-center gap-2">
+                          <QrCode className="h-5 w-5 text-orange-600" />
+                          QR Codes
+                        </h4>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Generate codes for registration and feedback
+                        </p>
+                        <div className="text-xs text-orange-600 mt-2">
+                          Digital registration and tracking
+                        </div>
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-muted-foreground" />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <QrCode className="h-6 w-6 text-orange-600" />
-                      <ArrowRight className="h-4 w-4" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,10 +19,12 @@ import {
   School,
   Calendar,
   UserCheck,
-  UserX
+  UserX,
+  ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
+import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 
 interface TrainingParticipant {
   id: number;
@@ -56,12 +59,13 @@ interface TrainingSession {
 
 export default function TrainingParticipantsPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const [participants, setParticipants] = useState<TrainingParticipant[]>([]);
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [filteredParticipants, setFilteredParticipants] = useState<TrainingParticipant[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sessionFilter, setSessionFilter] = useState('all');
+  const [sessionFilter, setSessionFilter] = useState(searchParams.get('session') || 'all');
   const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
@@ -231,6 +235,7 @@ export default function TrainingParticipantsPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      <TrainingBreadcrumb />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -238,10 +243,27 @@ export default function TrainingParticipantsPage() {
           <p className="text-muted-foreground mt-1">
             Manage participant registration and attendance
           </p>
+          {searchParams.get('session') && (
+            <p className="text-sm text-blue-600 mt-1">
+              Showing participants for session ID: {searchParams.get('session')}
+            </p>
+          )}
         </div>
-        <Badge className="bg-blue-100 text-blue-800" variant="secondary">
-          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-        </Badge>
+        <div className="flex items-center gap-4">
+          <Badge className="bg-blue-100 text-blue-800" variant="secondary">
+            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+          </Badge>
+          {searchParams.get('session') && (
+            <Button 
+              variant="outline"
+              onClick={() => window.history.back()}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Sessions
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Quick Stats */}

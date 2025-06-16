@@ -19,11 +19,15 @@ import {
   Circle,
   AlertCircle,
   Search,
-  Filter
+  Filter,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
-import TrainingSessionForm from '@/components/training-session-form';
+import { makeAuthenticatedRequest, handleApiResponse } from '@/lib/session-utils';
+import { useRouter } from 'next/navigation';
+import DeleteSessionDialog from '@/components/delete-session-dialog';
+import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 
 interface TrainingSession {
   id: number;
@@ -47,18 +51,34 @@ interface TrainingSession {
 
 export default function TrainingSessionsPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [filteredSessions, setFilteredSessions] = useState<TrainingSession[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showSessionForm, setShowSessionForm] = useState(false);
-  const [editingSession, setEditingSession] = useState<TrainingSession | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [trainerFilter, setTrainerFilter] = useState('all');
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    sessionId: number;
+    sessionTitle: string;
+    participantCount: number;
+  }>({
+    isOpen: false,
+    sessionId: 0,
+    sessionTitle: '',
+    participantCount: 0
+  });
 
   useEffect(() => {
-    fetchSessions();
-  }, []);
+    // Only fetch sessions if user is available
+    if (user) {
+      fetchSessions();
+    } else if (!loading) {
+      // If no user and not loading, redirect to login
+      window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+    }
+  }, [user, loading]);
 
   useEffect(() => {
     filterSessions();
@@ -66,22 +86,19 @@ export default function TrainingSessionsPage() {
 
   const fetchSessions = async () => {
     try {
-      const response = await fetch('/api/training/sessions', {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setSessions(data);
-      } else {
-        toast.error('Failed to fetch training sessions');
+      const response = await makeAuthenticatedRequest('/api/training/sessions');
+      const data = await handleApiResponse<TrainingSession[]>(response);
+      
+      if (data) {
+        setSessions(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error('Error fetching sessions:', error);
-      toast.error('Error loading training sessions');
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('Failed to fetch training sessions');
+      }
     } finally {
       setLoading(false);
     }
@@ -113,26 +130,77 @@ export default function TrainingSessionsPage() {
     setFilteredSessions(filtered);
   };
 
-  const handleSessionFormSuccess = () => {
-    setShowSessionForm(false);
-    setEditingSession(null);
-    fetchSessions();
+  const handleCreateSession = () => {
+    router.push('/training/sessions/new');
   };
 
   const handleEditSession = (session: TrainingSession) => {
-    setEditingSession(session);
-    setShowSessionForm(true);
+    router.push(`/training/sessions/${session.id}/edit`);
   };
 
-  const handleCancelSessionForm = () => {
-    setShowSessionForm(false);
-    setEditingSession(null);
+  const handleDeleteSession = (sessionId: number, sessionTitle: string, participantCount: number) => {
+    setDeleteDialog({
+      isOpen: true,
+      sessionId,
+      sessionTitle,
+      participantCount
+    });
   };
 
+  const handleDeleteConfirm = async (forceDelete = false) => {
+    try {
+      const { sessionId } = deleteDialog;
+      const url = forceDelete 
+        ? `/api/training/sessions?id=${sessionId}&force=true`
+        : `/api/training/sessions?id=${sessionId}`;
+
+      const response = await makeAuthenticatedRequest(url, {
+        method: 'DELETE'
+      });
+
+      const result = await handleApiResponse(response);
+      
+      if (result) {
+        toast.success(result.message || 'Training session deleted successfully');
+        fetchSessions(); // Refresh the list
+        setDeleteDialog({ isOpen: false, sessionId: 0, sessionTitle: '', participantCount: 0 });
+      }
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('Failed to delete training session');
+      }
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialog({ isOpen: false, sessionId: 0, sessionTitle: '', participantCount: 0 });
+  };
+
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show login prompt if no user
   if (!user) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Please log in to access training sessions.</p>
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">Please log in to access training sessions.</p>
+          <Button onClick={() => window.location.href = '/login'}>
+            Go to Login
+          </Button>
+        </div>
       </div>
     );
   }
@@ -180,6 +248,7 @@ export default function TrainingSessionsPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      <TrainingBreadcrumb />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -195,7 +264,7 @@ export default function TrainingSessionsPage() {
           {canCreateSessions && (
             <Button 
               className="flex items-center gap-2"
-              onClick={() => setShowSessionForm(true)}
+              onClick={handleCreateSession}
             >
               <Plus className="h-4 w-4" />
               New Session
@@ -316,7 +385,7 @@ export default function TrainingSessionsPage() {
                 <Button 
                   className="mt-4" 
                   variant="outline"
-                  onClick={() => setShowSessionForm(true)}
+                  onClick={handleCreateSession}
                 >
                   Create your first session
                 </Button>
@@ -350,8 +419,8 @@ export default function TrainingSessionsPage() {
                             </div>
 
                             <div className="flex items-center gap-4 mt-2">
-                              <span className="text-sm">
-                                <strong>{session.participant_count || 0}</strong> participants
+                              <span className={`text-sm ${session.participant_count > 0 ? 'font-medium' : ''}`}>
+                                <strong className={session.participant_count > 0 ? 'text-blue-600' : ''}>{session.participant_count || 0}</strong> participants
                                 {session.max_participants && ` / ${session.max_participants}`}
                               </span>
                               <span className="text-sm">
@@ -392,18 +461,40 @@ export default function TrainingSessionsPage() {
 
                       <div className="flex items-center gap-2 ml-4">
                         {canCreateSessions && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleEditSession(session)}
-                          >
-                            <Settings className="h-4 w-4" />
-                          </Button>
+                          <>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleEditSession(session)}
+                              title="Edit Session"
+                            >
+                              <Settings className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleDeleteSession(session.id, session.session_title, session.participant_count || 0)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              title="Delete Session"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
                         )}
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          title="QR Codes"
+                          onClick={() => router.push(`/training/qr-codes?session=${session.id}`)}
+                        >
                           <QrCode className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          title="Participants"
+                          onClick={() => router.push(`/training/participants?session=${session.id}`)}
+                        >
                           <Users className="h-4 w-4" />
                         </Button>
                       </div>
@@ -416,14 +507,14 @@ export default function TrainingSessionsPage() {
         </CardContent>
       </Card>
 
-      {/* Session Form Modal */}
-      {showSessionForm && (
-        <TrainingSessionForm
-          editingSession={editingSession}
-          onSuccess={handleSessionFormSuccess}
-          onCancel={handleCancelSessionForm}
-        />
-      )}
+      {/* Delete Session Dialog */}
+      <DeleteSessionDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        sessionTitle={deleteDialog.sessionTitle}
+        participantCount={deleteDialog.participantCount}
+      />
     </div>
   );
 }

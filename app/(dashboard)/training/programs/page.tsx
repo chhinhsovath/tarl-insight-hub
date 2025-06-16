@@ -20,6 +20,7 @@ import {
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 import TrainingProgramForm from '@/components/training-program-form';
+import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 
 interface TrainingProgram {
   id: number;
@@ -173,6 +174,7 @@ export default function TrainingProgramsPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      <TrainingBreadcrumb />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

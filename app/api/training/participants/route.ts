@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
         ts.location,
         tprog.program_name,
         confirmer.full_name as confirmed_by_name,
-        sch.school_name
+        sch."sclName" as school_name
       FROM tbl_tarl_training_participants tp
       LEFT JOIN tbl_tarl_training_sessions ts ON tp.session_id = ts.id
       LEFT JOIN tbl_tarl_training_programs tprog ON ts.program_id = tprog.id

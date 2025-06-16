@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,10 +21,12 @@ import {
   CheckCircle,
   XCircle,
   Eye,
-  EyeOff
+  EyeOff,
+  ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
+import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 
 interface QRCodeData {
   id: number;
@@ -51,17 +54,18 @@ interface TrainingSession {
 
 export default function QRCodesPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const [qrCodes, setQrCodes] = useState<QRCodeData[]>([]);
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [filteredQrCodes, setFilteredQrCodes] = useState<QRCodeData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sessionFilter, setSessionFilter] = useState('all');
+  const [sessionFilter, setSessionFilter] = useState(searchParams.get('session') || 'all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showGenerateForm, setShowGenerateForm] = useState(false);
   const [newQrCode, setNewQrCode] = useState({
-    session_id: '',
+    session_id: searchParams.get('session') || '',
     code_type: 'registration',
     expires_at: '',
     max_usage: ''
@@ -240,6 +244,39 @@ export default function QRCodesPage() {
     link.click();
   };
 
+  const generateQuickQrCodes = async () => {
+    const sessionId = searchParams.get('session');
+    if (!sessionId) return;
+
+    const qrTypes = ['registration', 'attendance', 'feedback'];
+    
+    try {
+      toast.info('Generating QR codes for all types...');
+      
+      for (const type of qrTypes) {
+        const payload = {
+          session_id: parseInt(sessionId),
+          code_type: type
+        };
+
+        await fetch('/api/training/qr-codes', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      toast.success('All QR codes generated successfully!');
+      fetchQrCodes();
+    } catch (error) {
+      console.error('Error generating QR codes:', error);
+      toast.error('Failed to generate some QR codes');
+    }
+  };
+
   if (!user) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -289,6 +326,7 @@ export default function QRCodesPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      <TrainingBreadcrumb />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -296,19 +334,46 @@ export default function QRCodesPage() {
           <p className="text-muted-foreground mt-1">
             Generate and manage QR codes for training sessions
           </p>
+          {searchParams.get('session') && (
+            <p className="text-sm text-blue-600 mt-1">
+              Showing QR codes for session ID: {searchParams.get('session')}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-4">
           <Badge className="bg-blue-100 text-blue-800" variant="secondary">
             {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
           </Badge>
-          {canManageQrCodes && (
+          {searchParams.get('session') && (
             <Button 
+              variant="outline"
+              onClick={() => window.history.back()}
               className="flex items-center gap-2"
-              onClick={() => setShowGenerateForm(!showGenerateForm)}
             >
-              <Plus className="h-4 w-4" />
-              Generate QR Code
+              <ArrowLeft className="h-4 w-4" />
+              Back to Sessions
             </Button>
+          )}
+          {canManageQrCodes && (
+            <>
+              {searchParams.get('session') && (
+                <Button 
+                  variant="outline"
+                  className="flex items-center gap-2"
+                  onClick={() => generateQuickQrCodes()}
+                >
+                  <QrCode className="h-4 w-4" />
+                  Generate All QR Types
+                </Button>
+              )}
+              <Button 
+                className="flex items-center gap-2"
+                onClick={() => setShowGenerateForm(!showGenerateForm)}
+              >
+                <Plus className="h-4 w-4" />
+                Generate QR Code
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -369,6 +434,11 @@ export default function QRCodesPage() {
         <Card>
           <CardHeader>
             <CardTitle>Generate New QR Code</CardTitle>
+            {searchParams.get('session') && (
+              <p className="text-sm text-muted-foreground">
+                Generating for session ID: {searchParams.get('session')}
+              </p>
+            )}
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
