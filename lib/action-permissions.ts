@@ -1,4 +1,5 @@
 import { Pool } from "pg";
+import { HierarchyPermissionManager } from "./hierarchy-permissions";
 
 const pool = new Pool({
   user: process.env.PGUSER,
@@ -34,11 +35,14 @@ export interface UserActionPermissions {
 export class ActionPermissionManager {
   /**
    * Check if a user has permission to perform a specific action on a page
+   * Enhanced with hierarchy support
    */
   static async canPerformAction(
     userRole: string, 
     pageName: string, 
-    actionName: string
+    actionName: string,
+    userId?: number,
+    resourceId?: number
   ): Promise<boolean> {
     const client = await pool.connect();
     
@@ -74,6 +78,8 @@ export class ActionPermissionManager {
         WHERE pap.role = $1 AND pp.page_name = $2 AND pap.action_name = $3
       `, [userRole, pageName, actionName]);
 
+      // Check basic permission first
+      let hasBasicPermission = false;
       if (result.rows.length === 0) {
         // If no specific action permission exists, default to basic page access for 'view'
         if (actionName === 'view') {
@@ -84,12 +90,30 @@ export class ActionPermissionManager {
             WHERE rpp.role = $1 AND pp.page_name = $2
           `, [userRole, pageName]);
           
-          return pagePermResult.rows.length > 0 && pagePermResult.rows[0].is_allowed;
+          hasBasicPermission = pagePermResult.rows.length > 0 && pagePermResult.rows[0].is_allowed;
         }
-        return false;
+      } else {
+        hasBasicPermission = result.rows[0].is_allowed;
       }
 
-      return result.rows[0].is_allowed;
+      // If basic permission fails, deny access
+      if (!hasBasicPermission) return false;
+
+      // For hierarchical roles, check data access permissions
+      if (userId && ['Director', 'Partner', 'Teacher', 'Collector'].includes(userRole)) {
+        const dataType = this.getDataTypeFromPageName(pageName);
+        if (dataType) {
+          const hierarchyAccess = await HierarchyPermissionManager.canAccessData(
+            userId, 
+            dataType, 
+            actionName as 'view' | 'create' | 'update' | 'delete' | 'export',
+            resourceId
+          );
+          return hierarchyAccess;
+        }
+      }
+
+      return hasBasicPermission;
     } catch (error) {
       console.error('Error checking action permission:', error);
       return false;
@@ -327,5 +351,29 @@ export class ActionPermissionManager {
 
     const normalizedPageName = pageName.toLowerCase().replace(/\s+/g, '_');
     return defaultActions[normalizedPageName] || ['view'];
+  }
+
+  /**
+   * Map page names to data types for hierarchy checking
+   */
+  private static getDataTypeFromPageName(pageName: string): string | null {
+    const pageToDataType: Record<string, string> = {
+      'schools': 'schools',
+      'school': 'schools',
+      'users': 'users',
+      'user': 'users',
+      'students': 'students',
+      'student': 'students',
+      'observations': 'observations',
+      'observation': 'observations',
+      'reports': 'reports',
+      'analytics': 'reports',
+      'visits': 'visits',
+      'learning': 'learning_data',
+      'learning-progress': 'learning_data'
+    };
+
+    const normalizedPageName = pageName.toLowerCase().replace(/\s+/g, '-');
+    return pageToDataType[normalizedPageName] || null;
   }
 }

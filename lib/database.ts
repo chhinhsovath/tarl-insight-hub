@@ -1,4 +1,5 @@
 import { User, School } from "@/lib/types";
+import { HierarchyPermissionManager } from "./hierarchy-permissions";
 
 // This file is used to provide an API for database operations.
 // It should be used by client-side components to interact with the database.
@@ -91,7 +92,7 @@ export class DatabaseService {
   // =====================================================
   // SCHOOLS
   // =====================================================
-  static async getSchools(filters: { search?: string; count?: boolean; id?: number; limit?: number; offset?: number; zone?: string; province?: string; status?: number } = {}) {
+  static async getSchools(filters: { search?: string; count?: boolean; id?: number; limit?: number; offset?: number; zone?: string; province?: string; status?: number; userId?: number } = {}) {
     try {
       const query = new URLSearchParams();
       if (filters.search) {
@@ -117,6 +118,9 @@ export class DatabaseService {
       }
       if (filters.status !== undefined) {
         query.append("status", filters.status.toString());
+      }
+      if (filters.userId) {
+        query.append("userId", filters.userId.toString());
       }
 
       const response = await fetch(`/api/data/schools?${query.toString()}`);
@@ -239,6 +243,7 @@ export class DatabaseService {
     isActive?: boolean
     startDate?: string
     endDate?: string
+    userId?: number
   } = {}) {
     try {
       // Use GET method with query parameters for simpler request
@@ -260,6 +265,9 @@ export class DatabaseService {
       }
       if (filters.endDate) {
         queryParams.append("endDate", filters.endDate);
+      }
+      if (filters.userId) {
+        queryParams.append("userId", filters.userId.toString());
       }
 
       const url = `/api/data/users${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
@@ -659,6 +667,250 @@ export class DatabaseService {
     } catch (error) {
       console.error("Error setting up audit system:", error);
       throw error;
+    }
+  }
+
+  // =====================================================
+  // HIERARCHY MANAGEMENT
+  // =====================================================
+  
+  /**
+   * Get user's accessible schools based on hierarchy
+   */
+  static async getAccessibleSchools(userId: number) {
+    try {
+      const response = await fetch(`/api/data/hierarchy/schools?userId=${userId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching accessible schools:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Get user's accessible students based on hierarchy
+   */
+  static async getAccessibleStudents(userId: number, filters: { classId?: number; schoolId?: number } = {}) {
+    try {
+      const query = new URLSearchParams();
+      query.append("userId", userId.toString());
+      if (filters.classId) {
+        query.append("classId", filters.classId.toString());
+      }
+      if (filters.schoolId) {
+        query.append("schoolId", filters.schoolId.toString());
+      }
+
+      const response = await fetch(`/api/data/hierarchy/students?${query.toString()}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching accessible students:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Get teacher's classes
+   */
+  static async getTeacherClasses(teacherId: number) {
+    try {
+      const response = await fetch(`/api/data/hierarchy/classes?teacherId=${teacherId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching teacher classes:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Assign user to hierarchy level
+   */
+  static async assignUserToHierarchy(data: {
+    userId: number;
+    assignmentType: 'zone' | 'province' | 'district' | 'school' | 'class';
+    assignmentId: number;
+    assignedBy: number;
+  }) {
+    try {
+      const response = await fetch("/api/data/hierarchy/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error assigning user to hierarchy:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Remove user from hierarchy assignment
+   */
+  static async removeUserFromHierarchy(data: {
+    userId: number;
+    assignmentType: 'zone' | 'province' | 'district' | 'school' | 'class';
+    assignmentId: number;
+  }) {
+    try {
+      const response = await fetch("/api/data/hierarchy/unassign", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error removing user from hierarchy:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Get user's hierarchy assignments
+   */
+  static async getUserHierarchyAssignments(userId: number) {
+    try {
+      const response = await fetch(`/api/data/hierarchy/assignments?userId=${userId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching user hierarchy assignments:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Create a new class
+   */
+  static async createClass(classData: {
+    class_name: string;
+    class_level: number;
+    school_id: number;
+    teacher_id?: number;
+    academic_year: string;
+  }) {
+    try {
+      const response = await fetch("/api/data/classes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(classData),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error creating class:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Create a new student
+   */
+  static async createStudent(studentData: {
+    student_id: string;
+    first_name: string;
+    last_name: string;
+    date_of_birth?: string;
+    gender?: string;
+    class_id?: number;
+    school_id: number;
+  }) {
+    try {
+      const response = await fetch("/api/data/students", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(studentData),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error creating student:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Update student information
+   */
+  static async updateStudent(studentId: number, studentData: any) {
+    try {
+      const response = await fetch(`/api/data/students/${studentId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(studentData),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error updating student:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Get student's monthly transcripts
+   */
+  static async getStudentTranscripts(studentId: number, filters: { month?: string; year?: string } = {}) {
+    try {
+      const query = new URLSearchParams();
+      if (filters.month) {
+        query.append("month", filters.month);
+      }
+      if (filters.year) {
+        query.append("year", filters.year);
+      }
+
+      const response = await fetch(`/api/data/students/${studentId}/transcripts?${query.toString()}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching student transcripts:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Create or update student transcript
+   */
+  static async saveStudentTranscript(studentId: number, transcriptData: any) {
+    try {
+      const response = await fetch(`/api/data/students/${studentId}/transcripts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(transcriptData),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error saving student transcript:", error);
+      return null;
     }
   }
 }

@@ -12,9 +12,8 @@ const pool = new Pool({
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const classId = searchParams.get('classId');
+  const teacherId = searchParams.get('teacherId');
   const schoolId = searchParams.get('schoolId');
-  const userId = searchParams.get('userId');
   
   // Get session token from cookies
   const cookieStore = await cookies();
@@ -41,68 +40,61 @@ export async function GET(request: NextRequest) {
 
     let query = `
       SELECT 
-        st.*,
-        c.class_name,
-        c.class_level,
-        c.academic_year,
+        c.*,
         s.school_name,
         s.school_code,
-        CASE 
-          WHEN st.date_of_birth IS NOT NULL 
-          THEN DATE_PART('year', AGE(st.date_of_birth))
-          ELSE NULL 
-        END as age
-      FROM tbl_tarl_students st
-      LEFT JOIN tbl_tarl_classes c ON st.class_id = c.id
-      LEFT JOIN tbl_tarl_schools s ON st.school_id = s.id
-      WHERE st.is_active = true
+        COUNT(st.id) as student_count,
+        u.first_name as teacher_first_name,
+        u.last_name as teacher_last_name
+      FROM tbl_tarl_classes c
+      LEFT JOIN tbl_tarl_schools s ON c.school_id = s.id
+      LEFT JOIN tbl_tarl_students st ON c.id = st.class_id AND st.is_active = true
+      LEFT JOIN tbl_tarl_users u ON c.teacher_id = u.id
+      WHERE c.is_active = true
     `;
 
     const params = [];
     let paramIndex = 1;
 
-    if (classId) {
-      query += ` AND st.class_id = $${paramIndex}`;
-      params.push(parseInt(classId));
+    if (teacherId) {
+      // Get classes for specific teacher
+      query += ` AND EXISTS (
+        SELECT 1 FROM teacher_class_assignments tca 
+        WHERE tca.class_id = c.id AND tca.teacher_id = $${paramIndex} AND tca.is_active = true
+      )`;
+      params.push(parseInt(teacherId));
       paramIndex++;
     }
 
     if (schoolId) {
-      query += ` AND st.school_id = $${paramIndex}`;
+      query += ` AND c.school_id = $${paramIndex}`;
       params.push(parseInt(schoolId));
       paramIndex++;
     }
 
     // Apply hierarchy filtering based on user role
     if (user.role !== 'admin') {
-      const currentUserId = userId ? parseInt(userId) : user.user_id;
-      
+      // Add hierarchy filtering logic here
+      // For now, teachers can only see their own classes
       if (user.role === 'teacher') {
-        // Teachers can only see students in their classes
         query += ` AND EXISTS (
           SELECT 1 FROM teacher_class_assignments tca 
-          WHERE tca.class_id = st.class_id AND tca.teacher_id = $${paramIndex} AND tca.is_active = true
+          WHERE tca.class_id = c.id AND tca.teacher_id = $${paramIndex} AND tca.is_active = true
         )`;
-        params.push(currentUserId);
-        paramIndex++;
-      } else if (['director', 'partner', 'coordinator'].includes(user.role)) {
-        // Directors/Partners can see students in their assigned schools
-        query += ` AND EXISTS (
-          SELECT 1 FROM user_school_assignments usa 
-          WHERE usa.school_id = st.school_id AND usa.user_id = $${paramIndex} AND usa.is_active = true
-        )`;
-        params.push(currentUserId);
-        paramIndex++;
+        params.push(user.user_id);
       }
     }
 
-    query += ` ORDER BY st.last_name, st.first_name`;
+    query += `
+      GROUP BY c.id, s.school_name, s.school_code, u.first_name, u.last_name
+      ORDER BY s.school_name, c.class_level, c.class_name
+    `;
 
     const result = await client.query(query, params);
     
     return NextResponse.json(result.rows);
   } catch (error) {
-    console.error('Error fetching students:', error);
+    console.error('Error fetching classes:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   } finally {
     client.release();
@@ -133,73 +125,55 @@ export async function POST(request: NextRequest) {
 
     const user = sessionResult.rows[0];
 
-    // Check if user can create students
+    // Check if user can create classes
     const allowedRoles = ['admin', 'director', 'partner', 'teacher', 'coordinator'];
     if (!allowedRoles.includes(user.role)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     const body = await request.json();
-    const { 
-      student_id, 
-      first_name, 
-      last_name, 
-      date_of_birth, 
-      gender, 
-      class_id, 
-      school_id,
-      parent_name,
-      parent_phone,
-      address
-    } = body;
+    const { class_name, class_level, school_id, academic_year, teacher_id, subject } = body;
 
-    if (!student_id || !first_name || !last_name || !school_id) {
+    if (!class_name || !class_level || !school_id || !academic_year) {
       return NextResponse.json({ 
-        error: 'Missing required fields: student_id, first_name, last_name, school_id' 
+        error: 'Missing required fields: class_name, class_level, school_id, academic_year' 
       }, { status: 400 });
     }
 
-    // Check if student_id already exists
-    const existingStudent = await client.query(
-      'SELECT id FROM tbl_tarl_students WHERE student_id = $1',
-      [student_id]
-    );
+    await client.query('BEGIN');
 
-    if (existingStudent.rows.length > 0) {
-      return NextResponse.json({ 
-        error: 'Student ID already exists' 
-      }, { status: 400 });
-    }
-
-    // Create the student
+    // Create the class
     const insertResult = await client.query(`
-      INSERT INTO tbl_tarl_students (
-        student_id, first_name, last_name, date_of_birth, gender, 
-        class_id, school_id, is_active, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, true, NOW(), NOW())
-      RETURNING *
-    `, [
-      student_id, 
-      first_name, 
-      last_name, 
-      date_of_birth || null, 
-      gender || null, 
-      class_id || null, 
-      school_id
-    ]);
+      INSERT INTO tbl_tarl_classes (
+        class_name, class_level, school_id, teacher_id, academic_year, is_active, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, true, NOW(), NOW())
+      RETURNING id, class_name, class_level, school_id, academic_year
+    `, [class_name, class_level, school_id, teacher_id || null, academic_year]);
 
-    const newStudent = insertResult.rows[0];
+    const newClass = insertResult.rows[0];
+
+    // If teacher_id is provided, create teacher-class assignment
+    if (teacher_id) {
+      await client.query(`
+        INSERT INTO teacher_class_assignments (teacher_id, class_id, subject, assigned_by, is_active)
+        VALUES ($1, $2, $3, $4, true)
+        ON CONFLICT (teacher_id, class_id, subject) DO UPDATE SET is_active = true
+      `, [teacher_id, newClass.id, subject || 'General', user.user_id]);
+    }
+
+    await client.query('COMMIT');
 
     return NextResponse.json({
       success: true,
-      student: newStudent,
-      message: 'Student created successfully'
+      class: newClass,
+      message: 'Class created successfully'
     });
 
   } catch (error) {
-    console.error('Error creating student:', error);
+    await client.query('ROLLBACK');
+    console.error('Error creating class:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   } finally {
     client.release();
   }
-} 
+}

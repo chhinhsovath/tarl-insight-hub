@@ -1,273 +1,486 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useCallback } from "react"
-import { PageLayout } from "@/components/page-layout"
-import { StatsCard } from "@/components/stats-card"
-import { Filters } from "@/components/filters"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { DatabaseService } from "@/lib/database"
-import { ProtectedRoute } from "@/components/protected-route"
-import { useToast } from "@/hooks/use-toast"
-import { Star, Users, ThumbsUp, Plus } from "lucide-react"
-import type { TrainingFeedback } from "@/lib/types"
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { 
+  CalendarDays, 
+  Users, 
+  QrCode, 
+  ClipboardList, 
+  Settings,
+  Plus,
+  Calendar,
+  Clock,
+  MapPin,
+  CheckCircle,
+  Circle,
+  AlertCircle
+} from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
+import { toast } from 'sonner';
 
-export default function TrainingPage() {
-  const [feedback, setFeedback] = useState<TrainingFeedback[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filters, setFilters] = useState<any>({})
-  const [showAddDialog, setShowAddDialog] = useState(false)
-  const { toast } = useToast()
+interface TrainingSession {
+  id: number;
+  session_title: string;
+  session_date: string;
+  session_time: string;
+  location: string;
+  session_status: string;
+  participant_count: number;
+  confirmed_count: number;
+  program_name: string;
+  trainer_name: string;
+  before_status?: string;
+  during_status?: string;
+  after_status?: string;
+}
+
+interface TrainingProgram {
+  id: number;
+  program_name: string;
+  description: string;
+  program_type: string;
+  duration_hours: number;
+  session_count: number;
+  total_participants: number;
+}
+
+export default function TrainingManagementPage() {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('sessions');
+  const [sessions, setSessions] = useState<TrainingSession[]>([]);
+  const [programs, setPrograms] = useState<TrainingProgram[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadFeedback()
-  }, [filters])
+    fetchSessions();
+    fetchPrograms();
+  }, []);
 
-  const loadFeedback = async () => {
-    setLoading(true)
+  const fetchSessions = async () => {
     try {
-      const data = await DatabaseService.getTrainingFeedback()
-      setFeedback(data)
-    } catch (error) {
-      console.error("Error loading training feedback:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleFilterChange = useCallback((newFilters: any) => {
-    setFilters(newFilters)
-  }, [])
-
-  const getRatingBadge = (rating: number) => {
-    if (rating >= 4.5) return <Badge className="bg-green-100 text-green-800">Excellent</Badge>
-    if (rating >= 4) return <Badge className="bg-blue-100 text-blue-800">Very Good</Badge>
-    if (rating >= 3) return <Badge className="bg-yellow-100 text-yellow-800">Good</Badge>
-    if (rating >= 2) return <Badge className="bg-orange-100 text-orange-800">Fair</Badge>
-    return <Badge className="bg-red-100 text-red-800">Poor</Badge>
-  }
-
-  const calculateStats = () => {
-    if (feedback.length === 0)
-      return {
-        avgOverallRating: 0,
-        avgContentRating: 0,
-        avgTrainerRating: 0,
-        avgVenueRating: 0,
-        recommendationRate: 0,
-        willApplyRate: 0,
+      const response = await fetch('/api/training/sessions');
+      if (response.ok) {
+        const data = await response.json();
+        setSessions(data);
+      } else {
+        toast.error('Failed to fetch training sessions');
       }
-
-    const validOverall = feedback.filter((f) => f.overall_rating).map((f) => f.overall_rating!)
-    const validContent = feedback.filter((f) => f.content_quality_rating).map((f) => f.content_quality_rating!)
-    const validTrainer = feedback
-      .filter((f) => f.trainer_effectiveness_rating)
-      .map((f) => f.trainer_effectiveness_rating!)
-    const validVenue = feedback.filter((f) => f.venue_rating).map((f) => f.venue_rating!)
-
-    const willRecommend = feedback.filter((f) => f.will_recommend_training === true).length
-    const willApply = feedback.filter((f) => f.will_apply_learning === true).length
-
-    return {
-      avgOverallRating: validOverall.length > 0 ? validOverall.reduce((a, b) => a + b, 0) / validOverall.length : 0,
-      avgContentRating: validContent.length > 0 ? validContent.reduce((a, b) => a + b, 0) / validContent.length : 0,
-      avgTrainerRating: validTrainer.length > 0 ? validTrainer.reduce((a, b) => a + b, 0) / validTrainer.length : 0,
-      avgVenueRating: validVenue.length > 0 ? validVenue.reduce((a, b) => a + b, 0) / validVenue.length : 0,
-      recommendationRate: feedback.length > 0 ? (willRecommend / feedback.length) * 100 : 0,
-      willApplyRate: feedback.length > 0 ? (willApply / feedback.length) * 100 : 0,
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+      toast.error('Error loading training sessions');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const fetchPrograms = async () => {
+    try {
+      const response = await fetch('/api/training/programs');
+      if (response.ok) {
+        const data = await response.json();
+        setPrograms(data);
+      } else {
+        toast.error('Failed to fetch training programs');
+      }
+    } catch (error) {
+      console.error('Error fetching programs:', error);
+      toast.error('Error loading training programs');
+    }
+  };
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Please log in to access training management.</p>
+      </div>
+    );
   }
 
-  const stats = calculateStats()
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'active':
+      case 'ongoing':
+        return <AlertCircle className="h-4 w-4 text-yellow-600" />;
+      default:
+        return <Circle className="h-4 w-4 text-gray-400" />;
+    }
+  };
 
-  const chartData = [
-    { name: "Overall", rating: stats.avgOverallRating },
-    { name: "Content", rating: stats.avgContentRating },
-    { name: "Trainer", rating: stats.avgTrainerRating },
-    { name: "Venue", rating: stats.avgVenueRating },
-  ]
+  const getStatusBadge = (status: string) => {
+    const colors: Record<string, string> = {
+      'scheduled': 'bg-blue-100 text-blue-800',
+      'ongoing': 'bg-yellow-100 text-yellow-800',
+      'completed': 'bg-green-100 text-green-800',
+      'cancelled': 'bg-red-100 text-red-800'
+    };
+    return colors[status] || 'bg-gray-100 text-gray-800';
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (timeString: string) => {
+    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const canCreateSessions = ['admin', 'director', 'partner', 'coordinator'].includes(user.role);
+  const canCreatePrograms = ['admin', 'director', 'partner'].includes(user.role);
 
   return (
-    <ProtectedRoute allowedRoles={["Admin", "Teacher", "Coordinator"]}>
-      <PageLayout
-        title="Training Feedback"
-        description="Monitor training effectiveness and participant satisfaction"
-        action={{
-          label: "Add Feedback",
-          onClick: () => setShowAddDialog(true),
-          icon: Plus,
-        }}
-      >
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Filters */}
-          <div className="lg:col-span-1">
-            <Filters onFilterChange={handleFilterChange} />
-          </div>
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Training Management</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage training programs, sessions, and participants
+          </p>
+        </div>
+        <Badge className="bg-blue-100 text-blue-800" variant="secondary">
+          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+        </Badge>
+      </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3 space-y-6">
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <StatsCard
-                title="Total Feedback"
-                value={loading ? "..." : feedback.length}
-                description="Responses collected"
-                icon={Users}
-                iconColor="text-blue-500"
-              />
-              <StatsCard
-                title="Avg Overall Rating"
-                value={loading ? "..." : `${stats.avgOverallRating.toFixed(1)}/5`}
-                description="Training effectiveness"
-                icon={Star}
-                iconColor="text-yellow-500"
-              />
-              <StatsCard
-                title="Recommendation Rate"
-                value={loading ? "..." : `${stats.recommendationRate.toFixed(1)}%`}
-                description="Would recommend training"
-                icon={ThumbsUp}
-                iconColor="text-green-500"
-              />
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Sessions</p>
+                <p className="text-2xl font-bold">{sessions.length}</p>
+              </div>
+              <CalendarDays className="h-8 w-8 text-blue-600" />
             </div>
-
-            {/* Rating Breakdown */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Ratings Chart */}
-              <Card className="soft-card">
-                <CardHeader>
-                  <CardTitle>Average Ratings by Category</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-[300px] flex items-center justify-center">
-                    <div className="text-center text-gray-500">
-                      <p>Chart visualization would appear here</p>
-                      <p className="text-sm mt-2">Data: {JSON.stringify(chartData)}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Key Metrics */}
-              <Card className="soft-card">
-                <CardHeader>
-                  <CardTitle>Key Metrics</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Content Quality</span>
-                      <span>{stats.avgContentRating.toFixed(1)}/5</span>
-                    </div>
-                    <Progress value={(stats.avgContentRating / 5) * 100} className="h-2" />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Trainer Effectiveness</span>
-                      <span>{stats.avgTrainerRating.toFixed(1)}/5</span>
-                    </div>
-                    <Progress value={(stats.avgTrainerRating / 5) * 100} className="h-2" />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Venue Rating</span>
-                      <span>{stats.avgVenueRating.toFixed(1)}/5</span>
-                    </div>
-                    <Progress value={(stats.avgVenueRating / 5) * 100} className="h-2" />
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Will Apply Learning</span>
-                      <span>{stats.willApplyRate.toFixed(1)}%</span>
-                    </div>
-                    <Progress value={stats.willApplyRate} className="h-2" />
-                  </div>
-                </CardContent>
-              </Card>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Active Programs</p>
+                <p className="text-2xl font-bold">{programs.length}</p>
+              </div>
+              <ClipboardList className="h-8 w-8 text-green-600" />
             </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Participants</p>
+                <p className="text-2xl font-bold">
+                  {sessions.reduce((sum, session) => sum + (session.participant_count || 0), 0)}
+                </p>
+              </div>
+              <Users className="h-8 w-8 text-purple-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Confirmed Attendance</p>
+                <p className="text-2xl font-bold">
+                  {sessions.reduce((sum, session) => sum + (session.confirmed_count || 0), 0)}
+                </p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-orange-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-            {/* Recent Feedback */}
-            <Card className="soft-card">
-              <CardHeader>
-                <CardTitle>Recent Feedback</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center h-32">
-                    <div className="text-gray-500">Loading training feedback...</div>
-                  </div>
-                ) : feedback.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    No training feedback found for the selected filters.
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {feedback.slice(0, 10).map((item) => (
-                      <div key={item.id} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-3">
+      {/* Main Content Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4 max-w-2xl mx-auto">
+          <TabsTrigger value="sessions" className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4" />
+            Sessions
+          </TabsTrigger>
+          <TabsTrigger value="programs" className="flex items-center gap-2">
+            <ClipboardList className="h-4 w-4" />
+            Programs
+          </TabsTrigger>
+          <TabsTrigger value="participants" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Participants
+          </TabsTrigger>
+          <TabsTrigger value="qr-codes" className="flex items-center gap-2">
+            <QrCode className="h-4 w-4" />
+            QR Codes
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Training Sessions Tab */}
+        <TabsContent value="sessions" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Training Sessions</CardTitle>
+                {canCreateSessions && (
+                  <Button className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    New Session
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Loading sessions...</p>
+                </div>
+              ) : sessions.length === 0 ? (
+                <div className="text-center py-8">
+                  <CalendarDays className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No training sessions found.</p>
+                  {canCreateSessions && (
+                    <Button className="mt-4" variant="outline">
+                      Create your first session
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {sessions.map((session) => (
+                    <Card key={session.id} className="border-l-4 border-l-blue-500">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <h3 className="font-semibold text-lg">{session.session_title}</h3>
+                                <p className="text-sm text-muted-foreground mb-2">{session.program_name}</p>
+                                
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-4 w-4" />
+                                    {formatDate(session.session_date)}
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="h-4 w-4" />
+                                    {formatTime(session.session_time)}
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="h-4 w-4" />
+                                    {session.location}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-4 mt-2">
+                                  <span className="text-sm">
+                                    <strong>{session.participant_count || 0}</strong> participants
+                                  </span>
+                                  <span className="text-sm">
+                                    <strong>{session.confirmed_count || 0}</strong> confirmed
+                                  </span>
+                                  {session.trainer_name && (
+                                    <span className="text-sm text-muted-foreground">
+                                      Trainer: {session.trainer_name}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              <Badge className={getStatusBadge(session.session_status)} variant="secondary">
+                                {session.session_status}
+                              </Badge>
+                            </div>
+
+                            {/* Three-Stage Flow Status */}
+                            <div className="mt-4 pt-4 border-t">
+                              <p className="text-sm font-medium mb-2">Training Flow Progress:</p>
+                              <div className="flex items-center gap-6">
+                                <div className="flex items-center gap-2">
+                                  {getStatusIcon(session.before_status || 'pending')}
+                                  <span className="text-sm">Before</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {getStatusIcon(session.during_status || 'pending')}
+                                  <span className="text-sm">During</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {getStatusIcon(session.after_status || 'pending')}
+                                  <span className="text-sm">After</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 ml-4">
+                            <Button variant="outline" size="sm">
+                              <Settings className="h-4 w-4" />
+                            </Button>
+                            <Button variant="outline" size="sm">
+                              <QrCode className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Training Programs Tab */}
+        <TabsContent value="programs" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Training Programs</CardTitle>
+                {canCreatePrograms && (
+                  <Button className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    New Program
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {programs.length === 0 ? (
+                <div className="text-center py-8">
+                  <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No training programs found.</p>
+                  {canCreatePrograms && (
+                    <Button className="mt-4" variant="outline">
+                      Create your first program
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {programs.map((program) => (
+                    <Card key={program.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-4">
+                        <div className="space-y-3">
                           <div>
-                            <h3 className="font-medium">Training ID: {item.training_id || "N/A"}</h3>
-                            <p className="text-sm text-gray-600">
-                              {item.respondent_type} • {new Date(item.created_at).toLocaleDateString()}
+                            <h3 className="font-semibold">{program.program_name}</h3>
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {program.description || 'No description available'}
                             </p>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            {item.overall_rating && getRatingBadge(item.overall_rating)}
-                            <span className="text-lg font-bold">{item.overall_rating || "N/A"}/5</span>
+                          
+                          <div className="flex items-center justify-between text-sm">
+                            <Badge variant="outline">{program.program_type}</Badge>
+                            <span className="text-muted-foreground">{program.duration_hours}h</span>
                           </div>
+                          
+                          <div className="flex items-center justify-between text-sm">
+                            <span><strong>{program.session_count}</strong> sessions</span>
+                            <span><strong>{program.total_participants}</strong> participants</span>
+                          </div>
+                          
+                          <Button variant="outline" size="sm" className="w-full">
+                            View Details
+                          </Button>
                         </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3">
-                          <div>
-                            <span className="font-medium">Content:</span>
-                            <p className="text-gray-600">{item.content_quality_rating || "N/A"}/5</p>
-                          </div>
-                          <div>
-                            <span className="font-medium">Trainer:</span>
-                            <p className="text-gray-600">{item.trainer_effectiveness_rating || "N/A"}/5</p>
-                          </div>
-                          <div>
-                            <span className="font-medium">Venue:</span>
-                            <p className="text-gray-600">{item.venue_rating || "N/A"}/5</p>
-                          </div>
-                          <div>
-                            <span className="font-medium">Experience:</span>
-                            <p className="text-gray-600">{item.years_of_experience || "N/A"} years</p>
-                          </div>
-                        </div>
+        {/* Participants Tab */}
+        <TabsContent value="participants" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Participant Management</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                View and manage training participants across all sessions
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Participant management interface coming soon.</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  This will include participant lists, attendance tracking, and bulk management features.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-                        {item.most_valuable_aspect && (
-                          <div className="mt-3 p-2 bg-green-50 rounded text-sm">
-                            <span className="font-medium text-green-800">Most Valuable:</span>
-                            <p className="text-green-700 mt-1">{item.most_valuable_aspect}</p>
-                          </div>
-                        )}
+        {/* QR Codes Tab */}
+        <TabsContent value="qr-codes" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>QR Code Management</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Generate and manage QR codes for registration, attendance, and feedback
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <QrCode className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">QR code management interface coming soon.</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Generate QR codes for session registration, attendance confirmation, and feedback collection.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
-                        {item.suggestions_for_improvement && (
-                          <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
-                            <span className="font-medium text-blue-800">Suggestions:</span>
-                            <p className="text-blue-700 mt-1">{item.suggestions_for_improvement}</p>
-                          </div>
-                        )}
-
-                        <div className="flex justify-between text-xs text-gray-500 mt-3">
-                          <span>Will recommend: {item.will_recommend_training ? "Yes" : "No"}</span>
-                          <span>Will apply learning: {item.will_apply_learning ? "Yes" : "No"}</span>
-                          <span>Previous TaRL training: {item.previous_tarl_training ? "Yes" : "No"}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+      {/* Help Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Training Management Workflow</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-4 border rounded-lg">
+              <Circle className="h-8 w-8 mx-auto mb-2 text-blue-600" />
+              <h3 className="font-medium">1. Before Training</h3>
+              <p className="text-sm text-muted-foreground">
+                Create sessions, generate QR codes, send invitations
+              </p>
+            </div>
+            <div className="text-center p-4 border rounded-lg">
+              <AlertCircle className="h-8 w-8 mx-auto mb-2 text-yellow-600" />
+              <h3 className="font-medium">2. During Training</h3>
+              <p className="text-sm text-muted-foreground">
+                Confirm attendance, distribute materials, conduct session
+              </p>
+            </div>
+            <div className="text-center p-4 border rounded-lg">
+              <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-600" />
+              <h3 className="font-medium">3. After Training</h3>
+              <p className="text-sm text-muted-foreground">
+                Collect feedback, generate reports, follow up
+              </p>
+            </div>
           </div>
-        </div>
-      </PageLayout>
-    </ProtectedRoute>
-  )
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
