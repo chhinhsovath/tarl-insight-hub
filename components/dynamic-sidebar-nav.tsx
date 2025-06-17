@@ -23,7 +23,6 @@ import {
   GraduationCap,
   MapPin,
   PieChart,
-  Database,
   Home,
   Building,
 } from "lucide-react";
@@ -85,17 +84,6 @@ const getCategoryFromPath = (path: string): string => {
   if (['/training'].includes(path) || path.startsWith('/training/')) return 'learning';
   if (['/settings'].includes(path) || path.startsWith('/settings/')) return 'admin';
   return 'other';
-};
-
-// Function to determine if a page should be hidden from sidebar (shown only as sub-pages)
-const shouldHideFromSidebar = (path: string): boolean => {
-  const hiddenPaths = [
-    '/training/sessions',
-    '/training/programs', 
-    '/training/participants',
-    '/training/qr-codes'
-  ];
-  return hiddenPaths.includes(path);
 };
 
 const categoryLabels = {
@@ -162,8 +150,8 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
 
     console.log('Building hierarchical menu from pages:', pages);
 
-    // Filter out training sub-pages and convert to menu items
-    const filteredPages = pages.filter(page => !shouldHideFromSidebar(page.page_path));
+    // Convert to menu items
+    const filteredPages = pages;
     
     // Create menu items
     const allMenuItems: MenuItem[] = filteredPages.map(page => ({
@@ -397,7 +385,7 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
           ))}
 
           {/* Status Indicator */}
-          {open && user && (
+          {/* {open && user && (
             <div className="px-3 py-2 mx-2 bg-gray-50 rounded-lg">
               <div className="flex items-center text-xs text-gray-500">
                 <Database className="h-3 w-3 mr-2" />
@@ -410,7 +398,7 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
                 Items: {pages.length}
               </div>
             </div>
-          )}
+          )} */}
         </div>
       </nav>
 

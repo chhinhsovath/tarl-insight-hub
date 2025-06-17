@@ -247,7 +247,7 @@ export default function TrainingSessionsPage() {
   const uniqueStatuses = [...new Set(sessions.map(s => s.session_status))];
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="p-6 space-y-6">
       <TrainingBreadcrumb />
       {/* Header */}
       <div className="flex items-center justify-between">

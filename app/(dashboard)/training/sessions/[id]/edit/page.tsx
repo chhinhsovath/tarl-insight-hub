@@ -8,11 +8,15 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, ArrowLeft, Save, Loader2, Trash2 } from 'lucide-react';
+import { Calendar, ArrowLeft, Save, Loader2, Trash2, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
 import { makeAuthenticatedRequest, handleApiResponse } from '@/lib/session-utils';
 import DeleteSessionDialog from '@/components/delete-session-dialog';
+import { EngageProgramsManager } from '@/components/training/engage-programs-manager';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
+import { BackButton } from '@/components/ui/back-button';
 
 interface TrainingProgram {
   id: number;
@@ -42,6 +46,8 @@ interface TrainingSession {
   registration_deadline?: string;
   session_status: string;
   program_name: string;
+  agenda?: string;
+  notes?: string;
 }
 
 export default function EditTrainingSessionPage() {
@@ -66,7 +72,9 @@ export default function EditTrainingSessionPage() {
     trainer_id: 'none',
     coordinator_id: 'none',
     registration_deadline: '',
-    session_status: 'scheduled'
+    session_status: 'scheduled',
+    agenda: '',
+    notes: ''
   });
 
   const sessionId = params.id as string;
@@ -140,7 +148,9 @@ export default function EditTrainingSessionPage() {
           trainer_id: sessionData.trainer_id?.toString() || 'none',
           coordinator_id: sessionData.coordinator_id?.toString() || 'none',
           registration_deadline: formatDateForInput(sessionData.registration_deadline),
-          session_status: sessionData.session_status || 'scheduled'
+          session_status: sessionData.session_status || 'scheduled',
+          agenda: sessionData.agenda || '',
+          notes: sessionData.notes || ''
         });
       } else {
         toast.error('Training session not found');
@@ -218,7 +228,9 @@ export default function EditTrainingSessionPage() {
         trainer_id: (formData.trainer_id && formData.trainer_id !== 'none') ? parseInt(formData.trainer_id) : null,
         coordinator_id: (formData.coordinator_id && formData.coordinator_id !== 'none') ? parseInt(formData.coordinator_id) : null,
         registration_deadline: formData.registration_deadline && formData.registration_deadline.trim() !== '' ? formData.registration_deadline : null,
-        session_status: formData.session_status
+        session_status: formData.session_status,
+        agenda: formData.agenda || null,
+        notes: formData.notes || null
       };
 
       console.log('Submitting form data:', formData);
@@ -324,19 +336,16 @@ export default function EditTrainingSessionPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="p-6 space-y-6">
+      {/* Breadcrumb */}
+      <TrainingBreadcrumb />
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 mt-4">
         <div className="flex items-center gap-4">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleCancel}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
+          <BackButton onClick={handleCancel}>
             Back to Sessions
-          </Button>
+          </BackButton>
           <div>
             <h1 className="text-3xl font-bold">Edit Training Session</h1>
             <p className="text-muted-foreground mt-1">
@@ -344,15 +353,26 @@ export default function EditTrainingSessionPage() {
             </p>
           </div>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleDeleteSession}
-          className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-        >
-          <Trash2 className="h-4 w-4" />
-          Delete Session
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => router.push(`/training/sessions/${sessionId}/overview`)}
+            className="flex items-center gap-2"
+          >
+            <Eye className="h-4 w-4" />
+            Overview
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleDeleteSession}
+            className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete Session
+          </Button>
+        </div>
       </div>
 
       {/* Session Info */}
@@ -401,9 +421,9 @@ export default function EditTrainingSessionPage() {
                   <SelectValue placeholder="Select a training program" />
                 </SelectTrigger>
                 <SelectContent>
-                  {programs.map((program) => (
+                  {programs.filter(program => program && program.id).map((program) => (
                     <SelectItem key={program.id} value={program.id.toString()}>
-                      {program.program_name} ({program.program_type})
+                      {program.program_name} ({program.program_type || 'standard'})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -470,6 +490,29 @@ export default function EditTrainingSessionPage() {
               />
             </div>
 
+            {/* Session Agenda */}
+            <div className="space-y-2">
+              <Label htmlFor="agenda">Session Agenda</Label>
+              <RichTextEditor
+                content={formData.agenda}
+                onChange={(content) => handleInputChange('agenda', content)}
+                placeholder="Create your session agenda with timing, activities, and breaks..."
+                minHeight="250px"
+              />
+            </div>
+
+            {/* Additional Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="notes">Additional Notes</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
+                placeholder="Any additional information or notes for this session"
+                rows={3}
+              />
+            </div>
+
             {/* Max Participants and Status */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -509,7 +552,7 @@ export default function EditTrainingSessionPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No trainer assigned</SelectItem>
-                  {trainers.map((trainer) => (
+                  {trainers.filter(trainer => trainer && trainer.id).map((trainer) => (
                     <SelectItem key={trainer.id} value={trainer.id.toString()}>
                       {trainer.full_name} ({trainer.role})
                     </SelectItem>
@@ -527,7 +570,7 @@ export default function EditTrainingSessionPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No coordinator assigned</SelectItem>
-                  {coordinators.map((coordinator) => (
+                  {coordinators.filter(coordinator => coordinator && coordinator.id).map((coordinator) => (
                     <SelectItem key={coordinator.id} value={coordinator.id.toString()}>
                       {coordinator.full_name} ({coordinator.role})
                     </SelectItem>
@@ -567,6 +610,23 @@ export default function EditTrainingSessionPage() {
               </Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* Engage Programs */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Engage Programs & Materials</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Manage materials and resources for before, during, and after training stages
+          </p>
+        </CardHeader>
+        <CardContent>
+          <EngageProgramsManager 
+            sessionId={parseInt(params.id as string)} 
+            sessionTitle={session.session_title}
+            isReadOnly={!['admin', 'director', 'partner', 'coordinator'].includes(user.role)}
+          />
         </CardContent>
       </Card>
 

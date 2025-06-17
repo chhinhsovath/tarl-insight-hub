@@ -12,6 +12,9 @@ import { Calendar, ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
 import { makeAuthenticatedRequest, handleApiResponse } from '@/lib/session-utils';
+import { RichTextEditor } from '@/components/ui/rich-text-editor';
+import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
+import { BackButton } from '@/components/ui/back-button';
 
 interface TrainingProgram {
   id: number;
@@ -44,7 +47,9 @@ export default function NewTrainingSessionPage() {
     max_participants: '50',
     trainer_id: 'none',
     coordinator_id: 'none',
-    registration_deadline: ''
+    registration_deadline: '',
+    agenda: '',
+    notes: ''
   });
 
   useEffect(() => {
@@ -115,7 +120,9 @@ export default function NewTrainingSessionPage() {
         max_participants: parseInt(formData.max_participants) || 50,
         trainer_id: (formData.trainer_id && formData.trainer_id !== 'none') ? parseInt(formData.trainer_id) : null,
         coordinator_id: (formData.coordinator_id && formData.coordinator_id !== 'none') ? parseInt(formData.coordinator_id) : null,
-        registration_deadline: formData.registration_deadline || null
+        registration_deadline: formData.registration_deadline || null,
+        agenda: formData.agenda || null,
+        notes: formData.notes || null
       };
 
       const response = await makeAuthenticatedRequest('/api/training/sessions', {
@@ -170,18 +177,15 @@ export default function NewTrainingSessionPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
+    <div className="p-6 space-y-6">
+      {/* Breadcrumb */}
+      <TrainingBreadcrumb />
+
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleCancel}
-          className="flex items-center gap-2"
-        >
-          <ArrowLeft className="h-4 w-4" />
+      <div className="flex items-center gap-4 mb-6 mt-4">
+        <BackButton onClick={handleCancel}>
           Back to Sessions
-        </Button>
+        </BackButton>
         <div>
           <h1 className="text-3xl font-bold">Create New Training Session</h1>
           <p className="text-muted-foreground mt-1">
@@ -274,6 +278,29 @@ export default function NewTrainingSessionPage() {
                 onChange={(e) => handleInputChange('venue_address', e.target.value)}
                 placeholder="Enter full venue address"
                 rows={2}
+              />
+            </div>
+
+            {/* Session Agenda */}
+            <div className="space-y-2">
+              <Label htmlFor="agenda">Session Agenda</Label>
+              <RichTextEditor
+                content={formData.agenda}
+                onChange={(content) => handleInputChange('agenda', content)}
+                placeholder="Create your session agenda with timing, activities, and breaks..."
+                minHeight="250px"
+              />
+            </div>
+
+            {/* Additional Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="notes">Additional Notes</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
+                placeholder="Any additional information or notes for this session"
+                rows={3}
               />
             </div>
 

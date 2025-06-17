@@ -68,13 +68,22 @@ export default function TrainingProgramsPage() {
       });
       if (response.ok) {
         const data = await response.json();
-        setPrograms(data);
+        
+        // Ensure data is an array and all programs have valid program_type
+        const validPrograms = Array.isArray(data) ? data.map(program => ({
+          ...program,
+          program_type: program.program_type || 'standard'
+        })) : [];
+        
+        setPrograms(validPrograms);
       } else {
         toast.error('Failed to fetch training programs');
+        setPrograms([]);
       }
     } catch (error) {
       console.error('Error fetching programs:', error);
       toast.error('Error loading training programs');
+      setPrograms([]);
     } finally {
       setLoading(false);
     }
@@ -152,7 +161,7 @@ export default function TrainingProgramsPage() {
   }
 
   const canCreatePrograms = ['admin', 'director', 'partner'].includes(user.role);
-  const uniqueTypes = [...new Set(programs.map(p => p.program_type))];
+  const uniqueTypes = [...new Set(programs.map(p => p.program_type).filter(Boolean))];
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -177,10 +186,10 @@ export default function TrainingProgramsPage() {
   };
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="p-6 space-y-6">
       <TrainingBreadcrumb />
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mt-4">
         <div>
           <h1 className="text-3xl font-bold">Training Programs</h1>
           <p className="text-muted-foreground mt-1">
@@ -293,7 +302,7 @@ export default function TrainingProgramsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  {uniqueTypes.map(type => (
+                  {!loading && uniqueTypes.filter(type => type && type.trim()).map(type => (
                     <SelectItem key={type} value={type}>
                       {type.charAt(0).toUpperCase() + type.slice(1)}
                     </SelectItem>

@@ -98,3 +98,67 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const pageId = searchParams.get('id');
+    const pagePath = searchParams.get('path');
+    
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get("session-token")?.value;
+
+    if (!sessionToken) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify session and get user
+    const sessionResult = await pool.query(
+      "SELECT id, role_id FROM tbl_tarl_users WHERE session_token = $1 AND session_expires > NOW()",
+      [sessionToken]
+    );
+
+    if (sessionResult.rows.length === 0) {
+      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    }
+
+    const currentUser = sessionResult.rows[0];
+    
+    // Get current user's role name
+    const roleRes = await pool.query("SELECT name FROM tbl_tarl_roles WHERE id = $1", [currentUser.role_id]);
+    const currentUserRole = roleRes.rows[0]?.name;
+    
+    if (!currentUserRole || currentUserRole.toLowerCase() !== 'admin') {
+      return NextResponse.json({ error: "Access denied. Admin role required." }, { status: 403 });
+    }
+
+    if (!pageId && !pagePath) {
+      return NextResponse.json({ error: "Either page ID or path is required" }, { status: 400 });
+    }
+
+    let result;
+    if (pageId) {
+      result = await pool.query(
+        "DELETE FROM page_permissions WHERE id = $1 RETURNING *",
+        [pageId]
+      );
+    } else {
+      result = await pool.query(
+        "DELETE FROM page_permissions WHERE page_path = $1 RETURNING *",
+        [pagePath]
+      );
+    }
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: "Page not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ 
+      message: "Page deleted successfully", 
+      deletedPage: result.rows[0] 
+    });
+  } catch (error) {
+    console.error("Error deleting page:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}

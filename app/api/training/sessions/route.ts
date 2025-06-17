@@ -134,7 +134,9 @@ export async function POST(request: NextRequest) {
       coordinator_id,
       registration_deadline,
       registration_form_data,
-      feedback_form_data
+      feedback_form_data,
+      agenda,
+      notes
     } = body;
 
     if (!program_id || !session_title || !session_date || !session_time || !location) {
@@ -151,8 +153,8 @@ export async function POST(request: NextRequest) {
         program_id, session_title, session_date, session_time, location, 
         venue_address, max_participants, trainer_id, coordinator_id, 
         registration_deadline, registration_form_data, feedback_form_data, 
-        created_by, is_active
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, true)
+        agenda, notes, created_by, is_active
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, true)
       RETURNING id, session_title, session_date, session_time, location
     `, [
       program_id, session_title, session_date, session_time, location,
@@ -160,6 +162,7 @@ export async function POST(request: NextRequest) {
       coordinator_id || null, registration_deadline || null,
       registration_form_data ? JSON.stringify(registration_form_data) : null,
       feedback_form_data ? JSON.stringify(feedback_form_data) : null,
+      agenda || null, notes || null,
       user.user_id
     ]);
 
@@ -238,7 +241,9 @@ export async function PUT(request: NextRequest) {
       trainer_id,
       coordinator_id,
       registration_deadline,
-      session_status
+      session_status,
+      agenda,
+      notes
     } = body;
 
     console.log('Received update data:', {
@@ -258,8 +263,10 @@ export async function PUT(request: NextRequest) {
         coordinator_id = $8,
         registration_deadline = $9,
         session_status = $10,
+        agenda = $11,
+        notes = $12,
         updated_at = NOW()
-      WHERE id = $11 AND is_active = true
+      WHERE id = $13 AND is_active = true
       RETURNING id, session_title, session_date, session_time, location, session_status, registration_deadline
     `, [
       session_title,
@@ -272,6 +279,8 @@ export async function PUT(request: NextRequest) {
       coordinator_id,
       registration_deadline,
       session_status,
+      agenda || null,
+      notes || null,
       parseInt(sessionId)
     ]);
 

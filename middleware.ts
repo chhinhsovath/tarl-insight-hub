@@ -7,11 +7,26 @@ const publicRoutes = [
   '/unauthorized'
 ];
 
+// Define route patterns that don't require authentication
+const publicRoutePatterns = [
+  /^\/training\/session\/\d+\/materials$/,
+  /^\/training\/session\/\d+\/register$/,
+  /^\/training\/session\/\d+\/attendance$/,
+  /^\/training\/session\/\d+\/feedback$/,
+  /^\/training\/register$/,
+  /^\/training\/materials$/,
+  /^\/training\/attendance$/,
+  /^\/training\/public-feedback$/,
+  /^\/training\/qr\/\w+$/
+];
+
 // Define API routes that should be excluded from middleware
 const apiExcludeRoutes = [
   '/api/auth',
   '/api/_next',
-  '/_next'
+  '/_next',
+  '/api/training/public',
+  '/api/training/sessions/'
 ];
 
 // Static file extensions to skip
@@ -35,6 +50,11 @@ export function middleware(request: NextRequest) {
 
   // Allow public routes
   if (publicRoutes.includes(pathname)) {
+    return NextResponse.next();
+  }
+
+  // Allow public route patterns (training materials, registration, etc.)
+  if (publicRoutePatterns.some(pattern => pattern.test(pathname))) {
     return NextResponse.next();
   }
 

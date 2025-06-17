@@ -26,6 +26,7 @@ import {
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 
 interface TrainingSession {
   id: number;
@@ -249,8 +250,9 @@ export default function TrainingOverviewPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
+      <TrainingBreadcrumb />
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-6 mt-4">
         <div>
           <h1 className="text-3xl font-bold">Training Management</h1>
           <p className="text-muted-foreground mt-1">
