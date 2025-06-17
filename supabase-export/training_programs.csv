@@ -1,0 +1,23 @@
+id,program_name,description,program_type,duration_hours,created_by,is_active,created_at,updated_at
+1,TaRL Teaching Methodology Workshop,Comprehensive workshop on Teaching at the Right Level methodology for educators,workshop,8,12,t,2025-06-16 12:19:18.177832,2025-06-16 12:19:18.177832
+2,TaRL Teaching Methodology Workshop,Comprehensive workshop on Teaching at the Right Level methodology for educators,workshop,8,12,t,2025-06-16 12:25:21.756603,2025-06-16 12:25:21.756603
+3,TaRL Teaching Methodology Workshop,Comprehensive workshop on Teaching at the Right Level methodology for educators,workshop,8,12,t,2025-06-16 12:26:15.184143,2025-06-16 12:26:15.184143
+4,TaRL Teaching Methodology Workshop,Comprehensive workshop on Teaching at the Right Level methodology for educators,workshop,8,3,t,2025-06-16 14:33:28.297024,2025-06-16 14:33:28.297024
+5,Direct Test Program,Updated test program description,workshop,6,3,f,2025-06-16 15:04:11.931606,2025-06-16 15:04:12.011531
+6,API Test Program,Updated API description,workshop,6,3,f,2025-06-16 15:06:17.779608,2025-06-16 15:07:42.353153
+7,Session Test Program,For session testing,training,3,3,t,2025-06-16 15:07:57.417351,2025-06-16 15:07:57.417351
+8,Test CRUD Program,Updated test program description,workshop,8,1,f,2025-06-16 15:14:25.845733,2025-06-16 15:14:25.951716
+9,Session Test Program,Program for session testing,training,4,1,t,2025-06-16 15:14:25.974708,2025-06-16 15:14:25.974708
+10,Participants Test Program,Program for participants testing,workshop,3,1,t,2025-06-16 15:14:26.91977,2025-06-16 15:14:26.91977
+11,QR Test Program,Program for QR testing,seminar,2,1,t,2025-06-16 15:14:27.98517,2025-06-16 15:14:27.98517
+12,Flow Test Program,Program for flow testing,training,5,1,t,2025-06-16 15:14:28.889961,2025-06-16 15:14:28.889961
+13,Test CRUD Program,Updated test program description,workshop,8,3,f,2025-06-16 17:16:02.445594,2025-06-16 17:16:02.553461
+14,Session Test Program,Program for session testing,training,4,3,t,2025-06-16 17:16:02.578358,2025-06-16 17:16:02.578358
+15,Participants Test Program,Program for participants testing,workshop,3,3,t,2025-06-16 17:16:03.344331,2025-06-16 17:16:03.344331
+16,QR Test Program,Program for QR testing,seminar,2,3,t,2025-06-16 17:16:04.45994,2025-06-16 17:16:04.45994
+17,Flow Test Program,Program for flow testing,training,5,3,t,2025-06-16 17:16:05.49369,2025-06-16 17:16:05.49369
+18,QR Test Program,QR Test Program,workshop,8,23,t,2025-06-16 23:46:19.47828,2025-06-16 23:46:19.47828
+19,QR Test Program,QR Test Program,intensive,8,23,t,2025-06-16 23:54:14.891653,2025-06-16 23:54:14.891653
+20,TaRL Teaching Methodology Workshop,Comprehensive workshop on Teaching at the Right Level methodology for educators,workshop,8,12,t,2025-06-17 00:06:02.149265,2025-06-17 00:06:02.149265
+21,Test Program 1750093664999,Updated description,standard,8,1,t,2025-06-17 00:07:45.002258,2025-06-17 00:07:45.012702
+26,TaRL Teaching Methodology Workshop,Comprehensive workshop on Teaching at the Right Level methodology for educators,"",8,12,t,2025-06-17 05:40:04.429766,2025-06-17 08:44:05.566953

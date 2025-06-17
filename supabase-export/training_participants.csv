@@ -1,0 +1,5 @@
+id,session_id,participant_name,participant_email,participant_phone,participant_role,school_name,school_id,district,province,registration_method,registration_data,registration_status,attendance_confirmed,attendance_time,confirmed_by,created_at,updated_at,feedback_submitted,designation,registration_date
+1,3,Direct Test Participant,direct.test@example.com,+1234567890,teacher,Direct Test School,,,,manual,,confirmed,t,2025-06-16 15:04:12.000836,,2025-06-16 15:04:11.996619,2025-06-16 15:04:12.000836,f,,2025-06-17
+4,10,Test Participant,test.participant@example.com,+1234567890,teacher,Test School,,,,manual,,registered,t,2025-06-17 05:08:01.836874,23,2025-06-16 17:16:04.298233,2025-06-17 05:08:01.836874,f,,2025-06-17
+3,6,Test Participant,test.participant@example.com,+1234567890,teacher,Test School,,,,manual,,registered,t,2025-06-17 05:08:03.437937,23,2025-06-16 15:14:27.49879,2025-06-17 05:08:03.437937,f,,2025-06-17
+2,4,API Test Participant,api.test@example.com,+1234567890,teacher,API Test School,,,,manual,,registered,t,2025-06-17 05:58:04.38016,23,2025-06-16 15:09:16.727597,2025-06-17 05:58:04.38016,f,,2025-06-17

@@ -1,0 +1,3 @@
+id,subject_code,subject_name_en,subject_name_kh,target_hours_per_subject,is_active,created_at,updated_at
+1,MATH,Mathematics,គណិតវិទ្យា,60,t,2025-06-13 11:32:25.9625+07,2025-06-13 11:32:25.9625+07
+2,KHMER,Khmer Language,ភាសាខ្មែរ,50,t,2025-06-13 11:32:25.9625+07,2025-06-13 11:32:25.9625+07

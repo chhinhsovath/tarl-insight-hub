@@ -1,0 +1,26 @@
+prvAutoID,prvProvinceID,prvNameKH,prvNameEN,prvNameJP,zone_id
+1,1,ខេត្តបាត់ដំបង,Battambang Province,バタンバン,1
+2,2,ខេត្តបន្ទាយមានជ័យ,Banteay Meanchey Province,バンテアイメンチェイ,1
+3,3,ខេត្តកំពត,Kampot Province,カンポット,2
+4,4,ខេត្តកំពង់ឆ្នាំង,Kampong Chhnang Province,コンポンチュナン,1
+5,5,ខេត្តកណ្តាល,Kandal Province,カンダール,3
+6,6,ខេត្តកែប,Kep Province,ケップ,2
+7,7,ខេត្តកោះកុង,Koh Kong Province,ココン,2
+8,8,ខេត្តកំពង់ចាម,Kampong Cham Province,コンポンチャム,4
+9,9,ខេត្តកំពង់ធំ,Kampong Thom Province,コンポントム,5
+10,10,ខេត្តក្រចេះ,Kratie Province,クラチエ,4
+11,11,ខេត្តកំពង់ស្ពឺ,Kampong Speu Province,コンポンスプー,4
+12,12,ខេត្តមណ្ឌលគីរី,Mondul Kiri Province,モンドルキリ,3
+13,13,ខេត្តឧត្តមានជ័យ,Oddar Meanchey Province,ウドンメンチェイ,1
+14,14,ខេត្តប៉ៃលិន,Pailin Province,パイリン,1
+15,15,រាជធានីភ្នំពេញ,Phnom Penh Capital,プノンペン,4
+16,16,ខេត្តពោធិសាត់,Pursat Province,ポーサット,1
+17,17,ខេត្តព្រៃវែង,Prey Veng Province,プレイベン,5
+18,18,ខេត្តព្រះវិហារ,Preah Vihear Province,プレアヴィヒア,5
+19,19,ខេត្តរតនគីរី,Ratanak Kiri Province,ラタナキリ,3
+20,20,ខេត្តព្រះសីហនុ,Preah Sihanouk Province,プレアシアヌークビル,2
+21,21,ខេត្តសៀមរាប,Siemreap Province,シェムリアップ,5
+22,22,ខេត្តស្ទឹងត្រែង,Stung Treng Province,ストゥントレン,4
+23,23,ខេត្តស្វាយរៀង,Svay Rieng Province,スヴァイリエン,3
+24,24,ខេត្តតាកែវ,Takeo Province,タケオ,2
+25,25,ខេត្តត្បូងឃ្មុំ,Tboung Khmum Province,,3
