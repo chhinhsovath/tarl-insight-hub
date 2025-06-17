@@ -160,14 +160,60 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
         console.log('Failed to fetch user menu order:', userMenuResponse.status);
       }
       
-      // Fallback to system default pages
-      const response = await fetch(`/api/data/page-permissions?t=${Date.now()}`);
+      // Fallback to permission-filtered pages
+      const response = await fetch("/api/user/menu-permissions", {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      
       if (response.ok) {
-        const pagesData = await response.json();
-        console.log('Fetched pages from API:', pagesData);
-        setPages(pagesData);
+        const data = await response.json();
+        console.log('Fetched permission-filtered menu data:', data);
+        
+        // Convert hierarchical menu items to flat pages array
+        const flattenMenuItems = (items: any[]): PagePermission[] => {
+          const result: PagePermission[] = [];
+          items.forEach(item => {
+            result.push({
+              id: item.id,
+              page_path: item.page_path,
+              page_name: item.page_name,
+              icon_name: item.icon_name,
+              parent_page_id: item.parent_page_id,
+              is_parent_menu: item.children && item.children.length > 0,
+              sort_order: item.sort_order,
+              created_at: '',
+              updated_at: ''
+            });
+            
+            // Add children to flat array
+            if (item.children && item.children.length > 0) {
+              item.children.forEach((child: any) => {
+                result.push({
+                  id: child.id,
+                  page_path: child.page_path,
+                  page_name: child.page_name,
+                  icon_name: child.icon_name,
+                  parent_page_id: child.parent_page_id,
+                  is_parent_menu: false,
+                  sort_order: child.sort_order,
+                  created_at: '',
+                  updated_at: ''
+                });
+              });
+            }
+          });
+          return result;
+        };
+        
+        const flatPages = flattenMenuItems(data.menuItems || []);
+        console.log('Flattened permission-filtered pages:', flatPages);
+        setPages(flatPages);
       } else {
-        console.error('Failed to fetch pages from database');
+        console.error('Failed to fetch permission-filtered pages from database');
         setPages([
           { id: 1, page_path: '/dashboard', page_name: 'Dashboard', icon_name: 'LayoutDashboard', created_at: '', updated_at: '' },
           { id: 2, page_path: '/settings', page_name: 'Settings', icon_name: 'Settings', created_at: '', updated_at: '' }

@@ -20,7 +20,8 @@ import {
   AlertCircle,
   Search,
   Filter,
-  Trash2
+  Trash2,
+  UserPlus
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
@@ -465,6 +466,19 @@ function TrainingSessionsPageContent() {
                       </div>
 
                       <div className="flex items-center gap-2 ml-4">
+                        {/* Quick Registration Button - Show for coordinators and above */}
+                        {['admin', 'director', 'partner', 'coordinator'].includes(user.role) && (
+                          <Button 
+                            variant="default" 
+                            size="sm"
+                            onClick={() => router.push(`/training/sessions/${session.id}/quick-register`)}
+                            title="Quick Check-in"
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <UserPlus className="h-4 w-4" />
+                          </Button>
+                        )}
+                        
                         {canCreateSessions && (
                           <>
                             <Button 

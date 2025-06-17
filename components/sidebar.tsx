@@ -107,80 +107,103 @@ export function Sidebar() {
     if (!user) return
 
     try {
-      console.log(`Fetching hierarchical navigation for user role: ${user.role}`)
+      console.log(`Fetching permission-filtered navigation for user role: ${user.role}`)
       
-      const response = await fetch(`/api/data/page-permissions?t=${Date.now()}`)
-      if (!response.ok) {
-        console.error("Failed to fetch page permissions:", response.status)
-        throw new Error("Failed to fetch page permissions")
+      // First try the new permission-filtered API
+      let response = await fetch("/api/user/menu-permissions", {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+      
+      let data;
+      if (response.ok) {
+        data = await response.json()
+        console.log("Permission-filtered menu data:", data)
+      } else {
+        console.error("Permission API failed, falling back to page-permissions API:", response.status)
+        
+        // Fallback to the original working API and filter client-side
+        response = await fetch(`/api/data/page-permissions?t=${Date.now()}`)
+        if (!response.ok) {
+          console.error("Failed to fetch page permissions:", response.status)
+          throw new Error("Failed to fetch page permissions")
+        }
+        
+        const allPages = await response.json()
+        console.log("All page permissions from database:", allPages)
+        
+        // Apply basic client-side filtering based on role
+        let filteredPages = allPages;
+        if (user.role.toLowerCase() !== 'admin') {
+          // For non-admin users, show only basic pages
+          const allowedPaths = [
+            '/dashboard',
+            '/training',
+            '/schools', 
+            '/students',
+            '/observations',
+            '/progress'
+          ];
+          filteredPages = allPages.filter((item: any) => 
+            allowedPaths.some(path => item.page_path === path || item.page_path.startsWith(path + '/'))
+          );
+        }
+        
+        data = {
+          menuItems: filteredPages.map((item: any) => ({
+            id: item.id,
+            page_name: item.page_name,
+            page_path: item.page_path,
+            icon_name: item.icon_name,
+            parent_page_id: item.parent_page_id,
+            sort_order: item.sort_order,
+            children: []
+          })),
+          userRole: user.role,
+          totalAllowed: filteredPages.length
+        }
+        console.log("Converted to menu data:", data)
       }
-      
-      const data = await response.json()
-      console.log("Page permissions from database:", data)
 
-      // Convert ALL pages to navigation items (removed the shouldHideFromSidebar filter)
-      const allItems: NavigationItem[] = data.map((item: any) => ({
+      // Use permission-filtered menu items from API
+      const menuItems = data.menuItems || []
+      console.log(`User ${user.role} has access to ${data.totalAllowed} menu items`)
+      
+      const allItems: NavigationItem[] = menuItems.map((item: any) => ({
         id: item.id,
         name: item.page_name,
         href: item.page_path,
         icon: item.icon_name || 'FileText',
-        isParent: item.is_parent_menu || false,
+        isParent: false, // Will be determined by presence of children
         parentId: item.parent_page_id,
         sortOrder: item.sort_order || 999,
-        children: []
+        children: item.children ? item.children.map((child: any) => ({
+          id: child.id,
+          name: child.page_name,
+          href: child.page_path,
+          icon: child.icon_name || 'FileText',
+          isParent: false,
+          parentId: child.parent_page_id,
+          sortOrder: child.sort_order || 999,
+          children: []
+        })) : []
       }))
 
-      console.log('All navigation items:', allItems)
+      console.log('Permission-filtered navigation items:', allItems)
 
-      // Build hierarchical structure
-      const rootItems: NavigationItem[] = []
-      const itemsMap = new Map<number, NavigationItem>()
-      
-      // Create a map for quick lookup
+      // Items are already hierarchically structured and permission-filtered by the API
+      // Just need to update isParent flag for items with children
       allItems.forEach(item => {
-        itemsMap.set(item.id, item)
-      })
-
-      // Build the hierarchy
-      allItems.forEach(item => {
-        console.log(`Processing item: ${item.name}, parentId: ${item.parentId}, id: ${item.id}`)
-        if (item.parentId && itemsMap.has(item.parentId)) {
-          // This is a child item
-          const parent = itemsMap.get(item.parentId)!
-          if (!parent.children) {
-            parent.children = []
-          }
-          parent.children.push(item)
-          console.log(`✅ Added child ${item.name} to parent ${parent.name}`)
-        } else {
-          // This is a root item
-          rootItems.push(item)
-          console.log(`📁 Added root item: ${item.name}`)
-        }
-      })
-
-      // Sort root items by sort_order
-      rootItems.sort((a, b) => (a.sortOrder || 999) - (b.sortOrder || 999))
-
-      // Sort children within each parent by sort_order
-      rootItems.forEach(item => {
         if (item.children && item.children.length > 0) {
-          item.children.sort((a, b) => (a.sortOrder || 999) - (b.sortOrder || 999))
-          console.log(`Parent ${item.name} has ${item.children.length} children:`, item.children.map(c => c.name))
+          item.isParent = true
         }
       })
 
-      console.log('Final hierarchical navigation:', rootItems)
-
-      // Apply role-based filtering (but keep hierarchical structure intact)
-      if (user.role.toLowerCase() === 'admin') {
-        console.log(`Admin user: showing all ${rootItems.length} items`)
-        setNavigation(rootItems)
-      } else {
-        // For non-admin users, show all items but let the backend handle permissions
-        console.log(`User role ${user.role}: showing ${rootItems.length} items`)
-        setNavigation(rootItems)
-      }
+      console.log(`Final filtered navigation for ${user.role}:`, allItems.length, 'items')
+      setNavigation(allItems)
     } catch (error) {
       console.error("Error fetching navigation items:", error)
       // Ultimate fallback navigation
