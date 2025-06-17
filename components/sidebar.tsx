@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { useTrainingLoading } from "./training-loading-provider"
 import {
   Users,
   FileText,
@@ -26,6 +27,9 @@ import {
   Home,
   ClipboardList,
   GraduationCap,
+  CalendarDays,
+  QrCode,
+  MessageSquare,
 } from "lucide-react"
 
 const iconMap = {
@@ -44,6 +48,10 @@ const iconMap = {
   Shield,
   Plus,
   List,
+  CalendarDays,
+  ClipboardList,
+  QrCode,
+  MessageSquare,
 }
 
 interface NavigationItem {
@@ -54,18 +62,8 @@ interface NavigationItem {
   children?: NavigationItem[]
   isParent?: boolean
   parentId?: number
+  sortOrder?: number
 }
-
-// Function to determine if a page should be hidden from sidebar
-const shouldHideFromSidebar = (path: string): boolean => {
-  const hiddenPaths = [
-    '/training/sessions',
-    '/training/programs', 
-    '/training/participants',
-    '/training/qr-codes'
-  ];
-  return hiddenPaths.includes(path);
-};
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
@@ -73,6 +71,7 @@ export function Sidebar() {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
   const pathname = usePathname()
   const { user, logout } = useAuth()
+  const { startLoading } = useTrainingLoading()
 
   useEffect(() => {
     if (user) {
@@ -80,36 +79,58 @@ export function Sidebar() {
     }
   }, [user])
 
+  // Auto-expand parent menus that contain the current page
+  useEffect(() => {
+    if (navigation.length > 0) {
+      const newExpanded = new Set<string>()
+      
+      // Check if current path is a child page and auto-expand its parent
+      navigation.forEach(item => {
+        if (item.children && item.children.length > 0) {
+          const hasActiveChild = item.children.some(child => 
+            pathname === child.href || pathname.startsWith(child.href + '/')
+          )
+          if (hasActiveChild) {
+            newExpanded.add(item.name)
+            console.log(`Auto-expanding parent: ${item.name} for active child`)
+          }
+        }
+      })
+      
+      if (newExpanded.size > 0) {
+        setExpandedItems(newExpanded)
+      }
+    }
+  }, [navigation, pathname])
+
   const fetchNavigationItems = async () => {
     if (!user) return
 
     try {
-      console.log(`Fetching hierarchical navigation for user role: ${user.role}`);
+      console.log(`Fetching hierarchical navigation for user role: ${user.role}`)
       
-      const response = await fetch("/api/data/page-permissions")
+      const response = await fetch(`/api/data/page-permissions?t=${Date.now()}`)
       if (!response.ok) {
         console.error("Failed to fetch page permissions:", response.status)
-        throw new Error("Failed to fetch page permissions");
+        throw new Error("Failed to fetch page permissions")
       }
       
       const data = await response.json()
       console.log("Page permissions from database:", data)
 
-      // Filter out training sub-pages and build hierarchical structure
-      const filteredPages = data.filter((item: any) => !shouldHideFromSidebar(item.page_path))
-      
-      // Convert to navigation items
-      const allItems: NavigationItem[] = filteredPages.map((item: any) => ({
+      // Convert ALL pages to navigation items (removed the shouldHideFromSidebar filter)
+      const allItems: NavigationItem[] = data.map((item: any) => ({
         id: item.id,
         name: item.page_name,
         href: item.page_path,
         icon: item.icon_name || 'FileText',
         isParent: item.is_parent_menu || false,
         parentId: item.parent_page_id,
+        sortOrder: item.sort_order || 999,
         children: []
       }))
 
-      console.log('All navigation items:', allItems);
+      console.log('All navigation items:', allItems)
 
       // Build hierarchical structure
       const rootItems: NavigationItem[] = []
@@ -122,6 +143,7 @@ export function Sidebar() {
 
       // Build the hierarchy
       allItems.forEach(item => {
+        console.log(`Processing item: ${item.name}, parentId: ${item.parentId}, id: ${item.id}`)
         if (item.parentId && itemsMap.has(item.parentId)) {
           // This is a child item
           const parent = itemsMap.get(item.parentId)!
@@ -129,54 +151,43 @@ export function Sidebar() {
             parent.children = []
           }
           parent.children.push(item)
-          console.log(`Added child ${item.name} to parent ${parent.name}`)
+          console.log(`✅ Added child ${item.name} to parent ${parent.name}`)
         } else {
           // This is a root item
           rootItems.push(item)
-          console.log(`Added root item: ${item.name}`)
+          console.log(`📁 Added root item: ${item.name}`)
         }
       })
 
-      // Sort children within each parent
+      // Sort root items by sort_order
+      rootItems.sort((a, b) => (a.sortOrder || 999) - (b.sortOrder || 999))
+
+      // Sort children within each parent by sort_order
       rootItems.forEach(item => {
         if (item.children && item.children.length > 0) {
-          item.children.sort((a, b) => a.name.localeCompare(b.name))
+          item.children.sort((a, b) => (a.sortOrder || 999) - (b.sortOrder || 999))
           console.log(`Parent ${item.name} has ${item.children.length} children:`, item.children.map(c => c.name))
         }
       })
 
-      console.log('Final hierarchical navigation:', rootItems);
+      console.log('Final hierarchical navigation:', rootItems)
 
-      // Apply role-based filtering
+      // Apply role-based filtering (but keep hierarchical structure intact)
       if (user.role.toLowerCase() === 'admin') {
-        console.log(`Admin user: showing all ${rootItems.length} items`);
+        console.log(`Admin user: showing all ${rootItems.length} items`)
         setNavigation(rootItems)
       } else {
-        // For non-admin users, filter to basic pages
-        const allowedPaths = ['/dashboard', '/students', '/training', '/schools']
-        const filteredItems = rootItems.filter(item => 
-          allowedPaths.includes(item.href) || 
-          (item.children && item.children.some(child => allowedPaths.includes(child.href)))
-        )
-        console.log(`Non-admin user: showing ${filteredItems.length} items`);
-        setNavigation(filteredItems)
+        // For non-admin users, show all items but let the backend handle permissions
+        console.log(`User role ${user.role}: showing ${rootItems.length} items`)
+        setNavigation(rootItems)
       }
     } catch (error) {
       console.error("Error fetching navigation items:", error)
       // Ultimate fallback navigation
-      if (user.role.toLowerCase() === 'admin') {
-        setNavigation([
-          { id: 1, name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
-          { id: 2, name: "Users", href: "/users", icon: "Users" },
-          { id: 3, name: "Schools", href: "/schools", icon: "School" },
-          { id: 4, name: "Settings", href: "/settings", icon: "Settings" },
-          { id: 5, name: "Page Management", href: "/settings/page-permissions", icon: "Shield" }
-        ])
-      } else {
-        setNavigation([
-          { id: 1, name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" }
-        ])
-      }
+      setNavigation([
+        { id: 1, name: "Dashboard", href: "/dashboard", icon: "LayoutDashboard" },
+        { id: 2, name: "Training Management", href: "/training", icon: "BookOpen" },
+      ])
     }
   }
 
@@ -197,7 +208,7 @@ export function Sidebar() {
     const hasChildren = item.children && item.children.length > 0
     const isExpanded = expandedItems.has(item.name)
 
-    console.log(`Rendering ${item.name}: hasChildren=${hasChildren}, isExpanded=${isExpanded}`)
+    console.log(`Rendering ${item.name}: hasChildren=${hasChildren}, isExpanded=${isExpanded}, children count=${item.children?.length || 0}`)
 
     return (
       <li key={item.id} className="space-y-1">
@@ -213,6 +224,9 @@ export function Sidebar() {
               onClick={() => {
                 // Navigate to parent page if it's a real page
                 if (item.href && item.href !== '#') {
+                  if (item.href.startsWith('/training')) {
+                    startLoading()
+                  }
                   window.location.href = item.href
                 }
               }}
@@ -250,6 +264,11 @@ export function Sidebar() {
                     <li key={child.id}>
                       <Link
                         href={child.href}
+                        onClick={() => {
+                          if (child.href.startsWith('/training')) {
+                            startLoading()
+                          }
+                        }}
                         className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm ${
                           childIsActive
                             ? "bg-blue-100 text-blue-700 font-medium"
@@ -269,6 +288,11 @@ export function Sidebar() {
           // Regular navigation item
           <Link
             href={item.href}
+            onClick={() => {
+              if (item.href.startsWith('/training')) {
+                startLoading()
+              }
+            }}
             className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
               isActive
                 ? "bg-blue-100 text-blue-700 font-medium"
@@ -313,7 +337,7 @@ export function Sidebar() {
         </ul>
         
         {/* Debug info */}
-        {!collapsed && user && (
+        {/* {!collapsed && user && (
           <div className="mt-6 p-3 bg-gray-50 rounded-lg text-xs text-gray-500">
             <div className="flex items-center gap-2 mb-1">
               <Database className="w-3 h-3" />
@@ -321,8 +345,9 @@ export function Sidebar() {
             </div>
             <div>Role: {user.role}</div>
             <div>Items: {navigation.length}</div>
+            <div>Training subs: {navigation.find(n => n.name === 'Training Management')?.children?.length || 0}</div>
           </div>
-        )}
+        )} */}
       </nav>
 
       {/* User Info & Logout */}

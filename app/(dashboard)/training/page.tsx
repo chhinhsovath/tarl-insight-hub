@@ -27,6 +27,11 @@ import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
+import { TrainingLocaleProvider } from '@/components/training-locale-provider';
+import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
+import { useTrainingTranslation } from '@/lib/training-i18n';
+import { PageLoader } from '@/components/page-loader';
+import { useAsyncOperation } from '@/hooks/use-async-operation';
 
 interface TrainingSession {
   id: number;
@@ -84,8 +89,10 @@ interface RecentFeedback {
   program_name: string;
 }
 
-export default function TrainingOverviewPage() {
+function TrainingOverviewPageContent() {
   const { user } = useAuth();
+  const { t } = useTrainingTranslation();
+  const { isLoading, execute } = useAsyncOperation();
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [programs, setPrograms] = useState<TrainingProgram[]>([]);
   const [feedbackStats, setFeedbackStats] = useState<FeedbackStats>({
@@ -114,7 +121,7 @@ export default function TrainingOverviewPage() {
   }, []);
 
   const fetchData = async () => {
-    try {
+    await execute(async () => {
       // Fetch sessions, programs, and feedback in parallel
       const [sessionsResponse, programsResponse, feedbackResponse] = await Promise.all([
         fetch('/api/training/sessions', {
@@ -153,6 +160,18 @@ export default function TrainingOverviewPage() {
             sessions_with_feedback: 0
           });
           setRecentFeedback(feedbackData.recent_feedback || []);
+        } else {
+          console.warn('Failed to fetch feedback data:', await feedbackResponse.text());
+          // Set default feedback stats if API fails
+          setFeedbackStats({
+            total_feedback: 0,
+            positive_feedback: 0,
+            negative_feedback: 0,
+            average_rating: 0,
+            would_recommend: 0,
+            sessions_with_feedback: 0
+          });
+          setRecentFeedback([]);
         }
 
         // Calculate stats - ensure counts are numbers, not strings
@@ -180,12 +199,11 @@ export default function TrainingOverviewPage() {
       } else {
         toast.error('Failed to fetch training data');
       }
-    } catch (error) {
-      console.error('Error fetching training data:', error);
-      toast.error('Error loading training overview');
-    } finally {
-      setLoading(false);
-    }
+      return true;
+    }, {
+      loadingMessage: 'Loading training overview...',
+      minLoadingTime: 500
+    });
   };
 
   if (!user) {
@@ -249,19 +267,23 @@ export default function TrainingOverviewPage() {
     .slice(0, 3);
 
   return (
-    <div className="p-6 space-y-6">
-      <TrainingBreadcrumb />
+    <PageLoader isLoading={isLoading} message={t.loading}>
+      <div className="space-y-6">
+        <TrainingBreadcrumb />
       {/* Header */}
       <div className="flex items-center justify-between mb-6 mt-4">
         <div>
-          <h1 className="text-3xl font-bold">Training Management</h1>
+          <h1 className="text-3xl font-bold">{t.trainingManagement}</h1>
           <p className="text-muted-foreground mt-1">
-            Overview of training programs, sessions, and participants
+            {t.overviewDescription}
           </p>
         </div>
-        <Badge className="bg-blue-100 text-blue-800" variant="secondary">
-          {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <TrainingLanguageSwitcher />
+          {/* <Badge className="bg-blue-100 text-blue-800" variant="secondary">
+            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+          </Badge> */}
+        </div>
       </div>
 
       {/* Quick Stats */}
@@ -270,10 +292,10 @@ export default function TrainingOverviewPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Sessions</p>
+                <p className="text-sm text-muted-foreground">{t.totalSessions}</p>
                 <p className="text-2xl font-bold">{stats.totalSessions}</p>
                 <p className="text-xs text-muted-foreground">
-                  {stats.upcomingSessions} upcoming
+                  {stats.upcomingSessions} {t.upcoming}
                 </p>
               </div>
               <CalendarDays className="h-8 w-8 text-blue-600" />
@@ -285,10 +307,10 @@ export default function TrainingOverviewPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Participants</p>
+                <p className="text-sm text-muted-foreground">{t.totalParticipants}</p>
                 <p className="text-2xl font-bold">{stats.totalParticipants}</p>
                 <p className="text-xs text-muted-foreground">
-                  {stats.confirmedParticipants} confirmed
+                  {stats.confirmedParticipants} {t.confirmed}
                 </p>
               </div>
               <Users className="h-8 w-8 text-purple-600" />
@@ -300,10 +322,10 @@ export default function TrainingOverviewPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Feedback</p>
+                <p className="text-sm text-muted-foreground">{t.totalFeedback}</p>
                 <p className="text-2xl font-bold">{feedbackStats.total_feedback}</p>
                 <p className="text-xs text-muted-foreground">
-                  {feedbackStats.positive_feedback} positive
+                  {feedbackStats.positive_feedback} {t.positive}
                 </p>
               </div>
               <MessageSquare className="h-8 w-8 text-green-600" />
@@ -315,13 +337,13 @@ export default function TrainingOverviewPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Avg Rating</p>
+                <p className="text-sm text-muted-foreground">{t.avgRating}</p>
                 <p className="text-2xl font-bold">
                   {feedbackStats.average_rating ? feedbackStats.average_rating.toFixed(1) : '0.0'}
                 </p>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                  {feedbackStats.would_recommend} recommend
+                  {feedbackStats.would_recommend} {t.recommend}
                 </p>
               </div>
               <Star className="h-8 w-8 text-yellow-600" />
@@ -336,10 +358,10 @@ export default function TrainingOverviewPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Active Programs</p>
+                <p className="text-sm text-muted-foreground">{t.activePrograms}</p>
                 <p className="text-2xl font-bold">{stats.totalPrograms}</p>
                 <p className="text-xs text-muted-foreground">
-                  {programs.reduce((sum, p) => sum + p.session_count, 0)} total sessions
+                  {programs.reduce((sum, p) => sum + p.session_count, 0)} {t.sessions}
                 </p>
               </div>
               <ClipboardList className="h-8 w-8 text-blue-600" />
@@ -351,14 +373,14 @@ export default function TrainingOverviewPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Completion Rate</p>
+                <p className="text-sm text-muted-foreground">{t.completionRate}</p>
                 <p className="text-2xl font-bold">
                   {stats.totalSessions > 0 
                     ? Math.round((stats.completedSessions / stats.totalSessions) * 100)
                     : 0}%
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {stats.completedSessions} completed
+                  {stats.completedSessions} {t.completed}
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-green-600" />
@@ -370,12 +392,12 @@ export default function TrainingOverviewPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Sessions w/ Feedback</p>
+                <p className="text-sm text-muted-foreground">{t.sessionsWithFeedback}</p>
                 <p className="text-2xl font-bold">{feedbackStats.sessions_with_feedback}</p>
                 <p className="text-xs text-muted-foreground">
                   {stats.totalSessions > 0 
                     ? Math.round((feedbackStats.sessions_with_feedback / stats.totalSessions) * 100)
-                    : 0}% coverage
+                    : 0}% {t.coverage}
                 </p>
               </div>
               <Activity className="h-8 w-8 text-purple-600" />
@@ -387,14 +409,14 @@ export default function TrainingOverviewPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Recommendation Rate</p>
+                <p className="text-sm text-muted-foreground">{t.recommendationRate}</p>
                 <p className="text-2xl font-bold">
                   {feedbackStats.total_feedback > 0 
                     ? Math.round((feedbackStats.would_recommend / feedbackStats.total_feedback) * 100)
                     : 0}%
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  would recommend
+                  {t.wouldRecommend}
                 </p>
               </div>
               <ThumbsUp className="h-8 w-8 text-orange-600" />
@@ -406,7 +428,7 @@ export default function TrainingOverviewPage() {
       {/* Training Management Navigation */}
       <Card>
         <CardHeader>
-          <CardTitle>Training Management</CardTitle>
+          <CardTitle>{t.trainingManagement}</CardTitle>
           <p className="text-sm text-muted-foreground">
             Access all training management functions from this centralized hub
           </p>
@@ -415,7 +437,7 @@ export default function TrainingOverviewPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Primary Actions */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-muted-foreground">Primary Functions</h3>
+              <h3 className="text-lg font-semibold text-muted-foreground">{t.primaryFunctions}</h3>
               
               <Link href="/training/sessions">
                 <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-blue-500">
@@ -424,13 +446,13 @@ export default function TrainingOverviewPage() {
                       <div>
                         <h4 className="font-semibold flex items-center gap-2">
                           <CalendarDays className="h-5 w-5 text-blue-600" />
-                          Training Sessions
+                          {t.trainingSessions}
                         </h4>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Create, schedule, and manage training sessions
+                          {t.sessionsDescription}
                         </p>
                         <div className="text-xs text-blue-600 mt-2">
-                          {stats.totalSessions} sessions • {stats.upcomingSessions} upcoming
+                          {stats.totalSessions} {t.sessions} • {stats.upcomingSessions} {t.upcoming}
                         </div>
                       </div>
                       <ArrowRight className="h-5 w-5 text-muted-foreground" />
@@ -446,13 +468,13 @@ export default function TrainingOverviewPage() {
                       <div>
                         <h4 className="font-semibold flex items-center gap-2">
                           <ClipboardList className="h-5 w-5 text-green-600" />
-                          Training Programs
+                          {t.trainingPrograms}
                         </h4>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Design and organize training curricula
+                          {t.programsDescription}
                         </p>
                         <div className="text-xs text-green-600 mt-2">
-                          {stats.totalPrograms} programs available
+                          {stats.totalPrograms} {t.programs} available
                         </div>
                       </div>
                       <ArrowRight className="h-5 w-5 text-muted-foreground" />
@@ -464,7 +486,7 @@ export default function TrainingOverviewPage() {
 
             {/* Secondary Actions */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-muted-foreground">Support Functions</h3>
+              <h3 className="text-lg font-semibold text-muted-foreground">{t.supportFunctions}</h3>
               
               <Link href="/training/participants">
                 <Card className="hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-purple-500">
@@ -473,13 +495,13 @@ export default function TrainingOverviewPage() {
                       <div>
                         <h4 className="font-semibold flex items-center gap-2">
                           <Users className="h-5 w-5 text-purple-600" />
-                          Participants
+                          {t.participants}
                         </h4>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Manage registrations and attendance
+                          {t.participantsDescription}
                         </p>
                         <div className="text-xs text-purple-600 mt-2">
-                          {stats.totalParticipants} registered • {stats.confirmedParticipants} confirmed
+                          {stats.totalParticipants} {t.registered} • {stats.confirmedParticipants} {t.confirmed}
                         </div>
                       </div>
                       <ArrowRight className="h-5 w-5 text-muted-foreground" />
@@ -495,10 +517,10 @@ export default function TrainingOverviewPage() {
                       <div>
                         <h4 className="font-semibold flex items-center gap-2">
                           <QrCode className="h-5 w-5 text-orange-600" />
-                          QR Codes
+                          {t.qrCodes}
                         </h4>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Generate codes for registration and feedback
+                          {t.qrCodesDescription}
                         </p>
                         <div className="text-xs text-orange-600 mt-2">
                           Digital registration and tracking
@@ -517,10 +539,10 @@ export default function TrainingOverviewPage() {
                       <div>
                         <h4 className="font-semibold flex items-center gap-2">
                           <MessageSquare className="h-5 w-5 text-green-600" />
-                          Training Feedback
+                          {t.trainingFeedback}
                         </h4>
                         <p className="text-sm text-muted-foreground mt-1">
-                          View and analyze training feedback
+                          {t.feedbackDescription}
                         </p>
                         <div className="text-xs text-green-600 mt-2">
                           {feedbackStats.total_feedback} feedback • {feedbackStats.average_rating ? feedbackStats.average_rating.toFixed(1) : '0.0'} avg rating
@@ -542,26 +564,26 @@ export default function TrainingOverviewPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Upcoming Sessions</CardTitle>
+              <CardTitle>{t.upcomingSessions}</CardTitle>
               <Link href="/training/sessions">
                 <Button variant="outline" size="sm">
-                  View All <ArrowRight className="h-4 w-4 ml-1" />
+                  {t.viewAll} <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               </Link>
             </div>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <p className="text-muted-foreground">Loading...</p>
+              <p className="text-muted-foreground">{t.loading}</p>
             ) : upcomingSessions.length === 0 ? (
               <div className="text-center py-8">
                 <Calendar className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">No upcoming sessions</p>
+                <p className="text-muted-foreground">{t.noUpcomingSessions}</p>
                 {canCreateSessions && (
                   <Link href="/training/sessions">
                     <Button className="mt-2" size="sm">
                       <Plus className="h-4 w-4 mr-1" />
-                      Create Session
+                      {t.createSession}
                     </Button>
                   </Link>
                 )}
@@ -594,26 +616,26 @@ export default function TrainingOverviewPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Training Programs</CardTitle>
+              <CardTitle>{t.trainingPrograms}</CardTitle>
               <Link href="/training/programs">
                 <Button variant="outline" size="sm">
-                  View All <ArrowRight className="h-4 w-4 ml-1" />
+                  {t.viewAll} <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               </Link>
             </div>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <p className="text-muted-foreground">Loading...</p>
+              <p className="text-muted-foreground">{t.loading}</p>
             ) : programs.length === 0 ? (
               <div className="text-center py-8">
                 <ClipboardList className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">No training programs</p>
+                <p className="text-muted-foreground">{t.noTrainingPrograms}</p>
                 {canCreatePrograms && (
                   <Link href="/training/programs">
                     <Button className="mt-2" size="sm">
                       <Plus className="h-4 w-4 mr-1" />
-                      Create Program
+                      {t.createProgram}
                     </Button>
                   </Link>
                 )}
@@ -628,7 +650,7 @@ export default function TrainingOverviewPage() {
                         {program.description || 'No description'}
                       </p>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                        <span>{program.duration_hours}h duration</span>
+                        <span>{program.duration_hours}h {t.duration}</span>
                         <span>{program.session_count} sessions</span>
                         <span>{program.total_participants} participants</span>
                       </div>
@@ -645,23 +667,23 @@ export default function TrainingOverviewPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Recent Feedback</CardTitle>
+              <CardTitle>{t.recentFeedback}</CardTitle>
               <Link href="/training/feedback">
                 <Button variant="outline" size="sm">
-                  View All <ArrowRight className="h-4 w-4 ml-1" />
+                  {t.viewAll} <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               </Link>
             </div>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <p className="text-muted-foreground">Loading...</p>
+              <p className="text-muted-foreground">{t.loading}</p>
             ) : recentFeedback.length === 0 ? (
               <div className="text-center py-8">
                 <MessageSquare className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">No feedback yet</p>
+                <p className="text-muted-foreground">{t.noFeedback}</p>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Feedback will appear here as participants submit responses
+                  {t.feedbackWillAppear}
                 </p>
               </div>
             ) : (
@@ -697,7 +719,7 @@ export default function TrainingOverviewPage() {
                     )}
                     {feedback.is_anonymous && (
                       <Badge variant="outline" className="mt-2 text-xs">
-                        Anonymous
+                        {t.anonymous}
                       </Badge>
                     )}
                   </div>
@@ -711,34 +733,45 @@ export default function TrainingOverviewPage() {
       {/* Training Workflow Help */}
       <Card>
         <CardHeader>
-          <CardTitle>Training Management Workflow</CardTitle>
+          <CardTitle>{t.trainingWorkflow}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center p-4 border rounded-lg">
               <Circle className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-              <h3 className="font-medium">1. Before Training</h3>
+              <h3 className="font-medium">1. {t.beforeTraining}</h3>
               <p className="text-sm text-muted-foreground">
-                Create programs and sessions, generate QR codes, send invitations
+                {t.beforeDescription}
               </p>
             </div>
             <div className="text-center p-4 border rounded-lg">
               <AlertCircle className="h-8 w-8 mx-auto mb-2 text-yellow-600" />
-              <h3 className="font-medium">2. During Training</h3>
+              <h3 className="font-medium">2. {t.duringTraining}</h3>
               <p className="text-sm text-muted-foreground">
-                Confirm attendance, distribute materials, conduct session
+                {t.duringDescription}
               </p>
             </div>
             <div className="text-center p-4 border rounded-lg">
               <CheckCircle className="h-8 w-8 mx-auto mb-2 text-green-600" />
-              <h3 className="font-medium">3. After Training</h3>
+              <h3 className="font-medium">3. {t.afterTraining}</h3>
               <p className="text-sm text-muted-foreground">
-                Collect feedback, generate reports, follow up
+                {t.afterDescription}
               </p>
             </div>
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </PageLoader>
+  );
+}
+
+export default function TrainingOverviewPage() {
+  return (
+    <TrainingLocaleProvider>
+      <div className="p-6">
+        <TrainingOverviewPageContent />
+      </div>
+    </TrainingLocaleProvider>
   );
 }

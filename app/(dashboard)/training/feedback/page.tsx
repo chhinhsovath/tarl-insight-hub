@@ -24,6 +24,9 @@ import {
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
+import { TrainingLocaleProvider } from '@/components/training-locale-provider';
+import { useTrainingTranslation } from '@/lib/training-i18n';
+import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
 
 interface TrainingFeedback {
   id: number;
@@ -59,8 +62,9 @@ interface FeedbackStats {
   sessions_with_feedback: number;
 }
 
-export default function TrainingFeedbackPage() {
+function TrainingFeedbackContent() {
   const { user } = useAuth();
+  const { t } = useTrainingTranslation();
   const searchParams = useSearchParams();
   const [feedback, setFeedback] = useState<TrainingFeedback[]>([]);
   const [filteredFeedback, setFilteredFeedback] = useState<TrainingFeedback[]>([]);
@@ -102,11 +106,11 @@ export default function TrainingFeedbackPage() {
         const data = await response.json();
         setFeedback(data);
       } else {
-        toast.error('Failed to fetch feedback');
+        toast.error(t.fetchFeedbackError);
       }
     } catch (error) {
       console.error('Error fetching feedback:', error);
-      toast.error('Error loading feedback');
+      toast.error(t.errorLoading);
     } finally {
       setLoading(false);
     }
@@ -218,31 +222,32 @@ export default function TrainingFeedbackPage() {
   if (!user) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Please log in to access training feedback.</p>
+        <p className="text-muted-foreground">{t.pleaseLogIn} {t.trainingFeedback.toLowerCase()}.</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="p-6 space-y-6">
       <TrainingBreadcrumb />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Training Feedback</h1>
+          <h1 className="text-3xl font-bold">{t.trainingFeedback}</h1>
           <p className="text-muted-foreground mt-1">
-            View and analyze participant feedback from training sessions
+            {t.viewAnalyzeFeedback}
           </p>
           {searchParams.get('session') && (
             <p className="text-sm text-blue-600 mt-1">
-              Showing feedback for session ID: {searchParams.get('session')}
+              {t.showingForSession}: {searchParams.get('session')}
             </p>
           )}
         </div>
         <div className="flex items-center gap-4">
-          <Badge className="bg-blue-100 text-blue-800" variant="secondary">
+        <TrainingLanguageSwitcher />
+          {/* <Badge className="bg-blue-100 text-blue-800" variant="secondary">
             {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-          </Badge>
+          </Badge> */}
           {searchParams.get('session') && (
             <Button 
               variant="outline"
@@ -250,7 +255,7 @@ export default function TrainingFeedbackPage() {
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Sessions
+              {t.backToSessions}
             </Button>
           )}
         </div>
@@ -262,10 +267,10 @@ export default function TrainingFeedbackPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Feedback</p>
+                <p className="text-sm text-muted-foreground">{t.totalFeedback}</p>
                 <p className="text-2xl font-bold">{stats.total_feedback}</p>
                 <p className="text-xs text-muted-foreground">
-                  {stats.sessions_with_feedback} sessions
+                  {stats.sessions_with_feedback} {t.sessions}
                 </p>
               </div>
               <MessageSquare className="h-8 w-8 text-blue-600" />
@@ -277,7 +282,7 @@ export default function TrainingFeedbackPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Average Rating</p>
+                <p className="text-sm text-muted-foreground">{t.avgRating}</p>
                 <p className="text-2xl font-bold">{stats.average_rating ? stats.average_rating.toFixed(1) : '0.0'}</p>
                 <div className="flex items-center gap-1 text-xs">
                   <StarRating rating={Math.round(stats.average_rating)} />
@@ -292,12 +297,12 @@ export default function TrainingFeedbackPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Positive Feedback</p>
+                <p className="text-sm text-muted-foreground">Positive {t.feedback}</p>
                 <p className="text-2xl font-bold">{stats.positive_feedback}</p>
                 <p className="text-xs text-muted-foreground">
                   {stats.total_feedback > 0 
                     ? Math.round((stats.positive_feedback / stats.total_feedback) * 100)
-                    : 0}% of total
+                    : 0} {t.percentOfTotal}
                 </p>
               </div>
               <ThumbsUp className="h-8 w-8 text-green-600" />
@@ -309,12 +314,12 @@ export default function TrainingFeedbackPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Would Recommend</p>
+                <p className="text-sm text-muted-foreground">{t.wouldRecommend}</p>
                 <p className="text-2xl font-bold">{stats.would_recommend}</p>
                 <p className="text-xs text-muted-foreground">
                   {stats.total_feedback > 0 
                     ? Math.round((stats.would_recommend / stats.total_feedback) * 100)
-                    : 0}% rate
+                    : 0} {t.percentRate}
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-purple-600" />
@@ -326,27 +331,27 @@ export default function TrainingFeedbackPage() {
       {/* Rating Breakdown */}
       <Card>
         <CardHeader>
-          <CardTitle>Rating Breakdown</CardTitle>
+          <CardTitle>{t.ratingBreakdown}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">Overall Quality</p>
+              <p className="text-sm text-muted-foreground">{t.overallQuality}</p>
               <p className="text-xl font-semibold">{stats.average_rating ? stats.average_rating.toFixed(1) : '0.0'}</p>
               <StarRating rating={Math.round(stats.average_rating)} />
             </div>
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">Content Quality</p>
+              <p className="text-sm text-muted-foreground">{t.contentQuality}</p>
               <p className="text-xl font-semibold">{stats.avg_content_rating ? stats.avg_content_rating.toFixed(1) : '0.0'}</p>
               <StarRating rating={Math.round(stats.avg_content_rating)} />
             </div>
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">Trainer Effectiveness</p>
+              <p className="text-sm text-muted-foreground">{t.trainerEffectiveness}</p>
               <p className="text-xl font-semibold">{stats.avg_trainer_rating ? stats.avg_trainer_rating.toFixed(1) : '0.0'}</p>
               <StarRating rating={Math.round(stats.avg_trainer_rating)} />
             </div>
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">Venue & Facilities</p>
+              <p className="text-sm text-muted-foreground">{t.venueFacilities}</p>
               <p className="text-xl font-semibold">{stats.avg_venue_rating ? stats.avg_venue_rating.toFixed(1) : '0.0'}</p>
               <StarRating rating={Math.round(stats.avg_venue_rating)} />
             </div>
@@ -362,7 +367,7 @@ export default function TrainingFeedbackPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search feedback by session, program, or comments..."
+                  placeholder={t.searchFeedback}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -373,23 +378,23 @@ export default function TrainingFeedbackPage() {
               <Select value={ratingFilter} onValueChange={setRatingFilter}>
                 <SelectTrigger className="w-[140px]">
                   <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Rating" />
+                  <SelectValue placeholder={t.rating} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Ratings</SelectItem>
-                  <SelectItem value="positive">Positive (4-5)</SelectItem>
-                  <SelectItem value="neutral">Neutral (3)</SelectItem>
-                  <SelectItem value="negative">Negative (1-2)</SelectItem>
+                  <SelectItem value="all">{t.allRatings}</SelectItem>
+                  <SelectItem value="positive">{t.positiveRating}</SelectItem>
+                  <SelectItem value="neutral">{t.neutralRating}</SelectItem>
+                  <SelectItem value="negative">{t.negativeRating}</SelectItem>
                 </SelectContent>
               </Select>
               
               <Select value={sessionFilter} onValueChange={setSessionFilter}>
                 <SelectTrigger className="w-[160px]">
                   <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Session" />
+                  <SelectValue placeholder={t.session} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Sessions</SelectItem>
+                  <SelectItem value="all">{t.allSessions}</SelectItem>
                   {uniqueSessions.map(session => (
                     <SelectItem key={session.id} value={session.id.toString()}>
                       {session.title}
@@ -405,18 +410,18 @@ export default function TrainingFeedbackPage() {
       {/* Feedback List */}
       <Card>
         <CardHeader>
-          <CardTitle>Feedback Responses ({filteredFeedback.length})</CardTitle>
+          <CardTitle>{t.feedbackResponses} ({filteredFeedback.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Loading feedback...</p>
+              <p className="text-muted-foreground">{t.loadingFeedback}</p>
             </div>
           ) : filteredFeedback.length === 0 ? (
             <div className="text-center py-8">
               <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
-                {feedback.length === 0 ? 'No feedback found.' : 'No feedback matches your filters.'}
+                {feedback.length === 0 ? t.noFeedbackFound : t.noMatchingFilters}
               </p>
             </div>
           ) : (
@@ -446,7 +451,7 @@ export default function TrainingFeedbackPage() {
                             {fb.overall_rating}/5
                           </Badge>
                           {fb.is_anonymous && (
-                            <Badge variant="outline">Anonymous</Badge>
+                            <Badge variant="outline">{t.anonymous}</Badge>
                           )}
                         </div>
                       </div>
@@ -473,7 +478,7 @@ export default function TrainingFeedbackPage() {
                         )}
                         {fb.trainer_rating && (
                           <div>
-                            <p className="text-muted-foreground">Trainer</p>
+                            <p className="text-muted-foreground">{t.trainer}</p>
                             <div className="flex items-center gap-2">
                               <StarRating rating={fb.trainer_rating} />
                               <span>{fb.trainer_rating}/5</span>
@@ -496,13 +501,13 @@ export default function TrainingFeedbackPage() {
                         <div className="space-y-2">
                           {fb.comments && (
                             <div>
-                              <p className="text-sm font-medium text-muted-foreground">Comments:</p>
+                              <p className="text-sm font-medium text-muted-foreground">{t.comments}:</p>
                               <p className="text-sm bg-gray-50 p-3 rounded-lg">"{fb.comments}"</p>
                             </div>
                           )}
                           {fb.suggestions && (
                             <div>
-                              <p className="text-sm font-medium text-muted-foreground">Suggestions:</p>
+                              <p className="text-sm font-medium text-muted-foreground">{t.suggestions}:</p>
                               <p className="text-sm bg-blue-50 p-3 rounded-lg">"{fb.suggestions}"</p>
                             </div>
                           )}
@@ -521,13 +526,13 @@ export default function TrainingFeedbackPage() {
                           {fb.would_recommend && (
                             <span className="flex items-center gap-1 text-green-600">
                               <ThumbsUp className="h-3 w-3" />
-                              Would recommend
+                              {t.wouldRecommend}
                             </span>
                           )}
                           {fb.would_recommend === false && (
                             <span className="flex items-center gap-1 text-red-600">
                               <ThumbsDown className="h-3 w-3" />
-                              Would not recommend
+                              {t.wouldNotRecommend}
                             </span>
                           )}
                         </div>
@@ -541,5 +546,13 @@ export default function TrainingFeedbackPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function TrainingFeedbackPage() {
+  return (
+    <TrainingLocaleProvider>
+      <TrainingFeedbackContent />
+    </TrainingLocaleProvider>
   );
 }

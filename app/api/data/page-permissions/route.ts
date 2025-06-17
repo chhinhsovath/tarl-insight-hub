@@ -54,6 +54,7 @@ export async function GET() {
       ${hasSortOrder ? ', sort_order' : ''}
       ${hasHierarchy ? ', parent_page_id, is_parent_menu, menu_level' : ''}
       FROM page_permissions 
+      WHERE is_displayed_in_menu = true AND menu_visibility = 'visible'
       ORDER BY ${hasSortOrder ? 'sort_order ASC, ' : ''}parent_page_id NULLS FIRST, page_name ASC
     `);
     

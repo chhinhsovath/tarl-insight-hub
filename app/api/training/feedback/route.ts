@@ -80,9 +80,22 @@ export async function GET(request: NextRequest) {
 
       const recentResult = await client.query(recentQuery, params);
 
+      // Provide default values if no data exists
+      const defaultStats = {
+        total_feedback: 0,
+        positive_feedback: 0,
+        negative_feedback: 0,
+        average_rating: 0,
+        avg_content_rating: 0,
+        avg_trainer_rating: 0,
+        avg_venue_rating: 0,
+        would_recommend: 0,
+        sessions_with_feedback: 0
+      };
+
       return NextResponse.json({
-        statistics: statsResult.rows[0],
-        recent_feedback: recentResult.rows
+        statistics: statsResult.rows[0] || defaultStats,
+        recent_feedback: recentResult.rows || []
       });
     } else {
       // Get feedback list

@@ -24,11 +24,10 @@ export async function GET(request: NextRequest) {
   try {
     const sessionToken = request.cookies.get("session-token")?.value;
 
-  if (!sessionToken) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+    if (!sessionToken) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  try {
     const user = await validateSession(sessionToken);
     if (!user) {
       return NextResponse.json({ error: "Invalid session" }, { status: 401 });

@@ -25,6 +25,9 @@ import {
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
+import { useTrainingTranslation } from '@/lib/training-i18n';
+import { TrainingLocaleProvider } from '@/components/training-locale-provider';
+import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
 
 interface TrainingParticipant {
   id: number;
@@ -57,8 +60,9 @@ interface TrainingSession {
   program_name: string;
 }
 
-export default function TrainingParticipantsPage() {
+function TrainingParticipantsPageContent() {
   const { user } = useAuth();
+  const { t } = useTrainingTranslation();
   const searchParams = useSearchParams();
   const [participants, setParticipants] = useState<TrainingParticipant[]>([]);
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
@@ -90,11 +94,11 @@ export default function TrainingParticipantsPage() {
         const data = await response.json();
         setParticipants(data);
       } else {
-        toast.error('Failed to fetch participants');
+        toast.error(t.fetchParticipantsError);
       }
     } catch (error) {
       console.error('Error fetching participants:', error);
-      toast.error('Error loading participants');
+      toast.error(t.errorLoading.replace('training programs', t.participants));
     } finally {
       setLoading(false);
     }
@@ -163,15 +167,15 @@ export default function TrainingParticipantsPage() {
       });
 
       if (response.ok) {
-        toast.success('Participant status updated successfully');
+        toast.success(t.participantUpdatedSuccess);
         fetchParticipants();
       } else {
         const error = await response.json();
-        toast.error(error.error || 'Failed to update participant status');
+        toast.error(error.error || t.updateParticipantError);
       }
     } catch (error) {
       console.error('Error updating participant:', error);
-      toast.error('Error updating participant status');
+      toast.error(t.updateParticipantError);
     }
   };
 
@@ -186,7 +190,7 @@ export default function TrainingParticipantsPage() {
   if (!user) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Please log in to access participant management.</p>
+        <p className="text-muted-foreground">{t.pleaseLogIn} {t.manageParticipants.toLowerCase()}.</p>
       </div>
     );
   }
@@ -234,25 +238,26 @@ export default function TrainingParticipantsPage() {
   const registeredParticipants = participants.filter(p => p.registration_status === 'registered').length;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="p-6 space-y-6">
       <TrainingBreadcrumb />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Training Participants</h1>
+          <h1 className="text-3xl font-bold">{t.participants}</h1>
           <p className="text-muted-foreground mt-1">
-            Manage participant registration and attendance
+            {t.manageParticipants}
           </p>
           {searchParams.get('session') && (
             <p className="text-sm text-blue-600 mt-1">
-              Showing participants for session ID: {searchParams.get('session')}
+              {t.showingForSession}: {searchParams.get('session')}
             </p>
           )}
         </div>
         <div className="flex items-center gap-4">
-          <Badge className="bg-blue-100 text-blue-800" variant="secondary">
+        <TrainingLanguageSwitcher />
+          {/*<Badge className="bg-blue-100 text-blue-800" variant="secondary">
             {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-          </Badge>
+          </Badge> */}
           {searchParams.get('session') && (
             <Button 
               variant="outline"
@@ -260,7 +265,7 @@ export default function TrainingParticipantsPage() {
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Sessions
+              {t.backToSessions}
             </Button>
           )}
         </div>
@@ -272,7 +277,7 @@ export default function TrainingParticipantsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Participants</p>
+                <p className="text-sm text-muted-foreground">{t.totalParticipants}</p>
                 <p className="text-2xl font-bold">{totalParticipants}</p>
               </div>
               <Users className="h-8 w-8 text-blue-600" />
@@ -284,7 +289,7 @@ export default function TrainingParticipantsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Registered</p>
+                <p className="text-sm text-muted-foreground">{t.registered}</p>
                 <p className="text-2xl font-bold">{registeredParticipants}</p>
               </div>
               <UserCheck className="h-8 w-8 text-green-600" />
@@ -296,7 +301,7 @@ export default function TrainingParticipantsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Attendance Confirmed</p>
+                <p className="text-sm text-muted-foreground">{t.attendanceConfirmed}</p>
                 <p className="text-2xl font-bold">{confirmedParticipants}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-purple-600" />
@@ -308,7 +313,7 @@ export default function TrainingParticipantsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Unconfirmed</p>
+                <p className="text-sm text-muted-foreground">{t.unconfirmed}</p>
                 <p className="text-2xl font-bold">{unconfirmedParticipants}</p>
               </div>
               <UserX className="h-8 w-8 text-orange-600" />
@@ -325,7 +330,7 @@ export default function TrainingParticipantsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search participants by name, email, session, or school..."
+                  placeholder={t.searchParticipants}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -336,10 +341,10 @@ export default function TrainingParticipantsPage() {
               <Select value={sessionFilter} onValueChange={setSessionFilter}>
                 <SelectTrigger className="w-[160px]">
                   <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Session" />
+                  <SelectValue placeholder={t.session} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Sessions</SelectItem>
+                  <SelectItem value="all">{t.allSessions}</SelectItem>
                   {sessions.map(session => (
                     <SelectItem key={session.id} value={session.id.toString()}>
                       {session.session_title}
@@ -351,13 +356,13 @@ export default function TrainingParticipantsPage() {
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[140px]">
                   <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Status" />
+                  <SelectValue placeholder={t.status} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="registered">Registered</SelectItem>
-                  <SelectItem value="confirmed">Attendance Confirmed</SelectItem>
-                  <SelectItem value="unconfirmed">Unconfirmed</SelectItem>
+                  <SelectItem value="all">{t.allStatus}</SelectItem>
+                  <SelectItem value="registered">{t.registered}</SelectItem>
+                  <SelectItem value="confirmed">{t.attendanceConfirmed}</SelectItem>
+                  <SelectItem value="unconfirmed">{t.unconfirmed}</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
@@ -369,18 +374,18 @@ export default function TrainingParticipantsPage() {
       {/* Participants List */}
       <Card>
         <CardHeader>
-          <CardTitle>Participants ({filteredParticipants.length})</CardTitle>
+          <CardTitle>{t.participants} ({filteredParticipants.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Loading participants...</p>
+              <p className="text-muted-foreground">{t.loadingParticipants}</p>
             </div>
           ) : filteredParticipants.length === 0 ? (
             <div className="text-center py-8">
               <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
-                {participants.length === 0 ? 'No participants found.' : 'No participants match your filters.'}
+                {participants.length === 0 ? t.noParticipantsFound : t.noMatchingFilters}
               </p>
             </div>
           ) : (
@@ -417,12 +422,12 @@ export default function TrainingParticipantsPage() {
                             {participant.attendance_confirmed ? (
                               <Badge className="bg-green-100 text-green-800" variant="secondary">
                                 <CheckCircle className="h-3 w-3 mr-1" />
-                                Confirmed
+                                {t.confirmed}
                               </Badge>
                             ) : (
                               <Badge className="bg-yellow-100 text-yellow-800" variant="secondary">
                                 <Clock className="h-3 w-3 mr-1" />
-                                Unconfirmed
+                                {t.unconfirmed}
                               </Badge>
                             )}
                           </div>
@@ -430,7 +435,7 @@ export default function TrainingParticipantsPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                           <div>
-                            <p className="font-medium mb-1">Session Details:</p>
+                            <p className="font-medium mb-1">{t.sessionDetails}:</p>
                             <div className="space-y-1 text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-4 w-4" />
@@ -438,15 +443,15 @@ export default function TrainingParticipantsPage() {
                               </div>
                               <div className="flex items-center gap-1">
                                 <Clock className="h-4 w-4" />
-                                {formatDate(participant.session_date)} at {formatTime(participant.session_time)}
+                                {formatDate(participant.session_date)} {t.at} {formatTime(participant.session_time)}
                               </div>
-                              <div>Program: {participant.program_name}</div>
-                              <div>Location: {participant.location}</div>
+                              <div>{t.program}: {participant.program_name}</div>
+                              <div>{t.location}: {participant.location}</div>
                             </div>
                           </div>
                           
                           <div>
-                            <p className="font-medium mb-1">Registration Info:</p>
+                            <p className="font-medium mb-1">{t.registrationInfo}:</p>
                             <div className="space-y-1 text-muted-foreground">
                               {participant.school_name && (
                                 <div className="flex items-center gap-1">
@@ -455,10 +460,10 @@ export default function TrainingParticipantsPage() {
                                 </div>
                               )}
                               {participant.participant_role && (
-                                <div>Role: {participant.participant_role}</div>
+                                <div>{t.role}: {participant.participant_role}</div>
                               )}
                               <div className="flex items-center gap-2">
-                                <span>Method:</span>
+                                <span>{t.method}:</span>
                                 <Badge 
                                   className={getRegistrationMethodBadge(participant.registration_method)} 
                                   variant="outline"
@@ -467,9 +472,9 @@ export default function TrainingParticipantsPage() {
                                   {participant.registration_method.replace('_', ' ')}
                                 </Badge>
                               </div>
-                              <div>Registered: {formatDate(participant.created_at)}</div>
+                              <div>{t.registered}: {formatDate(participant.created_at)}</div>
                               {participant.attendance_time && (
-                                <div>Confirmed: {formatDate(participant.attendance_time)}</div>
+                                <div>{t.confirmed}: {formatDate(participant.attendance_time)}</div>
                               )}
                             </div>
                           </div>
@@ -486,7 +491,7 @@ export default function TrainingParticipantsPage() {
                               className="text-red-600 hover:text-red-700"
                             >
                               <XCircle className="h-4 w-4 mr-1" />
-                              Unconfirm
+                              {t.unconfirm}
                             </Button>
                           ) : (
                             <Button 
@@ -496,7 +501,7 @@ export default function TrainingParticipantsPage() {
                               className="text-green-600 hover:text-green-700"
                             >
                               <CheckCircle className="h-4 w-4 mr-1" />
-                              Confirm
+                              {t.confirm}
                             </Button>
                           )}
                         </div>
@@ -510,5 +515,13 @@ export default function TrainingParticipantsPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function TrainingParticipantsPage() {
+  return (
+    <TrainingLocaleProvider>
+      <TrainingParticipantsPageContent />
+    </TrainingLocaleProvider>
   );
 }

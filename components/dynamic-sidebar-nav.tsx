@@ -25,6 +25,10 @@ import {
   PieChart,
   Home,
   Building,
+  CalendarDays,
+  QrCode,
+  MessageSquare,
+  Database,
 } from "lucide-react";
 
 interface SidebarNavProps {
@@ -42,6 +46,7 @@ interface PagePermission {
   parent_page_id?: number;
   is_parent_menu?: boolean;
   menu_level?: number;
+  sort_order?: number;
 }
 
 interface MenuItem {
@@ -69,8 +74,12 @@ const iconMap: Record<string, any> = {
   TrendingUp: TrendingUp,
   BookOpen: GraduationCap,
   MapPin: MapPin,
-  Database: ClipboardList,
+  Database: Database,
   Shield: Shield,
+  CalendarDays: CalendarDays,
+  ClipboardList: ClipboardList,
+  QrCode: QrCode,
+  MessageSquare: MessageSquare,
   // Fallback
   default: FileText
 };
@@ -108,24 +117,54 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
     loadPages();
   }, [refreshTrigger]);
 
+  // Auto-expand parent menus that contain the current page
+  useEffect(() => {
+    if (pages.length > 0) {
+      const newExpanded = new Set<string>();
+      
+      // Find if current path is a child page
+      pages.forEach(page => {
+        if (page.parent_page_id && (pathname === page.page_path || pathname.startsWith(page.page_path + '/'))) {
+          // Find the parent page
+          const parent = pages.find(p => p.id === page.parent_page_id);
+          if (parent) {
+            newExpanded.add(parent.page_name);
+            console.log(`Auto-expanding parent: ${parent.page_name} for active child: ${page.page_name}`);
+          }
+        }
+      });
+      
+      if (newExpanded.size > 0) {
+        setExpandedItems(newExpanded);
+      }
+    }
+  }, [pages, pathname]);
+
   const loadPages = async () => {
     try {
       setLoading(true);
       
       // First try to get user's personal menu order
-      const userMenuResponse = await fetch('/api/user/menu-order');
+      const userMenuResponse = await fetch(`/api/user/menu-order?t=${Date.now()}`);
       if (userMenuResponse.ok) {
         const userData = await userMenuResponse.json();
+        console.log('User menu data:', userData);
         if (userData.pages && userData.pages.length > 0) {
+          console.log('Using user personal menu order:', userData.pages);
           setPages(userData.pages);
           return;
+        } else {
+          console.log('No user personal menu found, falling back to system default');
         }
+      } else {
+        console.log('Failed to fetch user menu order:', userMenuResponse.status);
       }
       
       // Fallback to system default pages
-      const response = await fetch('/api/data/page-permissions');
+      const response = await fetch(`/api/data/page-permissions?t=${Date.now()}`);
       if (response.ok) {
         const pagesData = await response.json();
+        console.log('Fetched pages from API:', pagesData);
         setPages(pagesData);
       } else {
         console.error('Failed to fetch pages from database');
@@ -180,6 +219,7 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
 
     // Build the hierarchy - separate root items and child items
     allMenuItems.forEach(item => {
+      console.log(`Processing item: ${item.name}, parentId: ${item.parentId}, id: ${item.id}`);
       if (item.parentId && itemsMap.has(item.parentId)) {
         // This is a child item
         const parent = itemsMap.get(item.parentId)!;
@@ -187,18 +227,25 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
           parent.children = [];
         }
         parent.children.push(item);
-        console.log(`Added child ${item.name} to parent ${parent.name}`);
+        console.log(`✅ Added child ${item.name} to parent ${parent.name}`);
       } else {
         // This is a root item
         rootItems.push(item);
-        console.log(`Added root item: ${item.name}`);
+        console.log(`📁 Added root item: ${item.name}`);
       }
     });
 
-    // Sort children within each parent
+    // Sort children within each parent by sort order from database
     rootItems.forEach(item => {
       if (item.children && item.children.length > 0) {
-        item.children.sort((a, b) => a.name.localeCompare(b.name));
+        // Find the original page data to get sort_order
+        item.children.sort((a, b) => {
+          const aPage = pages.find(p => p.id === a.id);
+          const bPage = pages.find(p => p.id === b.id);
+          const aSortOrder = aPage?.sort_order || 999;
+          const bSortOrder = bPage?.sort_order || 999;
+          return aSortOrder - bSortOrder;
+        });
         console.log(`Parent ${item.name} has ${item.children.length} children:`, item.children.map(c => c.name));
       }
     });

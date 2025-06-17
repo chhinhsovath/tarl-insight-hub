@@ -27,6 +27,9 @@ import {
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
+import { TrainingLocaleProvider } from '@/components/training-locale-provider';
+import { useTrainingTranslation } from '@/lib/training-i18n';
+import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
 
 interface QRCodeData {
   id: number;
@@ -52,8 +55,9 @@ interface TrainingSession {
   program_name: string;
 }
 
-export default function QRCodesPage() {
+function QRCodesPageContent() {
   const { user } = useAuth();
+  const { t } = useTrainingTranslation();
   const searchParams = useSearchParams();
   const [qrCodes, setQrCodes] = useState<QRCodeData[]>([]);
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
@@ -93,11 +97,11 @@ export default function QRCodesPage() {
         const data = await response.json();
         setQrCodes(data);
       } else {
-        toast.error('Failed to fetch QR codes');
+        toast.error(t.fetchQrCodesError);
       }
     } catch (error) {
       console.error('Error fetching QR codes:', error);
-      toast.error('Error loading QR codes');
+      toast.error(t.errorLoading + ' QR codes');
     } finally {
       setLoading(false);
     }
@@ -161,7 +165,7 @@ export default function QRCodesPage() {
 
   const generateQrCode = async () => {
     if (!newQrCode.session_id || !newQrCode.code_type) {
-      toast.error('Please select a session and code type');
+      toast.error(t.selectSessionAndType);
       return;
     }
 
@@ -189,7 +193,7 @@ export default function QRCodesPage() {
       });
 
       if (response.ok) {
-        toast.success('QR code generated successfully');
+        toast.success(t.qrCodeGeneratedSuccess);
         setShowGenerateForm(false);
         setNewQrCode({
           session_id: '',
@@ -200,11 +204,11 @@ export default function QRCodesPage() {
         fetchQrCodes();
       } else {
         const error = await response.json();
-        toast.error(error.error || 'Failed to generate QR code');
+        toast.error(error.error || t.generateQrCodeError);
       }
     } catch (error) {
       console.error('Error generating QR code:', error);
-      toast.error('Error generating QR code');
+      toast.error(t.generateQrCodeError);
     }
   };
 
@@ -224,17 +228,17 @@ export default function QRCodesPage() {
         fetchQrCodes();
       } else {
         const error = await response.json();
-        toast.error(error.error || 'Failed to update QR code status');
+        toast.error(error.error || t.updateQrCodeError);
       }
     } catch (error) {
       console.error('Error updating QR code:', error);
-      toast.error('Error updating QR code status');
+      toast.error(t.updateQrCodeError);
     }
   };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard');
+    toast.success(t.copiedToClipboard);
   };
 
   const downloadQrCode = (qrCode: QRCodeData) => {
@@ -269,7 +273,7 @@ export default function QRCodesPage() {
         });
       }
 
-      toast.success('All QR codes generated successfully!');
+      toast.success(t.allQrCodesGeneratedSuccess);
       fetchQrCodes();
     } catch (error) {
       console.error('Error generating QR codes:', error);
@@ -280,7 +284,7 @@ export default function QRCodesPage() {
   if (!user) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Please log in to access QR code management.</p>
+        <p className="text-muted-foreground">{t.pleaseLogIn} QR {t.generateManageQrCodes.toLowerCase()}.</p>
       </div>
     );
   }
@@ -325,25 +329,26 @@ export default function QRCodesPage() {
   ).length;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="p-6 space-y-6">
       <TrainingBreadcrumb />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">QR Code Management</h1>
+          <h1 className="text-3xl font-bold">QR {t.codeType} {t.trainingManagement}</h1>
           <p className="text-muted-foreground mt-1">
-            Generate and manage QR codes for training sessions
+            {t.generateManageQrCodes}
           </p>
           {searchParams.get('session') && (
             <p className="text-sm text-blue-600 mt-1">
-              Showing QR codes for session ID: {searchParams.get('session')}
+              {t.showingForSession}: {searchParams.get('session')}
             </p>
           )}
         </div>
         <div className="flex items-center gap-4">
-          <Badge className="bg-blue-100 text-blue-800" variant="secondary">
+        <TrainingLanguageSwitcher />
+          {/* <Badge className="bg-blue-100 text-blue-800" variant="secondary">
             {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-          </Badge>
+          </Badge> */}
           {searchParams.get('session') && (
             <Button 
               variant="outline"
@@ -351,7 +356,7 @@ export default function QRCodesPage() {
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              Back to Sessions
+              {t.backToSessions}
             </Button>
           )}
           {canManageQrCodes && (
@@ -363,7 +368,7 @@ export default function QRCodesPage() {
                   onClick={() => generateQuickQrCodes()}
                 >
                   <QrCode className="h-4 w-4" />
-                  Generate All QR Types
+                  {t.generateAllQrTypes}
                 </Button>
               )}
               <Button 
@@ -371,7 +376,7 @@ export default function QRCodesPage() {
                 onClick={() => setShowGenerateForm(!showGenerateForm)}
               >
                 <Plus className="h-4 w-4" />
-                Generate QR Code
+                {t.generateQrCode}
               </Button>
             </>
           )}
@@ -384,7 +389,7 @@ export default function QRCodesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total QR Codes</p>
+                <p className="text-sm text-muted-foreground">{t.totalQrCodes}</p>
                 <p className="text-2xl font-bold">{totalQrCodes}</p>
               </div>
               <QrCode className="h-8 w-8 text-blue-600" />
@@ -396,7 +401,7 @@ export default function QRCodesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Active</p>
+                <p className="text-sm text-muted-foreground">{t.active}</p>
                 <p className="text-2xl font-bold">{activeQrCodes}</p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />
@@ -408,7 +413,7 @@ export default function QRCodesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Usage</p>
+                <p className="text-sm text-muted-foreground">{t.totalUsage}</p>
                 <p className="text-2xl font-bold">{totalUsage}</p>
               </div>
               <Activity className="h-8 w-8 text-purple-600" />
@@ -420,7 +425,7 @@ export default function QRCodesPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Expired</p>
+                <p className="text-sm text-muted-foreground">{t.expired}</p>
                 <p className="text-2xl font-bold">{expiredQrCodes}</p>
               </div>
               <XCircle className="h-8 w-8 text-red-600" />
@@ -433,23 +438,23 @@ export default function QRCodesPage() {
       {showGenerateForm && canManageQrCodes && (
         <Card>
           <CardHeader>
-            <CardTitle>Generate New QR Code</CardTitle>
+            <CardTitle>{t.generateQrCode} {t.newSession}</CardTitle>
             {searchParams.get('session') && (
               <p className="text-sm text-muted-foreground">
-                Generating for session ID: {searchParams.get('session')}
+                {t.generatingForSession}: {searchParams.get('session')}
               </p>
             )}
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label className="text-sm font-medium">Session</label>
+                <label className="text-sm font-medium">{t.session}</label>
                 <Select 
                   value={newQrCode.session_id} 
                   onValueChange={(value) => setNewQrCode(prev => ({ ...prev, session_id: value }))}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select session" />
+                    <SelectValue placeholder={t.selectSession} />
                   </SelectTrigger>
                   <SelectContent>
                     {sessions.map(session => (
@@ -462,7 +467,7 @@ export default function QRCodesPage() {
               </div>
               
               <div>
-                <label className="text-sm font-medium">Code Type</label>
+                <label className="text-sm font-medium">{t.codeType}</label>
                 <Select 
                   value={newQrCode.code_type} 
                   onValueChange={(value) => setNewQrCode(prev => ({ ...prev, code_type: value }))}
@@ -471,16 +476,16 @@ export default function QRCodesPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="registration">Registration</SelectItem>
-                    <SelectItem value="attendance">Attendance</SelectItem>
-                    <SelectItem value="feedback">Feedback</SelectItem>
-                    <SelectItem value="materials">Materials</SelectItem>
+                    <SelectItem value="registration">{t.registration}</SelectItem>
+                    <SelectItem value="attendance">{t.attendance}</SelectItem>
+                    <SelectItem value="feedback">{t.feedback}</SelectItem>
+                    <SelectItem value="materials">{t.materials}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
               <div>
-                <label className="text-sm font-medium">Expires At (Optional)</label>
+                <label className="text-sm font-medium">{t.expiresAt}</label>
                 <Input
                   type="datetime-local"
                   value={newQrCode.expires_at}
@@ -489,10 +494,10 @@ export default function QRCodesPage() {
               </div>
               
               <div>
-                <label className="text-sm font-medium">Max Usage (Optional)</label>
+                <label className="text-sm font-medium">{t.maxUsage}</label>
                 <Input
                   type="number"
-                  placeholder="Unlimited"
+                  placeholder={t.unlimited}
                   value={newQrCode.max_usage}
                   onChange={(e) => setNewQrCode(prev => ({ ...prev, max_usage: e.target.value }))}
                 />
@@ -501,10 +506,10 @@ export default function QRCodesPage() {
             
             <div className="flex gap-2 mt-4">
               <Button onClick={generateQrCode}>
-                Generate QR Code
+                {t.generateQrCode}
               </Button>
               <Button variant="outline" onClick={() => setShowGenerateForm(false)}>
-                Cancel
+                {t.cancel}
               </Button>
             </div>
           </CardContent>
@@ -519,7 +524,7 @@ export default function QRCodesPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search QR codes by session, type, or creator..."
+                  placeholder={t.searchQrCodes}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -530,10 +535,10 @@ export default function QRCodesPage() {
               <Select value={sessionFilter} onValueChange={setSessionFilter}>
                 <SelectTrigger className="w-[160px]">
                   <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Session" />
+                  <SelectValue placeholder={t.session} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Sessions</SelectItem>
+                  <SelectItem value="all">{t.allSessions}</SelectItem>
                   {sessions.map(session => (
                     <SelectItem key={session.id} value={session.id.toString()}>
                       {session.session_title}
@@ -545,10 +550,10 @@ export default function QRCodesPage() {
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger className="w-[120px]">
                   <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Type" />
+                  <SelectValue placeholder={t.type} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="all">{t.allTypes}</SelectItem>
                   {uniqueTypes.map(type => (
                     <SelectItem key={type} value={type}>
                       {type.charAt(0).toUpperCase() + type.slice(1)}
@@ -560,13 +565,13 @@ export default function QRCodesPage() {
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[120px]">
                   <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Status" />
+                  <SelectValue placeholder={t.status} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
+                  <SelectItem value="all">{t.allStatus}</SelectItem>
+                  <SelectItem value="active">{t.active}</SelectItem>
+                  <SelectItem value="inactive">{t.inactive}</SelectItem>
+                  <SelectItem value="expired">{t.expired}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -577,18 +582,18 @@ export default function QRCodesPage() {
       {/* QR Codes Grid */}
       <Card>
         <CardHeader>
-          <CardTitle>QR Codes ({filteredQrCodes.length})</CardTitle>
+          <CardTitle>{t.qrCodes} ({filteredQrCodes.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Loading QR codes...</p>
+              <p className="text-muted-foreground">{t.loadingQrCodes}</p>
             </div>
           ) : filteredQrCodes.length === 0 ? (
             <div className="text-center py-8">
               <QrCode className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
-                {qrCodes.length === 0 ? 'No QR codes found.' : 'No QR codes match your filters.'}
+                {qrCodes.length === 0 ? t.noQrCodesFound : t.noMatchingFilters}
               </p>
               {canManageQrCodes && qrCodes.length === 0 && (
                 <Button 
@@ -596,7 +601,7 @@ export default function QRCodesPage() {
                   variant="outline"
                   onClick={() => setShowGenerateForm(true)}
                 >
-                  Generate your first QR code
+                  {t.createFirstQrCode}
                 </Button>
               )}
             </div>
@@ -622,11 +627,11 @@ export default function QRCodesPage() {
                           </Badge>
                           {qrCode.is_active ? (
                             <Badge className="bg-green-100 text-green-800" variant="secondary">
-                              Active
+                              {t.active}
                             </Badge>
                           ) : (
                             <Badge className="bg-red-100 text-red-800" variant="secondary">
-                              Inactive
+                              {t.inactive}
                             </Badge>
                           )}
                         </div>
@@ -647,7 +652,7 @@ export default function QRCodesPage() {
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div className="flex items-center gap-2">
                           <Activity className="h-4 w-4 text-muted-foreground" />
-                          <span>{qrCode.usage_count} uses</span>
+                          <span>{qrCode.usage_count} {t.uses}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -659,13 +664,13 @@ export default function QRCodesPage() {
                       {(qrCode.expires_at || qrCode.max_usage) && (
                         <div className="text-xs text-muted-foreground space-y-1">
                           {qrCode.expires_at && (
-                            <div>Expires: {formatDateTime(qrCode.expires_at)}</div>
+                            <div>{t.expired}: {formatDateTime(qrCode.expires_at)}</div>
                           )}
                           {qrCode.max_usage && (
-                            <div>Max usage: {qrCode.max_usage}</div>
+                            <div>{t.maxUsage}: {qrCode.max_usage}</div>
                           )}
                           {qrCode.last_used_at && (
-                            <div>Last used: {formatDateTime(qrCode.last_used_at)}</div>
+                            <div>{t.lastUsed}: {formatDateTime(qrCode.last_used_at)}</div>
                           )}
                         </div>
                       )}
@@ -679,7 +684,7 @@ export default function QRCodesPage() {
                           className="flex-1"
                         >
                           <Download className="h-4 w-4 mr-1" />
-                          Download
+                          {t.download}
                         </Button>
                         <Button 
                           variant="outline" 
@@ -714,5 +719,13 @@ export default function QRCodesPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function QRCodesPage() {
+  return (
+    <TrainingLocaleProvider>
+      <QRCodesPageContent />
+    </TrainingLocaleProvider>
   );
 }

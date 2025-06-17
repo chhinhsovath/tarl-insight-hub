@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     const query = `
       SELECT 
         tm.*,
-        tm.material_title as material_name,
+        COALESCE(tm.material_name, tm.material_title) as material_name,
         creator.full_name as created_by_name
       FROM tbl_tarl_training_materials tm
       LEFT JOIN tbl_tarl_users creator ON tm.created_by = creator.id
@@ -102,10 +102,10 @@ export async function POST(request: NextRequest) {
     // Create the link material
     const result = await client.query(`
       INSERT INTO tbl_tarl_training_materials (
-        program_id, material_title, material_type, external_url, 
+        program_id, material_name, material_type, external_url, 
         description, is_required, sort_order, created_by
       ) VALUES ($1, $2, 'link', $3, $4, $5, $6, $7)
-      RETURNING id, material_title as material_name, external_url, description, is_required, created_at
+      RETURNING id, material_name, external_url, description, is_required, created_at
     `, [
       parseInt(program_id),
       material_name,

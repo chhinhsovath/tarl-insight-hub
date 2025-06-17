@@ -104,10 +104,10 @@ export async function POST(request: NextRequest) {
     // Save to database
     const result = await client.query(`
       INSERT INTO tbl_tarl_training_materials (
-        program_id, material_title, material_type, file_path, file_size, 
+        program_id, material_name, material_type, file_path, file_size, 
         file_type, original_filename, description, is_required, sort_order, created_by
       ) VALUES ($1, $2, 'file', $3, $4, $5, $6, $7, $8, $9, $10)
-      RETURNING id, material_title as material_name, file_path, file_size, created_at
+      RETURNING id, material_name, file_path, file_size, created_at
     `, [
       parseInt(programId),
       materialName,

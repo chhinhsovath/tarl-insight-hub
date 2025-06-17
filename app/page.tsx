@@ -16,8 +16,8 @@ export default function HomePage() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <Card className="w-full max-w-md shadow-xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Welcome Back!</CardTitle>
-            <CardDescription>You are already logged in as {user.full_name}</CardDescription>
+            <CardTitle className="text-2xl">សូមស្វាគមន៍មកវិញ!</CardTitle>
+            <CardDescription>អ្នកបានចូលប្រព័ន្ធហើយជា {user.full_name}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="text-center">
@@ -27,7 +27,7 @@ export default function HomePage() {
             </div>
             <Link href="/dashboard">
               <Button className="w-full" size="lg">
-                Go to Dashboard
+                ទៅកាន់ផ្ទាំងគ្រប់គ្រង
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -48,7 +48,7 @@ export default function HomePage() {
               <h1 className="text-2xl font-bold text-gray-900">TaRL Insight Hub</h1>
             </div>
             <Link href="/login">
-              <Button>Login</Button>
+              <Button>ចូលប្រព័ន្ធ</Button>
             </Link>
           </div>
         </div>
@@ -58,22 +58,21 @@ export default function HomePage() {
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-5xl font-bold text-gray-900 mb-6">
-            Teaching at the Right Level
-            <span className="block text-blue-600">Insight Hub</span>
+            ការបង្រៀនក្នុងកម្រិតត្រឹមត្រូវ
+            <span className="block text-blue-600">មជ្ឈមណ្ឌលព័ត៌មាន</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Empowering educators with data-driven insights to improve student learning outcomes through the TaRL
-            methodology. Track progress, manage observations, and make informed decisions.
+            ពង្រឹងសមត្ថភាពអ្នកអប់រំដោយព័ត៌មានគំនិតផ្អែកលើទិន្នន័យ ដើម្បីកែលម្អលទ្ធផលការរៀនរបស់សិស្ស តាមរយៈវិធីសាស្ត្រ TaRL។ តាមដានការរីកចម្រើន គ្រប់គ្រងការសង្កេត និងធ្វើការសម្រេចចិត្តដោយផ្អែកលើព័ត៌មាន។
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/login">
               <Button size="lg" className="px-8">
-                Get Started
+                ចាប់ផ្តើម
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <Button variant="outline" size="lg" className="px-8">
-              Learn More
+              ស្វែងយល់បន្ថែម
             </Button>
           </div>
         </div>
@@ -83,9 +82,9 @@ export default function HomePage() {
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Comprehensive TaRL Management</h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">ការគ្រប់គ្រង TaRL ពេញលេញ</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              Everything you need to implement and monitor Teaching at the Right Level programs effectively.
+              អ្វីគ្រប់យ៉ាងដែលអ្នកត្រូវការដើម្បីអនុវត្ត និងតាមដានកម្មវិធីការបង្រៀនក្នុងកម្រិតត្រឹមត្រូវប្រកបដោយប្រសិទ្ធភាព។
             </p>
           </div>
 
@@ -93,40 +92,40 @@ export default function HomePage() {
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardHeader>
                 <School className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-                <CardTitle>School Management</CardTitle>
+                <CardTitle>ការគ្រប់គ្រងសាលា</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600">Manage schools, teachers, and student data across your TaRL program.</p>
+                <p className="text-gray-600">គ្រប់គ្រងសាលា គ្រូបង្រៀន និងទិន្នន័យសិស្សនៅក្នុងកម្មវិធី TaRL របស់អ្នក។</p>
               </CardContent>
             </Card>
 
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardHeader>
                 <Users className="h-12 w-12 text-green-600 mx-auto mb-4" />
-                <CardTitle>Student Tracking</CardTitle>
+                <CardTitle>តាមដានសិស្ស</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600">Monitor individual student progress and learning levels in real-time.</p>
+                <p className="text-gray-600">តាមដានការរីកចម្រើនរបស់សិស្សម្នាក់ៗ និងកម្រិតការរៀនក្នុងពេលវេលាជាក់ស្តែង។</p>
               </CardContent>
             </Card>
 
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardHeader>
                 <BarChart3 className="h-12 w-12 text-purple-600 mx-auto mb-4" />
-                <CardTitle>Analytics Dashboard</CardTitle>
+                <CardTitle>ផ្ទាំងវិភាគ</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600">Comprehensive analytics and reporting for data-driven decisions.</p>
+                <p className="text-gray-600">ការវិភាគ និងរបាយការណ៍ពេញលេញសម្រាប់ការសម្រេចចិត្តផ្អែកលើទិន្នន័យ។</p>
               </CardContent>
             </Card>
 
             <Card className="text-center hover:shadow-lg transition-shadow">
               <CardHeader>
                 <Target className="h-12 w-12 text-orange-600 mx-auto mb-4" />
-                <CardTitle>Observation Tools</CardTitle>
+                <CardTitle>ឧបករណ៍សង្កេត</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-600">Structured classroom observation and assessment tools.</p>
+                <p className="text-gray-600">ឧបករណ៍សង្កេតកន្លែងរៀន និងការវាយតម្លៃដែលមានរចនាសម្ព័ន្ធ។</p>
               </CardContent>
             </Card>
           </div>

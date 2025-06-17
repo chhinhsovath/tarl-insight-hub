@@ -28,6 +28,9 @@ import { makeAuthenticatedRequest, handleApiResponse } from '@/lib/session-utils
 import { useRouter } from 'next/navigation';
 import DeleteSessionDialog from '@/components/delete-session-dialog';
 import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
+import { TrainingLocaleProvider } from '@/components/training-locale-provider';
+import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
+import { useTrainingTranslation } from '@/lib/training-i18n';
 
 interface TrainingSession {
   id: number;
@@ -49,8 +52,9 @@ interface TrainingSession {
   registration_deadline?: string;
 }
 
-export default function TrainingSessionsPage() {
+function TrainingSessionsPageContent() {
   const { user } = useAuth();
+  const { t } = useTrainingTranslation();
   const router = useRouter();
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [filteredSessions, setFilteredSessions] = useState<TrainingSession[]>([]);
@@ -97,7 +101,7 @@ export default function TrainingSessionsPage() {
       if (error instanceof Error) {
         toast.error(error.message);
       } else {
-        toast.error('Failed to fetch training sessions');
+        toast.error(t.fetchSessionsError);
       }
     } finally {
       setLoading(false);
@@ -161,7 +165,7 @@ export default function TrainingSessionsPage() {
       const result = await handleApiResponse(response);
       
       if (result) {
-        toast.success(result.message || 'Training session deleted successfully');
+        toast.success(result.message || t.sessionDeletedSuccess);
         fetchSessions(); // Refresh the list
         setDeleteDialog({ isOpen: false, sessionId: 0, sessionTitle: '', participantCount: 0 });
       }
@@ -170,7 +174,7 @@ export default function TrainingSessionsPage() {
       if (error instanceof Error) {
         toast.error(error.message);
       } else {
-        toast.error('Failed to delete training session');
+        toast.error(t.deleteSessionError);
       }
     }
   };
@@ -185,7 +189,7 @@ export default function TrainingSessionsPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">{t.loading}</p>
         </div>
       </div>
     );
@@ -196,9 +200,9 @@ export default function TrainingSessionsPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <p className="text-muted-foreground mb-4">Please log in to access training sessions.</p>
+          <p className="text-muted-foreground mb-4">{t.pleaseLogIn} {t.trainingSessions.toLowerCase()}.</p>
           <Button onClick={() => window.location.href = '/login'}>
-            Go to Login
+            {t.goToLogin}
           </Button>
         </div>
       </div>
@@ -252,22 +256,23 @@ export default function TrainingSessionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Training Sessions</h1>
+          <h1 className="text-3xl font-bold">{t.trainingSessions}</h1>
           <p className="text-muted-foreground mt-1">
-            Manage and monitor training sessions
+            {t.sessionsDescription}
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <Badge className="bg-blue-100 text-blue-800" variant="secondary">
+          <TrainingLanguageSwitcher />
+          {/* <Badge className="bg-blue-100 text-blue-800" variant="secondary">
             {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-          </Badge>
+          </Badge> */}
           {canCreateSessions && (
             <Button 
               className="flex items-center gap-2"
               onClick={handleCreateSession}
             >
               <Plus className="h-4 w-4" />
-              New Session
+              {t.createSession}
             </Button>
           )}
         </div>
@@ -279,7 +284,7 @@ export default function TrainingSessionsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Sessions</p>
+                <p className="text-sm text-muted-foreground">{t.totalSessions}</p>
                 <p className="text-2xl font-bold">{sessions.length}</p>
               </div>
               <CalendarDays className="h-8 w-8 text-blue-600" />
@@ -291,7 +296,7 @@ export default function TrainingSessionsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Scheduled</p>
+                <p className="text-sm text-muted-foreground">{t.scheduled}</p>
                 <p className="text-2xl font-bold">
                   {sessions.filter(s => s.session_status === 'scheduled').length}
                 </p>
@@ -305,7 +310,7 @@ export default function TrainingSessionsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Ongoing</p>
+                <p className="text-sm text-muted-foreground">{t.ongoing}</p>
                 <p className="text-2xl font-bold">
                   {sessions.filter(s => s.session_status === 'ongoing').length}
                 </p>
@@ -319,7 +324,7 @@ export default function TrainingSessionsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Completed</p>
+                <p className="text-sm text-muted-foreground">{t.completed}</p>
                 <p className="text-2xl font-bold">
                   {sessions.filter(s => s.session_status === 'completed').length}
                 </p>
@@ -338,7 +343,7 @@ export default function TrainingSessionsPage() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search sessions, programs, locations, or trainers..."
+                  placeholder={t.searchSessions}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -349,10 +354,10 @@ export default function TrainingSessionsPage() {
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[140px]">
                   <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Status" />
+                  <SelectValue placeholder={t.status} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="all">{t.allStatus}</SelectItem>
                   {uniqueStatuses.map(status => (
                     <SelectItem key={status} value={status}>
                       {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -368,18 +373,18 @@ export default function TrainingSessionsPage() {
       {/* Sessions List */}
       <Card>
         <CardHeader>
-          <CardTitle>Training Sessions ({filteredSessions.length})</CardTitle>
+          <CardTitle>{t.trainingSessions} ({filteredSessions.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Loading sessions...</p>
+              <p className="text-muted-foreground">{t.loadingSessions}</p>
             </div>
           ) : filteredSessions.length === 0 ? (
             <div className="text-center py-8">
               <CalendarDays className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">
-                {sessions.length === 0 ? 'No training sessions found.' : 'No sessions match your filters.'}
+                {sessions.length === 0 ? t.noSessionsFound : t.noMatchingFilters}
               </p>
               {canCreateSessions && sessions.length === 0 && (
                 <Button 
@@ -387,7 +392,7 @@ export default function TrainingSessionsPage() {
                   variant="outline"
                   onClick={handleCreateSession}
                 >
-                  Create your first session
+                  {t.createFirstSession}
                 </Button>
               )}
             </div>
@@ -420,15 +425,15 @@ export default function TrainingSessionsPage() {
 
                             <div className="flex items-center gap-4 mt-2">
                               <span className={`text-sm ${session.participant_count > 0 ? 'font-medium' : ''}`}>
-                                <strong className={session.participant_count > 0 ? 'text-blue-600' : ''}>{session.participant_count || 0}</strong> participants
+                                <strong className={session.participant_count > 0 ? 'text-blue-600' : ''}>{session.participant_count || 0}</strong> {t.participants}
                                 {session.max_participants && ` / ${session.max_participants}`}
                               </span>
                               <span className="text-sm">
-                                <strong>{session.confirmed_count || 0}</strong> confirmed
+                                <strong>{session.confirmed_count || 0}</strong> {t.confirmed}
                               </span>
                               {session.trainer_name && (
                                 <span className="text-sm text-muted-foreground">
-                                  Trainer: {session.trainer_name}
+                                  {t.trainer}: {session.trainer_name}
                                 </span>
                               )}
                             </div>
@@ -441,19 +446,19 @@ export default function TrainingSessionsPage() {
 
                         {/* Three-Stage Flow Status */}
                         <div className="mt-4 pt-4 border-t">
-                          <p className="text-sm font-medium mb-2">Training Flow Progress:</p>
+                          <p className="text-sm font-medium mb-2">{t.trainingFlowProgress}:</p>
                           <div className="flex items-center gap-6">
                             <div className="flex items-center gap-2">
                               {getStatusIcon(session.before_status || 'pending')}
-                              <span className="text-sm">Before</span>
+                              <span className="text-sm">{t.before}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               {getStatusIcon(session.during_status || 'pending')}
-                              <span className="text-sm">During</span>
+                              <span className="text-sm">{t.during}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               {getStatusIcon(session.after_status || 'pending')}
-                              <span className="text-sm">After</span>
+                              <span className="text-sm">{t.after}</span>
                             </div>
                           </div>
                         </div>
@@ -516,5 +521,13 @@ export default function TrainingSessionsPage() {
         participantCount={deleteDialog.participantCount}
       />
     </div>
+  );
+}
+
+export default function TrainingSessionsPage() {
+  return (
+    <TrainingLocaleProvider>
+      <TrainingSessionsPageContent />
+    </TrainingLocaleProvider>
   );
 }
