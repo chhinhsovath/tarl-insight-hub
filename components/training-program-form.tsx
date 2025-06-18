@@ -25,6 +25,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTrainingTranslation } from '@/lib/training-i18n';
 
 interface TrainingMaterial {
   id?: number;
@@ -47,6 +48,7 @@ interface TrainingProgramFormProps {
 }
 
 export default function TrainingProgramForm({ editingProgram, onSuccess, onCancel }: TrainingProgramFormProps) {
+  const { t } = useTrainingTranslation();
   const [loading, setLoading] = useState(false);
   const [materialsLoading, setMaterialsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -96,14 +98,14 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
   };
 
   const programTypes = [
-    { value: 'standard', label: 'Standard Training' },
-    { value: 'intensive', label: 'Intensive Training' },
-    { value: 'refresher', label: 'Refresher Course' },
-    { value: 'workshop', label: 'Workshop' },
-    { value: 'seminar', label: 'Seminar' },
-    { value: 'certification', label: 'Certification Program' },
-    { value: 'orientation', label: 'Orientation' },
-    { value: 'specialized', label: 'Specialized Training' }
+    { value: 'standard', label: t.standardTraining },
+    { value: 'intensive', label: t.intensiveTraining },
+    { value: 'refresher', label: t.refresherCourse },
+    { value: 'workshop', label: t.workshop },
+    { value: 'seminar', label: t.seminar },
+    { value: 'certification', label: t.certificationProgram },
+    { value: 'orientation', label: t.orientation },
+    { value: 'specialized', label: t.specializedTraining }
   ];
 
   const handleInputChange = (field: string, value: string) => {
@@ -118,11 +120,11 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
     if (!file) return;
 
     if (!editingProgram?.id) {
-      toast.error('Please save the program first before adding materials');
+      toast.error(t.saveProgramFirst);
       return;
     }
 
-    const materialName = prompt('Enter a name for this material:');
+    const materialName = prompt(t.materialName + ':');
     if (!materialName) return;
 
     setUploadingFile(true);
@@ -155,15 +157,15 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
         const result = await response.json();
         console.log('Upload success:', result);
         setMaterials(prev => [...prev, result.material]);
-        toast.success('File uploaded successfully!');
+        toast.success(t.fileUploadedSuccess);
       } else {
         const error = await response.json().catch(() => ({ error: 'Unknown upload error' }));
         console.error('Upload error:', error);
-        toast.error(error.error || 'Failed to upload file');
+        toast.error(error.error || t.failedToUploadFile);
       }
     } catch (error) {
       console.error('Error uploading file:', error);
-      toast.error('Error uploading file');
+      toast.error(t.failedToUploadFile);
     } finally {
       setUploadingFile(false);
       // Reset file input
@@ -173,12 +175,12 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
 
   const handleAddLink = async () => {
     if (!editingProgram?.id) {
-      toast.error('Please save the program first before adding materials');
+      toast.error(t.saveProgramFirst);
       return;
     }
 
     if (!newLinkMaterial.material_name || !newLinkMaterial.external_url) {
-      toast.error('Material name and URL are required');
+      toast.error(t.materialNameRequired);
       return;
     }
 
@@ -206,21 +208,21 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
           description: '',
           is_required: false
         });
-        toast.success('Link added successfully!');
+        toast.success(t.linkAddedSuccess);
       } else {
         const error = await response.json();
-        toast.error(error.error || 'Failed to add link');
+        toast.error(error.error || t.failedToAddLink);
       }
     } catch (error) {
       console.error('Error adding link:', error);
-      toast.error('Error adding link');
+      toast.error(t.failedToAddLink);
     } finally {
       setMaterialsLoading(false);
     }
   };
 
   const handleDeleteMaterial = async (materialId: number) => {
-    if (!confirm('Are you sure you want to delete this material?')) {
+    if (!confirm(t.deleteMaterialConfirm)) {
       return;
     }
 
@@ -232,14 +234,14 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
 
       if (response.ok) {
         setMaterials(prev => prev.filter(m => m.id !== materialId));
-        toast.success('Material deleted successfully!');
+        toast.success(t.materialDeletedSuccess);
       } else {
         const error = await response.json();
-        toast.error(error.error || 'Failed to delete material');
+        toast.error(error.error || t.failedToDeleteMaterial);
       }
     } catch (error) {
       console.error('Error deleting material:', error);
-      toast.error('Error deleting material');
+      toast.error(t.failedToDeleteMaterial);
     }
   };
 
@@ -262,7 +264,7 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
     e.preventDefault();
     
     if (!formData.program_name.trim()) {
-      toast.error('Program name is required');
+      toast.error(t.programNameRequired);
       return;
     }
 
@@ -296,16 +298,16 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
       if (response.ok) {
         const result = await response.json();
         console.log('Success result:', result);
-        toast.success(isEditing ? 'Training program updated successfully!' : 'Training program created successfully!');
+        toast.success(isEditing ? t.trainingProgramUpdatedSuccess : t.trainingProgramCreatedSuccess);
         onSuccess();
       } else {
         const error = await response.json().catch(() => ({ error: 'Unknown error' }));
         console.error('API Error:', error);
-        toast.error(error.error || `Failed to ${isEditing ? 'update' : 'create'} training program`);
+        toast.error(error.error || (isEditing ? t.updateSessionError : t.failedToUploadFile));
       }
     } catch (error) {
       console.error('Error creating training program:', error);
-      toast.error('Error creating training program');
+      toast.error(isEditing ? t.updateSessionError : t.failedToUploadFile);
     } finally {
       setLoading(false);
     }
@@ -318,7 +320,7 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <ClipboardList className="h-5 w-5" />
-              {editingProgram ? 'Edit Training Program' : 'Create New Training Program'}
+              {editingProgram ? t.editTrainingProgram : t.createNewTrainingProgram}
             </CardTitle>
             <Button variant="ghost" size="sm" onClick={onCancel}>
               <X className="h-4 w-4" />
@@ -328,42 +330,42 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
         <CardContent className="overflow-y-auto">
           <Tabs defaultValue="basic" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="basic">Basic Info</TabsTrigger>
-              <TabsTrigger value="materials">Training Materials ({materials.length})</TabsTrigger>
+              <TabsTrigger value="basic">{t.basicInfo}</TabsTrigger>
+              <TabsTrigger value="materials">{t.trainingMaterials} ({materials.length})</TabsTrigger>
             </TabsList>
             
             <TabsContent value="basic" className="space-y-6">
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Program Name */}
                 <div className="space-y-2">
-                  <Label htmlFor="program_name">Program Name *</Label>
+                  <Label htmlFor="program_name">{t.programName} *</Label>
                   <Input
                     id="program_name"
                     value={formData.program_name}
                     onChange={(e) => handleInputChange('program_name', e.target.value)}
-                    placeholder="Enter training program name"
+                    placeholder={t.enterTrainingProgramName}
                     required
                   />
                 </div>
 
                 {/* Description */}
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">{t.description}</Label>
                   <Textarea
                     id="description"
                     value={formData.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
-                    placeholder="Enter program description"
+                    placeholder={t.enterProgramDescription}
                     rows={3}
                   />
                 </div>
 
                 {/* Program Type */}
                 <div className="space-y-2">
-                  <Label htmlFor="program_type">Program Type</Label>
+                  <Label htmlFor="program_type">{t.programType}</Label>
                   <Select value={formData.program_type} onValueChange={(value) => handleInputChange('program_type', value)}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select program type" />
+                      <SelectValue placeholder={t.selectProgramType} />
                     </SelectTrigger>
                     <SelectContent>
                       {programTypes.map((type) => (
@@ -377,7 +379,7 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
 
                 {/* Duration Hours */}
                 <div className="space-y-2">
-                  <Label htmlFor="duration_hours">Duration (Hours)</Label>
+                  <Label htmlFor="duration_hours">{t.durationHours}</Label>
                   <Input
                     id="duration_hours"
                     type="number"
@@ -388,17 +390,17 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
                     placeholder="8"
                   />
                   <p className="text-sm text-muted-foreground">
-                    Total estimated duration for the entire program
+                    {t.totalEstimatedDuration}
                   </p>
                 </div>
 
                 {/* Form Actions */}
                 <div className="flex items-center justify-end gap-3 pt-4 border-t">
                   <Button type="button" variant="outline" onClick={onCancel}>
-                    Cancel
+                    {t.cancel}
                   </Button>
                   <Button type="submit" disabled={loading}>
-                    {loading ? (editingProgram ? 'Updating...' : 'Creating...') : (editingProgram ? 'Update Program' : 'Create Program')}
+                    {loading ? (editingProgram ? t.updating : t.creating) : (editingProgram ? t.updateProgram : t.createProgram)}
                   </Button>
                 </div>
               </form>
@@ -409,7 +411,7 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
                 <div className="text-center p-6 border-2 border-dashed border-gray-300 rounded-lg">
                   <AlertCircle className="h-8 w-8 mx-auto text-yellow-600 mb-2" />
                   <p className="text-muted-foreground">
-                    Please save the program first to add training materials
+                    {t.saveProgramFirst}
                   </p>
                 </div>
               )}
@@ -418,7 +420,7 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
                 <>
                   {/* Upload Section */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Add Training Materials</h3>
+                    <h3 className="text-lg font-semibold">{t.addTrainingMaterials}</h3>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* File Upload */}
@@ -426,13 +428,13 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
                         <CardHeader className="pb-3">
                           <CardTitle className="text-sm flex items-center gap-2">
                             <Upload className="h-4 w-4" />
-                            Upload Files
+                            {t.uploadFiles}
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-2">
                             <p className="text-sm text-muted-foreground">
-                              Upload Word, Excel, PowerPoint, PDF, or video files
+                              {t.uploadWordExcelFiles}
                             </p>
                             <div className="flex items-center gap-2">
                               <Input
@@ -444,7 +446,7 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
                               />
                             </div>
                             {uploadingFile && (
-                              <p className="text-sm text-blue-600">Uploading...</p>
+                              <p className="text-sm text-blue-600">{t.uploading}</p>
                             )}
                           </div>
                         </CardContent>
@@ -455,13 +457,13 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
                         <CardHeader className="pb-3">
                           <CardTitle className="text-sm flex items-center gap-2">
                             <Link className="h-4 w-4" />
-                            Add Link
+                            {t.addLink}
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-3">
                             <Input
-                              placeholder="Material name"
+                              placeholder={t.materialName}
                               value={newLinkMaterial.material_name}
                               onChange={(e) => setNewLinkMaterial(prev => ({ ...prev, material_name: e.target.value }))}
                             />
@@ -476,7 +478,7 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
                               onClick={handleAddLink}
                               disabled={materialsLoading || !newLinkMaterial.material_name || !newLinkMaterial.external_url}
                             >
-                              {materialsLoading ? 'Adding...' : 'Add Link'}
+                              {materialsLoading ? t.addingMaterial : t.addLink}
                             </Button>
                           </div>
                         </CardContent>
@@ -488,12 +490,12 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
                   
                   {/* Materials List */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Training Materials ({materials.length})</h3>
+                    <h3 className="text-lg font-semibold">{t.trainingMaterials} ({materials.length})</h3>
                     
                     {materials.length === 0 ? (
                       <div className="text-center p-6 border-2 border-dashed border-gray-300 rounded-lg">
                         <FileText className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                        <p className="text-muted-foreground">No materials added yet</p>
+                        <p className="text-muted-foreground">{t.noMaterialsAdded}</p>
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -528,7 +530,7 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
                               </div>
                               <div className="flex items-center gap-2">
                                 {material.is_required && (
-                                  <Badge variant="secondary" className="text-xs">Required</Badge>
+                                  <Badge variant="secondary" className="text-xs">{t.required}</Badge>
                                 )}
                                 {material.material_type === 'link' && (
                                   <Button
@@ -560,7 +562,7 @@ export default function TrainingProgramForm({ editingProgram, onSuccess, onCance
               {/* Actions for Materials Tab */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t">
                 <Button type="button" variant="outline" onClick={onCancel}>
-                  Close
+                  {t.close}
                 </Button>
               </div>
             </TabsContent>

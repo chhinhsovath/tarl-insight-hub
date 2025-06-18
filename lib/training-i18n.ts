@@ -456,6 +456,59 @@ export interface TrainingTranslations {
   forSessionEvaluation: string;
   generateQr: string;
   manageAllQrCodes: string;
+
+  // Training Program Form
+  editTrainingProgram: string;
+  createNewTrainingProgram: string;
+  basicInfo: string;
+  trainingMaterials: string;
+  programName: string;
+  enterTrainingProgramName: string;
+  description: string;
+  enterProgramDescription: string;
+  programType: string;
+  selectProgramType: string;
+  durationHours: string;
+  totalEstimatedDuration: string;
+  updateProgram: string;
+  createProgram: string;
+  updating: string;
+  creating: string;
+  addTrainingMaterials: string;
+  uploadFiles: string;
+  uploadWordExcelFiles: string;
+  chooseFile: string;
+  uploading: string;
+  addLink: string;
+  materialName: string;
+  addingMaterial: string;
+  noMaterialsAdded: string;
+  required: string;
+  close: string;
+  saveProgramFirst: string;
+  materialNameRequired: string;
+  
+  // Program Types
+  standardTraining: string;
+  intensiveTraining: string;
+  refresherCourse: string;
+  workshop: string;
+  seminar: string;
+  certificationProgram: string;
+  orientation: string;
+  specializedTraining: string;
+
+  // Success/Error Messages
+  programNameRequired: string;
+  trainingProgramCreatedSuccess: string;
+  trainingProgramUpdatedSuccess: string;
+  fileUploadedSuccess: string;
+  linkAddedSuccess: string;
+  materialDeletedSuccess: string;
+  failedToUploadFile: string;
+  failedToAddLink: string;
+  failedToDeleteMaterial: string;
+  deleteMaterialConfirm: string;
 }
 
 // English translations
@@ -910,7 +963,60 @@ export const enTranslations: TrainingTranslations = {
   qrCodeForFeedback: 'Feedback',
   forSessionEvaluation: 'For session evaluation',
   generateQr: 'Generate QR',
-  manageAllQrCodes: 'Manage All QR Codes'
+  manageAllQrCodes: 'Manage All QR Codes',
+
+  // Training Program Form
+  editTrainingProgram: 'Edit Training Program',
+  createNewTrainingProgram: 'Create New Training Program',
+  basicInfo: 'Basic Info',
+  trainingMaterials: 'Training Materials',
+  programName: 'Program Name',
+  enterTrainingProgramName: 'Enter training program name',
+  description: 'Description',
+  enterProgramDescription: 'Enter program description',
+  programType: 'Program Type',
+  selectProgramType: 'Select program type',
+  durationHours: 'Duration (Hours)',
+  totalEstimatedDuration: 'Total estimated duration for the entire program',
+  updateProgram: 'Update Program',
+  createProgram: 'Create Program',
+  updating: 'Updating...',
+  creating: 'Creating...',
+  addTrainingMaterials: 'Add Training Materials',
+  uploadFiles: 'Upload Files',
+  uploadWordExcelFiles: 'Upload Word, Excel, PowerPoint, PDF, or video files',
+  chooseFile: 'Choose File',
+  uploading: 'Uploading...',
+  addLink: 'Add Link',
+  materialName: 'Material name',
+  addingMaterial: 'Adding...',
+  noMaterialsAdded: 'No materials added yet',
+  required: 'Required',
+  close: 'Close',
+  saveProgramFirst: 'Please save the program first to add training materials',
+  materialNameRequired: 'Material name and URL are required',
+  
+  // Program Types
+  standardTraining: 'Standard Training',
+  intensiveTraining: 'Intensive Training',
+  refresherCourse: 'Refresher Course',
+  workshop: 'Workshop',
+  seminar: 'Seminar',
+  certificationProgram: 'Certification Program',
+  orientation: 'Orientation',
+  specializedTraining: 'Specialized Training',
+
+  // Success/Error Messages
+  programNameRequired: 'Program name is required',
+  trainingProgramCreatedSuccess: 'Training program created successfully!',
+  trainingProgramUpdatedSuccess: 'Training program updated successfully!',
+  fileUploadedSuccess: 'File uploaded successfully!',
+  linkAddedSuccess: 'Link added successfully!',
+  materialDeletedSuccess: 'Material deleted successfully!',
+  failedToUploadFile: 'Failed to upload file',
+  failedToAddLink: 'Failed to add link',
+  failedToDeleteMaterial: 'Failed to delete material',
+  deleteMaterialConfirm: 'Are you sure you want to delete this material?'
 };
 
 // Khmer translations
@@ -1365,7 +1471,60 @@ export const kmTranslations: TrainingTranslations = {
   qrCodeForFeedback: 'មតិយោបល់',
   forSessionEvaluation: 'សម្រាប់ការវាយតម្លៃវគ្គសិក្សា',
   generateQr: 'បង្កើតកូដ QR',
-  manageAllQrCodes: 'គ្រប់គ្រងកូដ QR ទាំងអស់'
+  manageAllQrCodes: 'គ្រប់គ្រងកូដ QR ទាំងអស់',
+
+  // Training Program Form
+  editTrainingProgram: 'កែសម្រួលកម្មវិធីបណ្តុះបណ្តាល',
+  createNewTrainingProgram: 'បង្កើតកម្មវិធីបណ្តុះបណ្តាលថ្មី',
+  basicInfo: 'ព័ត៌មានមូលដ្ឋាន',
+  trainingMaterials: 'សម្ភារៈបណ្តុះបណ្តាល',
+  programName: 'ឈ្មោះកម្មវិធី',
+  enterTrainingProgramName: 'បញ្ចូលឈ្មោះកម្មវិធីបណ្តុះបណ្តាល',
+  description: 'ការពិពណ៌នា',
+  enterProgramDescription: 'បញ្ចូលការពិពណ៌នាកម្មវិធី',
+  programType: 'ប្រភេទកម្មវិធី',
+  selectProgramType: 'ជ្រើសរើសប្រភេទកម្មវិធី',
+  durationHours: 'រយៈពេល (ម៉ោង)',
+  totalEstimatedDuration: 'រយៈពេលសរុបប៉ាន់ស្មានសម្រាប់កម្មវិធីទាំងមូល',
+  updateProgram: 'កែប្រែកម្មវិធី',
+  createProgram: 'បង្កើតកម្មវិធី',
+  updating: 'កំពុងកែប្រែ...',
+  creating: 'កំពុងបង្កើត...',
+  addTrainingMaterials: 'បន្ថែមសម្ភារៈបណ្តុះបណ្តាល',
+  uploadFiles: 'ផ្ទុកឯកសារ',
+  uploadWordExcelFiles: 'ផ្ទុក Word, Excel, PowerPoint, PDF, ឬឯកសារវីដេអូ',
+  chooseFile: 'ជ្រើសរើសឯកសារ',
+  uploading: 'កំពុងផ្ទុក...',
+  addLink: 'បន្ថែមតំណ',
+  materialName: 'ឈ្មោះសម្ភារៈ',
+  addingMaterial: 'កំពុងបន្ថែម...',
+  noMaterialsAdded: 'មិនទាន់មានសម្ភារៈត្រូវបានបន្ថែម',
+  required: 'ចាំបាច់',
+  close: 'បិទ',
+  saveProgramFirst: 'សូមរក្សាទុកកម្មវិធីជាមុនសិនមុនបន្ថែមសម្ភារៈបណ្តុះបណ្តាល',
+  materialNameRequired: 'ឈ្មោះសម្ភារៈនិង URL ត្រូវការ',
+  
+  // Program Types
+  standardTraining: 'ការបណ្តុះបណ្តាលស្តង់ដារ',
+  intensiveTraining: 'ការបណ្តុះបណ្តាលដ៏ខ្លាំង',
+  refresherCourse: 'វគ្គកើនចំណេះដឹង',
+  workshop: 'វគ្គសិក្សា',
+  seminar: 'សិក្ខាសាលា',
+  certificationProgram: 'កម្មវិធីវិញ្ញាបនបត្រ',
+  orientation: 'ការណែនាំ',
+  specializedTraining: 'ការបណ្តុះបណ្តាលជំនាញ',
+
+  // Success/Error Messages
+  programNameRequired: 'ឈ្មោះកម្មវិធីត្រូវការ',
+  trainingProgramCreatedSuccess: 'កម្មវិធីបណ្តុះបណ្តាលត្រូវបានបង្កើតដោយជោគជ័យ!',
+  trainingProgramUpdatedSuccess: 'កម្មវិធីបណ្តុះបណ្តាលត្រូវបានកែប្រែដោយជោគជ័យ!',
+  fileUploadedSuccess: 'ឯកសារត្រូវបានផ្ទុកដោយជោគជ័យ!',
+  linkAddedSuccess: 'តំណត្រូវបានបន្ថែមដោយជោគជ័យ!',
+  materialDeletedSuccess: 'សម្ភារៈត្រូវបានលុបដោយជោគជ័យ!',
+  failedToUploadFile: 'បរាជ័យក្នុងការផ្ទុកឯកសារ',
+  failedToAddLink: 'បរាជ័យក្នុងការបន្ថែមតំណ',
+  failedToDeleteMaterial: 'បរាជ័យក្នុងការលុបសម្ភារៈ',
+  deleteMaterialConfirm: 'តើអ្នកពិតជាចង់លុបសម្ភារៈនេះមែនទេ?'
 };
 
 // Translation map
