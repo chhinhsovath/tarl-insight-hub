@@ -1,0 +1,84 @@
+import { NextRequest, NextResponse } from "next/server";
+import { Pool } from "pg";
+import { cookies } from "next/headers";
+
+const pool = new Pool({
+  user: process.env.PGUSER,
+  host: process.env.PGHOST,
+  database: process.env.PGDATABASE,
+  password: process.env.PGPASSWORD,
+  port: parseInt(process.env.PGPORT || '5432', 10),
+});
+
+// GET - Get all registrations for a training session
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const sessionId = parseInt(params.id);
+  
+  try {
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get("session-token")?.value;
+
+    if (!sessionToken) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Verify session and get user
+    const userResult = await pool.query(
+      "SELECT id, role, full_name FROM tbl_tarl_users WHERE session_token = $1 AND session_expires > NOW()",
+      [sessionToken]
+    );
+
+    if (userResult.rows.length === 0) {
+      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+    }
+
+    const client = await pool.connect();
+    
+    try {
+      // Get all registrations for the session
+      const registrationsResult = await client.query(
+        `SELECT 
+           id,
+           participant_name,
+           participant_email,
+           participant_phone,
+           participant_role,
+           school_name,
+           district,
+           province,
+           attendance_status,
+           registration_method,
+           created_at,
+           updated_at
+         FROM tbl_tarl_training_registrations
+         WHERE session_id = $1 AND is_active = true
+         ORDER BY 
+           CASE attendance_status 
+             WHEN 'attended' THEN 1 
+             WHEN 'registered' THEN 2 
+             ELSE 3 
+           END,
+           participant_name ASC`,
+        [sessionId]
+      );
+
+      return NextResponse.json(registrationsResult.rows);
+
+    } finally {
+      client.release();
+    }
+
+  } catch (error) {
+    console.error("Error fetching registrations:", error);
+    return NextResponse.json(
+      { 
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : String(error)
+      },
+      { status: 500 }
+    );
+  }
+}
