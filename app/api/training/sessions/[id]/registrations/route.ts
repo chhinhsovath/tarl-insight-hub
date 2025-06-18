@@ -18,21 +18,27 @@ export async function GET(
   const sessionId = parseInt(params.id);
   
   try {
+    // Check if it's a public request (from attendance page)
+    const isPublicRequest = request.headers.get('referer')?.includes('/training/attendance');
+    
     const cookieStore = await cookies();
     const sessionToken = cookieStore.get("session-token")?.value;
 
-    if (!sessionToken) {
+    // Allow public access for attendance page
+    if (!isPublicRequest && !sessionToken) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Verify session and get user
-    const userResult = await pool.query(
-      "SELECT id, role, full_name FROM tbl_tarl_users WHERE session_token = $1 AND session_expires > NOW()",
-      [sessionToken]
-    );
+    // Verify session if not public request
+    if (!isPublicRequest && sessionToken) {
+      const userResult = await pool.query(
+        "SELECT id, role, full_name FROM tbl_tarl_users WHERE session_token = $1 AND session_expires > NOW()",
+        [sessionToken]
+      );
 
-    if (userResult.rows.length === 0) {
-      return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+      if (userResult.rows.length === 0) {
+        return NextResponse.json({ error: "Invalid session" }, { status: 401 });
+      }
     }
 
     const client = await pool.connect();
@@ -52,7 +58,8 @@ export async function GET(
            attendance_status,
            registration_method,
            created_at,
-           updated_at
+           updated_at,
+           attendance_marked_at
          FROM tbl_tarl_training_registrations
          WHERE session_id = $1 AND is_active = true
          ORDER BY 

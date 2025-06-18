@@ -72,29 +72,20 @@ export async function POST(
         );
       }
 
-      // Update session attendance count
-      await client.query(
-        `UPDATE tbl_tarl_training_sessions 
-         SET current_attendance = (
-           SELECT COUNT(*) 
-           FROM tbl_tarl_training_registrations 
-           WHERE session_id = $1 AND attendance_status = 'attended' AND is_active = true
-         )
-         WHERE id = $1`,
-        [sessionId]
-      );
+      // Note: We don't update a current_attendance column as it doesn't exist
+      // The attendance count is calculated dynamically when needed
 
       // Log the bulk attendance action
       await client.query(
         `INSERT INTO tbl_tarl_user_activities (
-           user_id, activity_type, activity_description, 
-           related_table, related_id, activity_data
-         ) VALUES ($1, 'bulk_attendance', $2, 'tbl_tarl_training_registrations', $3, $4)`,
+           user_id, action, details
+         ) VALUES ($1, $2, $3)`,
         [
           currentUser.id,
-          `Bulk attendance marking for session ${sessionId}`,
-          sessionId,
+          'bulk_attendance',
           JSON.stringify({
+            action: 'Bulk attendance marking',
+            session_id: sessionId,
             registration_ids,
             attendance_status,
             updated_count: updateResult.rows.length,

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -78,7 +78,7 @@ function QRCodesPageContent() {
   useEffect(() => {
     fetchQrCodes();
     fetchSessions();
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     filterQrCodes();
@@ -86,7 +86,12 @@ function QRCodesPageContent() {
 
   const fetchQrCodes = async () => {
     try {
-      const response = await fetch('/api/training/qr-codes', {
+      const sessionParam = searchParams.get('session');
+      const url = sessionParam 
+        ? `/api/training/qr-codes?session_id=${sessionParam}`
+        : '/api/training/qr-codes';
+      
+      const response = await fetch(url, {
         method: 'GET',
         credentials: 'include',
         headers: {
@@ -321,6 +326,7 @@ function QRCodesPageContent() {
   const canManageQrCodes = ['admin', 'director', 'partner', 'coordinator'].includes(user.role);
   const uniqueTypes = [...new Set(qrCodes.map(qr => qr.code_type))];
 
+  // Calculate statistics based on the loaded data (session-specific or all)
   const totalQrCodes = qrCodes.length;
   const activeQrCodes = qrCodes.filter(qr => qr.is_active).length;
   const totalUsage = qrCodes.reduce((sum, qr) => sum + qr.usage_count, 0);
@@ -722,10 +728,20 @@ function QRCodesPageContent() {
   );
 }
 
+function QRCodesLoading() {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <p className="text-muted-foreground">Loading QR codes...</p>
+    </div>
+  );
+}
+
 export default function QRCodesPage() {
   return (
     <TrainingLocaleProvider>
-      <QRCodesPageContent />
+      <Suspense fallback={<QRCodesLoading />}>
+        <QRCodesPageContent />
+      </Suspense>
     </TrainingLocaleProvider>
   );
 }

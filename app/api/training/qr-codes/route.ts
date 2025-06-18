@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       FROM tbl_tarl_qr_codes qr
       LEFT JOIN tbl_tarl_training_sessions ts ON qr.session_id = ts.id
       LEFT JOIN tbl_tarl_users creator ON qr.created_by = creator.id
-      WHERE qr.is_active = true
+      WHERE 1=1
     `;
 
     const params = [];

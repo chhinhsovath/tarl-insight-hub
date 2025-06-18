@@ -63,11 +63,11 @@ export async function POST(
 
       // Check session capacity
       const sessionResult = await client.query(
-        `SELECT s.capacity, COUNT(r.id) as current_registrations
+        `SELECT s.max_participants as capacity, COUNT(r.id) as current_registrations
          FROM tbl_tarl_training_sessions s
          LEFT JOIN tbl_tarl_training_registrations r ON s.id = r.session_id AND r.is_active = true
          WHERE s.id = $1
-         GROUP BY s.id, s.capacity`,
+         GROUP BY s.id, s.max_participants`,
         [sessionId]
       );
 
@@ -169,29 +169,21 @@ export async function POST(
         }
       }
 
-      // Update session statistics if needed
-      await client.query(
-        `UPDATE tbl_tarl_training_sessions 
-         SET current_attendance = (
-           SELECT COUNT(*) 
-           FROM tbl_tarl_training_registrations 
-           WHERE session_id = $1 AND attendance_status = 'attended'
-         )
-         WHERE id = $1`,
-        [sessionId]
-      );
+      // Note: We don't update a current_attendance column as it doesn't exist
+      // The attendance count is calculated dynamically when needed
 
       // Log the action
       await client.query(
         `INSERT INTO tbl_tarl_user_activities (
-           user_id, activity_type, activity_description, 
-           related_table, related_id, activity_data
-         ) VALUES ($1, 'quick_registration', $2, 'tbl_tarl_training_registrations', $3, $4)`,
+           user_id, action, details
+         ) VALUES ($1, $2, $3)`,
         [
           currentUser.id,
-          `Quick registration for session ${sessionId}`,
-          registrationId,
+          'quick_registration',
           JSON.stringify({
+            action: `Quick registration for session ${sessionId}`,
+            session_id: sessionId,
+            registration_id: registrationId,
             participant_email,
             participant_name,
             attendance_marked: mark_attendance,
@@ -267,7 +259,7 @@ export async function GET(
       `SELECT 
          s.session_title,
          s.session_date,
-         s.capacity,
+         s.max_participants as capacity,
          COUNT(r.id) as total_registered,
          COUNT(r.id) FILTER (WHERE r.attendance_status = 'attended') as total_attended,
          COUNT(r.id) FILTER (WHERE r.registration_method = 'on-site') as onsite_registrations,
@@ -275,7 +267,7 @@ export async function GET(
        FROM tbl_tarl_training_sessions s
        LEFT JOIN tbl_tarl_training_registrations r ON s.id = r.session_id AND r.is_active = true
        WHERE s.id = $1
-       GROUP BY s.id, s.session_title, s.session_date, s.capacity`,
+       GROUP BY s.id, s.session_title, s.session_date, s.max_participants`,
       [sessionId]
     );
 
