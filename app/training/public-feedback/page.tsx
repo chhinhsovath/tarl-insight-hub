@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
   MessageSquare, 
   Calendar, 
@@ -19,9 +20,14 @@ import {
   AlertCircle, 
   Star,
   ThumbsUp,
-  ThumbsDown
+  ThumbsDown,
+  Loader2,
+  Heart
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { TrainingLocaleProvider } from '@/components/training-locale-provider';
+import { useTrainingTranslation } from '@/lib/training-i18n';
+import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
 
 interface TrainingSession {
   id: number;
@@ -33,7 +39,8 @@ interface TrainingSession {
   trainer_name?: string;
 }
 
-export default function TrainingFeedbackPage() {
+function PublicFeedbackPageContent() {
+  const { t } = useTrainingTranslation();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session');
   const qrId = searchParams.get('qr');
@@ -43,36 +50,22 @@ export default function TrainingFeedbackPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState({
-    // Participant Info
+    // Participant Info (Optional)
     respondent_name: '',
     respondent_email: '',
-    respondent_role: '',
-    school_name: '',
-    years_of_experience: '',
     
     // Ratings (1-5 scale)
     overall_rating: '',
     content_quality_rating: '',
     trainer_effectiveness_rating: '',
     venue_rating: '',
-    materials_rating: '',
     
-    // Yes/No Questions
-    objectives_met: '',
-    will_apply_learning: '',
+    // Yes/No/Maybe Questions
     will_recommend_training: '',
-    would_attend_future_training: '',
-    training_duration_appropriate: '',
-    materials_helpful: '',
-    pace_appropriate: '',
-    previous_tarl_training: '',
     
     // Open Text
     most_valuable_aspect: '',
-    least_valuable_aspect: '',
-    additional_topics_needed: '',
     suggestions_for_improvement: '',
-    challenges_implementing: '',
     additional_comments: ''
   });
 
@@ -84,61 +77,42 @@ export default function TrainingFeedbackPage() {
 
   const fetchSession = async () => {
     try {
-      const response = await fetch(`/api/training/sessions?id=${sessionId}`);
+      const response = await fetch(`/api/training/sessions/public/${sessionId}`);
       if (response.ok) {
         const data = await response.json();
-        if (data.length > 0) {
-          setSession(data[0]);
-        } else {
-          toast.error('Training session not found');
-        }
+        setSession(data);
       } else {
-        toast.error('Failed to load session information');
+        toast.error(t.session + ' ' + t.noSessionsFound);
       }
     } catch (error) {
       console.error('Error fetching session:', error);
-      toast.error('Error loading session');
+      toast.error(t.failedToFetch + ' ' + t.session.toLowerCase());
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.respondent_name || !formData.overall_rating) {
-      toast.error('Please provide your name and overall rating');
-      return;
-    }
-
-    if (!sessionId || !session) {
-      toast.error('Invalid session');
+  const handleSubmit = async () => {
+    // Validation
+    if (!formData.overall_rating || !formData.content_quality_rating || 
+        !formData.trainer_effectiveness_rating || !formData.venue_rating) {
+      toast.error(t.pleaseRateAllCategories);
       return;
     }
 
     setSubmitting(true);
-
     try {
-      // Prepare payload to match the API expected structure
-      const apiPayload = {
-        session_id: sessionId,
-        feedback_data: formData,
-        overall_rating: parseInt(formData.overall_rating) || null,
-        trainer_rating: parseInt(formData.trainer_effectiveness_rating) || null,
-        content_rating: parseInt(formData.content_quality_rating) || null,
-        venue_rating: parseInt(formData.venue_rating) || null,
-        would_recommend: formData.will_recommend_training === 'yes' ? true : formData.will_recommend_training === 'no' ? false : null,
-        comments: formData.most_valuable_aspect || formData.additional_comments || null,
-        suggestions: formData.suggestions_for_improvement || null,
-        submitted_via: 'qr_code',
-        is_anonymous: !formData.respondent_email
+      const payload = {
+        session_id: parseInt(sessionId!),
+        qr_id: qrId ? parseInt(qrId) : null,
+        ...formData,
+        // Convert ratings to numbers
+        overall_rating: parseInt(formData.overall_rating),
+        content_quality_rating: parseInt(formData.content_quality_rating),
+        trainer_effectiveness_rating: parseInt(formData.trainer_effectiveness_rating),
+        venue_rating: parseInt(formData.venue_rating),
+        // Anonymous if no name provided
+        is_anonymous: !formData.respondent_name.trim()
       };
 
       const response = await fetch('/api/training/feedback', {
@@ -146,91 +120,54 @@ export default function TrainingFeedbackPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(apiPayload)
+        body: JSON.stringify(payload)
       });
 
       if (response.ok) {
         setSubmitted(true);
-        toast.success('Feedback submitted successfully!');
-        
-        // Log QR code usage
-        if (qrId) {
-          await fetch(`/api/training/qr-codes?qr_id=${qrId}&session_id=${sessionId}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action_type: 'feedback',
-              user_agent: navigator.userAgent,
-              scan_data: { 
-                respondent_email: formData.respondent_email,
-                overall_rating: formData.overall_rating
-              }
-            })
-          });
-        }
+        toast.success(t.feedbackSubmittedSuccess);
       } else {
         const error = await response.json();
-        toast.error(error.error || 'Failed to submit feedback');
+        toast.error(error.message || t.failedToSubmitFeedback);
       }
     } catch (error) {
       console.error('Error submitting feedback:', error);
-      toast.error('Error submitting feedback');
+      toast.error(t.failedToSubmitFeedback);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const StarRating = ({ value, onChange, disabled = false }: { 
-    value: string; 
-    onChange: (value: string) => void; 
-    disabled?: boolean;
-  }) => {
-    return (
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((rating) => (
-          <button
-            key={rating}
-            type="button"
-            onClick={() => !disabled && onChange(rating.toString())}
-            disabled={disabled}
-            className={`p-1 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-          >
-            <Star 
-              className={`h-6 w-6 ${
-                parseInt(value) >= rating 
-                  ? 'fill-yellow-400 text-yellow-400' 
-                  : 'text-gray-300'
-              }`} 
-            />
-          </button>
-        ))}
-      </div>
-    );
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  const getRatingLabel = (rating: string) => {
+    switch (rating) {
+      case '5': return t.excellent;
+      case '4': return t.good;
+      case '3': return t.average;
+      case '2': return t.poor;
+      case '1': return t.veryPoor;
+      default: return '';
+    }
   };
 
-  const formatTime = (timeString: string) => {
-    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
+  const getRecommendLabel = (value: string) => {
+    switch (value) {
+      case 'yes': return t.yes;
+      case 'no': return t.no;
+      case 'maybe': return t.maybe;
+      default: return '';
+    }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading feedback form...</p>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     );
@@ -239,13 +176,10 @@ export default function TrainingFeedbackPage() {
   if (!session) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Session Not Found</h2>
-            <p className="text-gray-600">The training session could not be found.</p>
-          </CardContent>
-        </Card>
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{t.session + ' ' + t.noSessionsFound}</AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -253,16 +187,19 @@ export default function TrainingFeedbackPage() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Thank You!</h2>
-            <p className="text-gray-600 mb-4">
-              Your feedback for <strong>{session.session_title}</strong> has been submitted successfully.
-            </p>
-            <p className="text-sm text-gray-500">
-              Your input helps us improve our training programs.
-            </p>
+        <Card className="max-w-md w-full">
+          <CardContent className="p-8 text-center">
+            <div className="bg-green-100 rounded-full p-4 inline-flex mb-4">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">{t.thankYouForFeedback}</h1>
+            <p className="text-gray-600 mb-6">{t.feedbackAppreciated}</p>
+            <Button 
+              onClick={() => window.location.href = '/'}
+              className="w-full"
+            >
+              {t.returnToHome}
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -270,281 +207,297 @@ export default function TrainingFeedbackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="container mx-auto max-w-4xl px-4">
         {/* Header */}
         <div className="text-center mb-6">
           <div className="bg-purple-600 rounded-full p-3 inline-flex mb-4">
             <MessageSquare className="h-6 w-6 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Training Feedback</h1>
-          <p className="text-gray-600 mt-1">Share your experience with us</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t.trainingSessionFeedback}</h1>
+          <p className="text-gray-600 mt-1">{t.shareFeedbackDescription}</p>
+          <div className="flex justify-center mt-4">
+            <TrainingLanguageSwitcher />
+          </div>
         </div>
 
         {/* Session Info */}
         <Card className="mb-6">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">{session.session_title}</CardTitle>
-            <p className="text-sm text-gray-600">{session.program_name}</p>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2 text-gray-600">
-                <Calendar className="h-4 w-4" />
-                {formatDate(session.session_date)}
+          <CardContent className="p-6">
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <h2 className="font-semibold text-lg text-purple-900 mb-2">{session.session_title}</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="flex items-center gap-2 text-purple-700">
+                  <Calendar className="h-4 w-4" />
+                  {new Date(session.session_date).toLocaleDateString('en-US')}
+                </div>
+                <div className="flex items-center gap-2 text-purple-700">
+                  <Clock className="h-4 w-4" />
+                  {session.session_time}
+                </div>
+                <div className="flex items-center gap-2 text-purple-700">
+                  <MapPin className="h-4 w-4" />
+                  {session.location}
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-gray-600">
-                <Clock className="h-4 w-4" />
-                {formatTime(session.session_time)}
-              </div>
-              <div className="flex items-center gap-2 text-gray-600">
-                <MapPin className="h-4 w-4" />
-                {session.location}
+              <div className="mt-3">
+                <span className="text-purple-900 font-medium">{session.program_name}</span>
+                {session.trainer_name && (
+                  <p className="text-sm text-purple-700 mt-1">
+                    {t.trainer}: {session.trainer_name}
+                  </p>
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Feedback Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Personal Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5" />
+              {t.yourRatings}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Ratings Section */}
+            <div className="space-y-6">
+              {/* Overall Experience */}
+              <div>
+                <Label className="text-base font-semibold">{t.overallExperience}</Label>
+                <p className="text-sm text-gray-600 mb-3">{t.overallExperienceDesc}</p>
+                <RadioGroup 
+                  value={formData.overall_rating} 
+                  onValueChange={(value) => handleInputChange('overall_rating', value)}
+                  className="flex flex-wrap gap-4"
+                >
+                  {[5, 4, 3, 2, 1].map((rating) => (
+                    <div key={rating} className="flex items-center space-x-2">
+                      <RadioGroupItem value={rating.toString()} id={`overall-${rating}`} />
+                      <Label htmlFor={`overall-${rating}`} className="flex items-center gap-1">
+                        <span>{rating}</span>
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm text-gray-600">({getRatingLabel(rating.toString())})</span>
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+
+              {/* Content Relevance */}
+              <div>
+                <Label className="text-base font-semibold">{t.contentRelevance}</Label>
+                <p className="text-sm text-gray-600 mb-3">{t.contentRelevanceDesc}</p>
+                <RadioGroup 
+                  value={formData.content_quality_rating} 
+                  onValueChange={(value) => handleInputChange('content_quality_rating', value)}
+                  className="flex flex-wrap gap-4"
+                >
+                  {[5, 4, 3, 2, 1].map((rating) => (
+                    <div key={rating} className="flex items-center space-x-2">
+                      <RadioGroupItem value={rating.toString()} id={`content-${rating}`} />
+                      <Label htmlFor={`content-${rating}`} className="flex items-center gap-1">
+                        <span>{rating}</span>
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm text-gray-600">({getRatingLabel(rating.toString())})</span>
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+
+              {/* Trainer Knowledge */}
+              <div>
+                <Label className="text-base font-semibold">{t.trainerKnowledge}</Label>
+                <p className="text-sm text-gray-600 mb-3">{t.trainerKnowledgeDesc}</p>
+                <RadioGroup 
+                  value={formData.trainer_effectiveness_rating} 
+                  onValueChange={(value) => handleInputChange('trainer_effectiveness_rating', value)}
+                  className="flex flex-wrap gap-4"
+                >
+                  {[5, 4, 3, 2, 1].map((rating) => (
+                    <div key={rating} className="flex items-center space-x-2">
+                      <RadioGroupItem value={rating.toString()} id={`trainer-${rating}`} />
+                      <Label htmlFor={`trainer-${rating}`} className="flex items-center gap-1">
+                        <span>{rating}</span>
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm text-gray-600">({getRatingLabel(rating.toString())})</span>
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+
+              {/* Venue & Facilities */}
+              <div>
+                <Label className="text-base font-semibold">{t.venueAndFacilities}</Label>
+                <p className="text-sm text-gray-600 mb-3">{t.venueAndFacilitiesDesc}</p>
+                <RadioGroup 
+                  value={formData.venue_rating} 
+                  onValueChange={(value) => handleInputChange('venue_rating', value)}
+                  className="flex flex-wrap gap-4"
+                >
+                  {[5, 4, 3, 2, 1].map((rating) => (
+                    <div key={rating} className="flex items-center space-x-2">
+                      <RadioGroupItem value={rating.toString()} id={`venue-${rating}`} />
+                      <Label htmlFor={`venue-${rating}`} className="flex items-center gap-1">
+                        <span>{rating}</span>
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm text-gray-600">({getRatingLabel(rating.toString())})</span>
+                      </Label>
+                    </div>
+                  ))}
+                </RadioGroup>
+              </div>
+            </div>
+
+            {/* Recommendation */}
+            <div>
+              <Label className="text-base font-semibold">{t.wouldYouRecommend}</Label>
+              <RadioGroup 
+                value={formData.will_recommend_training} 
+                onValueChange={(value) => handleInputChange('will_recommend_training', value)}
+                className="flex gap-6 mt-3"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="yes" id="recommend-yes" />
+                  <Label htmlFor="recommend-yes" className="flex items-center gap-1">
+                    <ThumbsUp className="h-4 w-4 text-green-600" />
+                    {t.yes}
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="maybe" id="recommend-maybe" />
+                  <Label htmlFor="recommend-maybe" className="flex items-center gap-1">
+                    <Heart className="h-4 w-4 text-yellow-600" />
+                    {t.maybe}
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="no" id="recommend-no" />
+                  <Label htmlFor="recommend-no" className="flex items-center gap-1">
+                    <ThumbsDown className="h-4 w-4 text-red-600" />
+                    {t.no}
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {/* Open Text Feedback */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">{t.additionalFeedback}</h3>
+              
+              <div>
+                <Label htmlFor="liked">{t.whatDidYouLike}</Label>
+                <Textarea
+                  id="liked"
+                  value={formData.most_valuable_aspect}
+                  onChange={(e) => handleInputChange('most_valuable_aspect', e.target.value)}
+                  placeholder={t.whatDidYouLike + '...'}
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="improve">{t.whatCouldImprove}</Label>
+                <Textarea
+                  id="improve"
+                  value={formData.suggestions_for_improvement}
+                  onChange={(e) => handleInputChange('suggestions_for_improvement', e.target.value)}
+                  placeholder={t.whatCouldImprove + '...'}
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="comments">{t.additionalFeedback}</Label>
+                <Textarea
+                  id="comments"
+                  value={formData.additional_comments}
+                  onChange={(e) => handleInputChange('additional_comments', e.target.value)}
+                  placeholder={t.additionalFeedback + '...'}
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            {/* Optional Contact Info */}
+            <div className="border-t pt-6">
+              <div className="mb-4">
+                <p className="text-sm text-gray-600 mb-2">{t.provideFeedbackAnonymously}</p>
+                <p className="text-sm text-gray-600">{t.orProvideContactInfo}</p>
+              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="respondent_name">Name *</Label>
+                <div>
+                  <Label htmlFor="name">{t.nameOptional}</Label>
                   <Input
-                    id="respondent_name"
+                    id="name"
                     value={formData.respondent_name}
                     onChange={(e) => handleInputChange('respondent_name', e.target.value)}
-                    placeholder="Your full name"
-                    required
+                    placeholder={t.nameOptional}
                   />
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="respondent_email">Email</Label>
+                <div>
+                  <Label htmlFor="email">{t.emailOptional}</Label>
                   <Input
-                    id="respondent_email"
+                    id="email"
                     type="email"
                     value={formData.respondent_email}
                     onChange={(e) => handleInputChange('respondent_email', e.target.value)}
-                    placeholder="your.email@example.com"
+                    placeholder={t.emailOptional}
                   />
                 </div>
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="respondent_role">Your Role</Label>
-                  <Select value={formData.respondent_role} onValueChange={(value) => handleInputChange('respondent_role', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="teacher">Teacher</SelectItem>
-                      <SelectItem value="coordinator">Coordinator</SelectItem>
-                      <SelectItem value="principal">Principal</SelectItem>
-                      <SelectItem value="staff">Staff</SelectItem>
-                      <SelectItem value="volunteer">Volunteer</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="years_of_experience">Years of Experience</Label>
-                  <Input
-                    id="years_of_experience"
-                    type="number"
-                    min="0"
-                    max="50"
-                    value={formData.years_of_experience}
-                    onChange={(e) => handleInputChange('years_of_experience', e.target.value)}
-                    placeholder="Years"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="school_name">School Name</Label>
-                <Input
-                  id="school_name"
-                  value={formData.school_name}
-                  onChange={(e) => handleInputChange('school_name', e.target.value)}
-                  placeholder="Your school name"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Ratings */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Training Ratings</CardTitle>
-              <p className="text-sm text-gray-600">Rate each aspect from 1 (poor) to 5 (excellent)</p>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label>Overall Training Quality *</Label>
-                <StarRating 
-                  value={formData.overall_rating} 
-                  onChange={(value) => handleInputChange('overall_rating', value)} 
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Content Quality</Label>
-                <StarRating 
-                  value={formData.content_quality_rating} 
-                  onChange={(value) => handleInputChange('content_quality_rating', value)} 
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Trainer Effectiveness</Label>
-                <StarRating 
-                  value={formData.trainer_effectiveness_rating} 
-                  onChange={(value) => handleInputChange('trainer_effectiveness_rating', value)} 
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Venue & Facilities</Label>
-                <StarRating 
-                  value={formData.venue_rating} 
-                  onChange={(value) => handleInputChange('venue_rating', value)} 
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Training Materials</Label>
-                <StarRating 
-                  value={formData.materials_rating} 
-                  onChange={(value) => handleInputChange('materials_rating', value)} 
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Yes/No Questions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Training Effectiveness</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {[
-                { field: 'objectives_met', label: 'Were the training objectives met?' },
-                { field: 'will_apply_learning', label: 'Will you apply what you learned?' },
-                { field: 'will_recommend_training', label: 'Would you recommend this training to others?' },
-                { field: 'would_attend_future_training', label: 'Would you attend future TaRL trainings?' },
-                { field: 'training_duration_appropriate', label: 'Was the training duration appropriate?' },
-                { field: 'materials_helpful', label: 'Were the training materials helpful?' },
-                { field: 'pace_appropriate', label: 'Was the training pace appropriate?' },
-                { field: 'previous_tarl_training', label: 'Have you attended TaRL training before?' }
-              ].map((question) => (
-                <div key={question.field} className="space-y-3">
-                  <Label>{question.label}</Label>
-                  <RadioGroup 
-                    value={formData[question.field as keyof typeof formData] as string} 
-                    onValueChange={(value) => handleInputChange(question.field, value)}
-                    className="flex gap-6"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="yes" id={`${question.field}-yes`} />
-                      <Label htmlFor={`${question.field}-yes`} className="flex items-center gap-1">
-                        <ThumbsUp className="h-4 w-4 text-green-600" />
-                        Yes
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="no" id={`${question.field}-no`} />
-                      <Label htmlFor={`${question.field}-no`} className="flex items-center gap-1">
-                        <ThumbsDown className="h-4 w-4 text-red-600" />
-                        No
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Open Text Feedback */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Additional Feedback</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="most_valuable_aspect">What was the most valuable aspect of this training?</Label>
-                <Textarea
-                  id="most_valuable_aspect"
-                  value={formData.most_valuable_aspect}
-                  onChange={(e) => handleInputChange('most_valuable_aspect', e.target.value)}
-                  placeholder="Share what you found most useful..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="suggestions_for_improvement">How can we improve this training?</Label>
-                <Textarea
-                  id="suggestions_for_improvement"
-                  value={formData.suggestions_for_improvement}
-                  onChange={(e) => handleInputChange('suggestions_for_improvement', e.target.value)}
-                  placeholder="Your suggestions for improvement..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="additional_topics_needed">What additional topics would you like to see covered?</Label>
-                <Textarea
-                  id="additional_topics_needed"
-                  value={formData.additional_topics_needed}
-                  onChange={(e) => handleInputChange('additional_topics_needed', e.target.value)}
-                  placeholder="Topics for future training sessions..."
-                  rows={2}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="additional_comments">Any other comments?</Label>
-                <Textarea
-                  id="additional_comments"
-                  value={formData.additional_comments}
-                  onChange={(e) => handleInputChange('additional_comments', e.target.value)}
-                  placeholder="Additional feedback or comments..."
-                  rows={3}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Submit Button */}
-          <Card>
-            <CardContent className="p-6">
+            {/* Submit Button */}
+            <div className="flex justify-center pt-6">
               <Button 
-                type="submit" 
-                className="w-full" 
+                onClick={handleSubmit}
                 disabled={submitting}
                 size="lg"
+                className="w-full md:w-auto min-w-[200px]"
               >
-                {submitting ? 'Submitting Feedback...' : 'Submit Feedback'}
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    {t.submittingFeedback}
+                  </>
+                ) : (
+                  <>
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    {t.submitFeedback}
+                  </>
+                )}
               </Button>
-            </CardContent>
-          </Card>
-        </form>
-
-        {/* Footer */}
-        <p className="text-center text-xs text-gray-500 mt-6">
-          Thank you for taking the time to provide your feedback
-        </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
+  );
+}
+
+function PublicFeedbackLoading() {
+  const { t } = useTrainingTranslation();
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="text-center">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function PublicFeedbackPage() {
+  return (
+    <TrainingLocaleProvider>
+      <Suspense fallback={<PublicFeedbackLoading />}>
+        <PublicFeedbackPageContent />
+      </Suspense>
+    </TrainingLocaleProvider>
   );
 }

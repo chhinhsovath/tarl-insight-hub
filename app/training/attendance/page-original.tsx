@@ -31,9 +31,6 @@ import {
   Filter
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { TrainingLocaleProvider } from '@/components/training-locale-provider';
-import { useTrainingTranslation } from '@/lib/training-i18n';
-import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
 
 interface TrainingSession {
   id: number;
@@ -84,7 +81,6 @@ interface ParticipantProfile {
 }
 
 function AttendancePageContent() {
-  const { t } = useTrainingTranslation();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session');
   const qrId = searchParams.get('qr');
@@ -141,11 +137,11 @@ function AttendancePageContent() {
         const data = await response.json();
         setSession(data);
       } else {
-        toast.error(t.session + ' ' + t.noSessionsFound);
+        toast.error('Session not found');
       }
     } catch (error) {
       console.error('Error fetching session:', error);
-      toast.error(t.failedToFetch + ' ' + t.session.toLowerCase());
+      toast.error('Failed to load session details');
     }
   };
 
@@ -200,15 +196,15 @@ function AttendancePageContent() {
       });
 
       if (response.ok) {
-        toast.success(t.attendanceMarkedSuccess);
+        toast.success('Attendance marked successfully');
         fetchRegistrations(); // Refresh the list
       } else {
         const error = await response.json();
-        toast.error(error.error || t.failedToMarkAttendance);
+        toast.error(error.error || 'Failed to mark attendance');
       }
     } catch (error) {
       console.error('Error marking attendance:', error);
-      toast.error(t.failedToMarkAttendance);
+      toast.error('Failed to mark attendance');
     } finally {
       setSubmitting(false);
     }
@@ -216,7 +212,7 @@ function AttendancePageContent() {
 
   const searchParticipants = async () => {
     if (!participantSearchTerm.trim() || participantSearchTerm.length < 2) {
-      toast.error(t.enterAtLeast2Chars);
+      toast.error('Please enter at least 2 characters to search');
       return;
     }
 
@@ -228,16 +224,16 @@ function AttendancePageContent() {
         setSearchResults(data.participants || []);
         
         if (data.participants.length === 0) {
-          toast.info(t.noExistingParticipantsFound);
+          toast.info('No existing participants found. You can register as new.');
         } else {
-          toast.success(`${t.foundParticipants} ${data.participants.length}`);
+          toast.success(`Found ${data.participants.length} existing participant(s)`);
         }
       } else {
-        toast.error(t.failedToSearchParticipants);
+        toast.error('Failed to search participants');
       }
     } catch (error) {
       console.error('Error searching participants:', error);
-      toast.error(t.failedToSearchParticipants);
+      toast.error('Failed to search participants');
     } finally {
       setSearchingParticipant(false);
     }
@@ -255,12 +251,12 @@ function AttendancePageContent() {
       province: participant.province || ''
     });
     setActiveMode('existing');
-    toast.success(`${t.selectParticipant} ${participant.full_name}`);
+    toast.success(`Selected ${participant.full_name} - information pre-filled!`);
   };
 
   const handleWalkInSubmit = async () => {
     if (!formData.participant_name || !formData.participant_email) {
-      toast.error(t.nameEmailRequired);
+      toast.error('Name and email are required');
       return;
     }
 
@@ -278,17 +274,17 @@ function AttendancePageContent() {
       });
 
       if (response.ok) {
-        toast.success('✅ ' + t.walkInAttendanceMarkedSuccess);
+        toast.success('✅ Walk-in attendance marked successfully!');
         resetForm();
         fetchSession();
         fetchRegistrations();
       } else {
         const error = await response.json();
-        toast.error(error.error || t.failedToMarkAttendance);
+        toast.error(error.error || 'Failed to mark walk-in attendance');
       }
     } catch (error) {
       console.error('Error marking walk-in attendance:', error);
-      toast.error(t.failedToMarkAttendance);
+      toast.error('Failed to mark walk-in attendance');
     } finally {
       setSubmitting(false);
     }
@@ -319,7 +315,7 @@ function AttendancePageContent() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">Loading session information...</p>
         </div>
       </div>
     );
@@ -330,7 +326,7 @@ function AttendancePageContent() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <Alert variant="destructive" className="max-w-md">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{t.session + ' ' + t.noSessionsFound}</AlertDescription>
+          <AlertDescription>Training session not found</AlertDescription>
         </Alert>
       </div>
     );
@@ -347,11 +343,8 @@ function AttendancePageContent() {
           <div className="bg-green-600 rounded-full p-3 inline-flex mb-4">
             <UserCheck className="h-6 w-6 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">{t.trainingAttendance}</h1>
-          <p className="text-gray-600 mt-1">{t.markAttendanceDescription}</p>
-          <div className="flex justify-center mt-4">
-            <TrainingLanguageSwitcher />
-          </div>
+          <h1 className="text-3xl font-bold text-gray-900">Training Attendance</h1>
+          <p className="text-gray-600 mt-1">Mark attendance for training participants</p>
         </div>
 
         {/* Session Info */}
@@ -362,7 +355,7 @@ function AttendancePageContent() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="flex items-center gap-2 text-blue-700">
                   <Calendar className="h-4 w-4" />
-                  {new Date(session.session_date).toLocaleDateString('en-US')}
+                  {new Date(session.session_date).toLocaleDateString()}
                 </div>
                 <div className="flex items-center gap-2 text-blue-700">
                   <Clock className="h-4 w-4" />
@@ -377,10 +370,10 @@ function AttendancePageContent() {
                 <span className="text-blue-900 font-medium">{session.program_name}</span>
                 <div className="flex gap-2">
                   <Badge variant="secondary">
-                    {registrations.length} {t.registered}
+                    {registrations.length} registered
                   </Badge>
                   <Badge variant={attendedCount >= session.capacity ? "destructive" : "default"}>
-                    {attendedCount} / {session.capacity} {t.attended}
+                    {attendedCount} / {session.capacity} attended
                   </Badge>
                 </div>
               </div>
@@ -391,18 +384,18 @@ function AttendancePageContent() {
         {/* Main Content Tabs */}
         <Card>
           <CardHeader>
-            <CardTitle>{t.attendanceManagement}</CardTitle>
+            <CardTitle>Attendance Management</CardTitle>
           </CardHeader>
           <CardContent>
             <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'attendance' | 'walkin')}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="attendance">
                   <ClipboardList className="h-4 w-4 mr-2" />
-                  {t.markAttendance} ({registrations.length})
+                  Mark Attendance ({registrations.length})
                 </TabsTrigger>
                 <TabsTrigger value="walkin">
                   <UserPlus className="h-4 w-4 mr-2" />
-                  {t.walkInRegistration}
+                  Walk-in Registration
                 </TabsTrigger>
               </TabsList>
 
@@ -414,7 +407,7 @@ function AttendancePageContent() {
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                       <Input
-                        placeholder={t.searchByNameEmailSchool}
+                        placeholder="Search by name, email, or school..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="pl-10"
@@ -424,12 +417,12 @@ function AttendancePageContent() {
                   <Select value={filterStatus} onValueChange={setFilterStatus}>
                     <SelectTrigger className="w-[180px]">
                       <Filter className="h-4 w-4 mr-2" />
-                      <SelectValue placeholder={t.filterByStatus} />
+                      <SelectValue placeholder="Filter by status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">{t.allParticipants}</SelectItem>
-                      <SelectItem value="registered">{t.notAttended}</SelectItem>
-                      <SelectItem value="attended">{t.attended}</SelectItem>
+                      <SelectItem value="all">All Participants</SelectItem>
+                      <SelectItem value="registered">Not Attended</SelectItem>
+                      <SelectItem value="attended">Attended</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -438,19 +431,19 @@ function AttendancePageContent() {
                 <div className="grid grid-cols-3 gap-4 mt-4">
                   <Card>
                     <CardContent className="p-4 text-center">
-                      <p className="text-sm text-gray-600">{t.totalRegistered}</p>
+                      <p className="text-sm text-gray-600">Total Registered</p>
                       <p className="text-2xl font-bold">{registrations.length}</p>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="p-4 text-center">
-                      <p className="text-sm text-gray-600">{t.attended}</p>
+                      <p className="text-sm text-gray-600">Attended</p>
                       <p className="text-2xl font-bold text-green-600">{attendedCount}</p>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="p-4 text-center">
-                      <p className="text-sm text-gray-600">{t.notAttended}</p>
+                      <p className="text-sm text-gray-600">Not Attended</p>
                       <p className="text-2xl font-bold text-orange-600">{registeredCount}</p>
                     </CardContent>
                   </Card>
@@ -463,8 +456,8 @@ function AttendancePageContent() {
                       <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
                       <p className="text-gray-600">
                         {registrations.length === 0 
-                          ? t.noRegistrationsFound
-                          : t.noMatchingFilters
+                          ? 'No registrations found for this session'
+                          : 'No participants match your search criteria'
                         }
                       </p>
                     </div>
@@ -515,11 +508,11 @@ function AttendancePageContent() {
                                 <div className="text-right">
                                   <Badge className="bg-green-100 text-green-800" variant="secondary">
                                     <CheckCircle className="h-3 w-3 mr-1" />
-                                    {t.attended}
+                                    Attended
                                   </Badge>
                                   {registration.attendance_marked_at && (
                                     <p className="text-xs text-gray-500 mt-1">
-                                      {new Date(registration.attendance_marked_at).toLocaleTimeString('en-US')}
+                                      {new Date(registration.attendance_marked_at).toLocaleTimeString()}
                                     </p>
                                   )}
                                 </div>
@@ -534,7 +527,7 @@ function AttendancePageContent() {
                                   ) : (
                                     <>
                                       <CheckCircle className="h-4 w-4 mr-1" />
-                                      {t.markPresent}
+                                      Mark Present
                                     </>
                                   )}
                                 </Button>
@@ -553,14 +546,14 @@ function AttendancePageContent() {
                 <Alert>
                   <UserPlus className="h-4 w-4" />
                   <AlertDescription>
-                    {t.registerWalkInDescription}
+                    Register walk-in participants who haven't pre-registered for this session
                   </AlertDescription>
                 </Alert>
 
                 <Tabs value={activeMode} onValueChange={(value) => setActiveMode(value as 'new' | 'existing')}>
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="existing">{t.searchExistingParticipant}</TabsTrigger>
-                    <TabsTrigger value="new">{t.newParticipant}</TabsTrigger>
+                    <TabsTrigger value="existing">Search Existing Participant</TabsTrigger>
+                    <TabsTrigger value="new">New Participant</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="existing">
@@ -568,10 +561,10 @@ function AttendancePageContent() {
                     <div className="space-y-4">
                       <div className="flex gap-2">
                         <div className="flex-1">
-                          <Label htmlFor="search">{t.searchByNameEmailPhone}</Label>
+                          <Label htmlFor="search">Search by Name, Email, or Phone</Label>
                           <Input
                             id="search"
-                            placeholder={t.searchByNameEmailPhone + '...'}
+                            placeholder="Enter name, email, or phone number..."
                             value={participantSearchTerm}
                             onChange={(e) => setParticipantSearchTerm(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && searchParticipants()}
@@ -587,7 +580,7 @@ function AttendancePageContent() {
                             ) : (
                               <Search className="h-4 w-4" />
                             )}
-                            {t.search}
+                            Search
                           </Button>
                         </div>
                       </div>
@@ -595,7 +588,7 @@ function AttendancePageContent() {
                       {/* Search Results */}
                       {searchResults.length > 0 && (
                         <div className="space-y-3">
-                          <h3 className="font-medium">{t.foundParticipants}</h3>
+                          <h3 className="font-medium">Found Participants:</h3>
                           {searchResults.map((participant) => (
                             <Card 
                               key={participant.id} 
@@ -621,10 +614,10 @@ function AttendancePageContent() {
                                   <div className="text-right">
                                     <Badge variant="outline" className="mb-1">
                                       <Award className="h-3 w-3 mr-1" />
-                                      {participant.total_sessions_attended} {t.sessions}
+                                      {participant.total_sessions_attended} sessions
                                     </Badge>
                                     <p className="text-xs text-gray-500">
-                                      {participant.attendance_rate}% {t.attendanceRate}
+                                      {participant.attendance_rate}% attendance rate
                                     </p>
                                   </div>
                                 </div>
@@ -640,7 +633,7 @@ function AttendancePageContent() {
                     <Alert className="mb-4">
                       <User className="h-4 w-4" />
                       <AlertDescription>
-                        {t.fillDetailsForNew}
+                        Fill in the details below for a new participant
                       </AlertDescription>
                     </Alert>
                   </TabsContent>
@@ -650,23 +643,23 @@ function AttendancePageContent() {
                 <div className="space-y-4 mt-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="name">{t.fullName} *</Label>
+                      <Label htmlFor="name">Full Name *</Label>
                       <Input
                         id="name"
                         value={formData.participant_name}
                         onChange={(e) => handleInputChange('participant_name', e.target.value)}
-                        placeholder={t.fullName}
+                        placeholder="Enter full name"
                         required
                       />
                     </div>
                     <div>
-                      <Label htmlFor="email">{t.emailAddress} *</Label>
+                      <Label htmlFor="email">Email Address *</Label>
                       <Input
                         id="email"
                         type="email"
                         value={formData.participant_email}
                         onChange={(e) => handleInputChange('participant_email', e.target.value)}
-                        placeholder={t.emailAddress}
+                        placeholder="Enter email address"
                         required
                       />
                     </div>
@@ -674,20 +667,20 @@ function AttendancePageContent() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="phone">{t.phoneNumber}</Label>
+                      <Label htmlFor="phone">Phone Number</Label>
                       <Input
                         id="phone"
                         type="tel"
                         value={formData.participant_phone}
                         onChange={(e) => handleInputChange('participant_phone', e.target.value)}
-                        placeholder={t.phoneNumber}
+                        placeholder="Enter phone number"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="role">{t.role}</Label>
+                      <Label htmlFor="role">Role</Label>
                       <Select value={formData.participant_role} onValueChange={(value) => handleInputChange('participant_role', value)}>
                         <SelectTrigger>
-                          <SelectValue placeholder={t.role} />
+                          <SelectValue placeholder="Select your role" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="teacher">Teacher</SelectItem>
@@ -702,32 +695,32 @@ function AttendancePageContent() {
                   </div>
 
                   <div>
-                    <Label htmlFor="organization">{t.schoolOrganization}</Label>
+                    <Label htmlFor="organization">School/Organization</Label>
                     <Input
                       id="organization"
                       value={formData.school_name}
                       onChange={(e) => handleInputChange('school_name', e.target.value)}
-                      placeholder={t.schoolOrganization}
+                      placeholder="Enter school or organization name"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="district">{t.district}</Label>
+                      <Label htmlFor="district">District</Label>
                       <Input
                         id="district"
                         value={formData.district}
                         onChange={(e) => handleInputChange('district', e.target.value)}
-                        placeholder={t.district}
+                        placeholder="Enter district"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="province">{t.province}</Label>
+                      <Label htmlFor="province">Province</Label>
                       <Input
                         id="province"
                         value={formData.province}
                         onChange={(e) => handleInputChange('province', e.target.value)}
-                        placeholder={t.province}
+                        placeholder="Enter province"
                       />
                     </div>
                   </div>
@@ -744,12 +737,12 @@ function AttendancePageContent() {
                     {submitting ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        {t.processingRequest}
+                        Marking Attendance...
                       </>
                     ) : (
                       <>
                         <UserCheck className="h-4 w-4 mr-2" />
-                        {t.markWalkInAttendance}
+                        Mark Walk-in Attendance
                       </>
                     )}
                   </Button>
@@ -760,7 +753,7 @@ function AttendancePageContent() {
                     disabled={submitting}
                     size="lg"
                   >
-                    {t.resetForm}
+                    Reset Form
                   </Button>
                 </div>
 
@@ -769,26 +762,26 @@ function AttendancePageContent() {
                   <div className="mt-6 pt-6 border-t">
                     <h3 className="font-medium mb-3 flex items-center gap-2">
                       <History className="h-4 w-4" />
-                      {t.trainingHistory}
+                      Training History
                     </h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div className="bg-gray-50 p-3 rounded">
-                        <p className="text-gray-600">{t.totalSessions}</p>
+                        <p className="text-gray-600">Total Sessions</p>
                         <p className="font-semibold">{selectedParticipant.total_sessions_registered}</p>
                       </div>
                       <div className="bg-gray-50 p-3 rounded">
-                        <p className="text-gray-600">{t.attended}</p>
+                        <p className="text-gray-600">Attended</p>
                         <p className="font-semibold">{selectedParticipant.total_sessions_attended}</p>
                       </div>
                       <div className="bg-gray-50 p-3 rounded">
-                        <p className="text-gray-600">{t.attendanceRate}</p>
+                        <p className="text-gray-600">Attendance Rate</p>
                         <p className="font-semibold">{selectedParticipant.attendance_rate}%</p>
                       </div>
                       <div className="bg-gray-50 p-3 rounded">
-                        <p className="text-gray-600">{t.firstTraining}</p>
+                        <p className="text-gray-600">First Training</p>
                         <p className="font-semibold">
                           {selectedParticipant.first_training_date 
-                            ? new Date(selectedParticipant.first_training_date).toLocaleDateString('en-US')
+                            ? new Date(selectedParticipant.first_training_date).toLocaleDateString()
                             : 'N/A'
                           }
                         </p>
@@ -806,12 +799,11 @@ function AttendancePageContent() {
 }
 
 function AttendanceLoading() {
-  const { t } = useTrainingTranslation();
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="text-center">
         <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-        <p className="text-gray-600">Loading...</p>
+        <p className="text-gray-600">Loading attendance page...</p>
       </div>
     </div>
   );
@@ -819,10 +811,8 @@ function AttendanceLoading() {
 
 export default function AttendancePage() {
   return (
-    <TrainingLocaleProvider>
-      <Suspense fallback={<AttendanceLoading />}>
-        <AttendancePageContent />
-      </Suspense>
-    </TrainingLocaleProvider>
+    <Suspense fallback={<AttendanceLoading />}>
+      <AttendancePageContent />
+    </Suspense>
   );
 }

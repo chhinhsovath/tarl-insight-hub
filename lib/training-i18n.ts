@@ -252,6 +252,85 @@ export interface TrainingTranslations {
   manageParticipants: string;
   generateManageQrCodes: string;
   viewAnalyzeFeedback: string;
+  
+  // Attendance Page
+  trainingAttendance: string;
+  markAttendanceDescription: string;
+  markAttendance: string;
+  walkInRegistration: string;
+  attendanceManagement: string;
+  markPresent: string;
+  totalRegistered: string;
+  attended: string;
+  notAttended: string;
+  searchByNameEmailSchool: string;
+  filterByStatus: string;
+  allParticipants: string;
+  searchExistingParticipant: string;
+  newParticipant: string;
+  searchByNameEmailPhone: string;
+  enterAtLeast2Chars: string;
+  search: string;
+  foundParticipants: string;
+  noExistingParticipantsFound: string;
+  canRegisterAsNew: string;
+  fillDetailsForNew: string;
+  fullName: string;
+  emailAddress: string;
+  phoneNumber: string;
+  schoolOrganization: string;
+  district: string;
+  province: string;
+  markWalkInAttendance: string;
+  resetForm: string;
+  trainingHistory: string;
+  firstTraining: string;
+  attendanceRate: string;
+  nameEmailRequired: string;
+  attendanceMarkedSuccess: string;
+  walkInAttendanceMarkedSuccess: string;
+  failedToMarkAttendance: string;
+  failedToSearchParticipants: string;
+  noRegistrationsFound: string;
+  registerWalkInDescription: string;
+  selectParticipant: string;
+  
+  // Public Feedback Page
+  trainingSessionFeedback: string;
+  shareFeedbackDescription: string;
+  overallExperience: string;
+  contentRelevance: string;
+  trainerKnowledge: string;
+  venueAndFacilities: string;
+  excellent: string;
+  good: string;
+  average: string;
+  poor: string;
+  veryPoor: string;
+  overallExperienceDesc: string;
+  contentRelevanceDesc: string;
+  trainerKnowledgeDesc: string;
+  venueAndFacilitiesDesc: string;
+  additionalFeedback: string;
+  whatDidYouLike: string;
+  whatCouldImprove: string;
+  wouldYouRecommend: string;
+  yes: string;
+  no: string;
+  maybe: string;
+  submitFeedback: string;
+  submittingFeedback: string;
+  feedbackSubmittedSuccess: string;
+  thankYouForFeedback: string;
+  feedbackAppreciated: string;
+  returnToHome: string;
+  provideFeedbackAnonymously: string;
+  orProvideContactInfo: string;
+  nameOptional: string;
+  emailOptional: string;
+  yourRatings: string;
+  pleaseRateAllCategories: string;
+  failedToSubmitFeedback: string;
 }
 
 // English translations
@@ -502,7 +581,86 @@ export const enTranslations: TrainingTranslations = {
   // Page Descriptions
   manageParticipants: 'Manage participant registration and attendance',
   generateManageQrCodes: 'Generate and manage QR codes for training sessions',
-  viewAnalyzeFeedback: 'View and analyze participant feedback from training sessions'
+  viewAnalyzeFeedback: 'View and analyze participant feedback from training sessions',
+  
+  // Attendance Page
+  trainingAttendance: 'Training Attendance',
+  markAttendanceDescription: 'Mark attendance for training participants',
+  markAttendance: 'Mark Attendance',
+  walkInRegistration: 'Walk-in Registration',
+  attendanceManagement: 'Attendance Management',
+  markPresent: 'Mark Present',
+  totalRegistered: 'Total Registered',
+  attended: 'Attended',
+  notAttended: 'Not Attended',
+  searchByNameEmailSchool: 'Search by name, email, or school...',
+  filterByStatus: 'Filter by status',
+  allParticipants: 'All Participants',
+  searchExistingParticipant: 'Search Existing Participant',
+  newParticipant: 'New Participant',
+  searchByNameEmailPhone: 'Search by Name, Email, or Phone',
+  enterAtLeast2Chars: 'Please enter at least 2 characters to search',
+  search: 'Search',
+  foundParticipants: 'Found Participants:',
+  noExistingParticipantsFound: 'No existing participants found. You can register as new.',
+  canRegisterAsNew: 'You can register as new.',
+  fillDetailsForNew: 'Fill in the details below for a new participant',
+  fullName: 'Full Name',
+  emailAddress: 'Email Address',
+  phoneNumber: 'Phone Number',
+  schoolOrganization: 'School/Organization',
+  district: 'District',
+  province: 'Province',
+  markWalkInAttendance: 'Mark Walk-in Attendance',
+  resetForm: 'Reset Form',
+  trainingHistory: 'Training History',
+  firstTraining: 'First Training',
+  attendanceRate: 'Attendance Rate',
+  nameEmailRequired: 'Name and email are required',
+  attendanceMarkedSuccess: 'Attendance marked successfully',
+  walkInAttendanceMarkedSuccess: 'Walk-in attendance marked successfully!',
+  failedToMarkAttendance: 'Failed to mark attendance',
+  failedToSearchParticipants: 'Failed to search participants',
+  noRegistrationsFound: 'No registrations found for this session',
+  registerWalkInDescription: 'Register walk-in participants who haven\'t pre-registered for this session',
+  selectParticipant: 'Selected',
+  
+  // Public Feedback Page
+  trainingSessionFeedback: 'Training Session Feedback',
+  shareFeedbackDescription: 'Share your feedback to help us improve',
+  overallExperience: 'Overall Experience',
+  contentRelevance: 'Content Relevance',
+  trainerKnowledge: 'Trainer Knowledge',
+  venueAndFacilities: 'Venue & Facilities',
+  excellent: 'Excellent',
+  good: 'Good',
+  average: 'Average',
+  poor: 'Poor',
+  veryPoor: 'Very Poor',
+  overallExperienceDesc: 'How was your overall training experience?',
+  contentRelevanceDesc: 'Was the content relevant and useful?',
+  trainerKnowledgeDesc: 'How knowledgeable was the trainer?',
+  venueAndFacilitiesDesc: 'How were the venue and facilities?',
+  additionalFeedback: 'Additional Feedback',
+  whatDidYouLike: 'What did you like most about the training?',
+  whatCouldImprove: 'What could be improved?',
+  wouldYouRecommend: 'Would you recommend this training to others?',
+  yes: 'Yes',
+  no: 'No',
+  maybe: 'Maybe',
+  submitFeedback: 'Submit Feedback',
+  submittingFeedback: 'Submitting feedback...',
+  feedbackSubmittedSuccess: 'Feedback submitted successfully!',
+  thankYouForFeedback: 'Thank You!',
+  feedbackAppreciated: 'Your feedback has been submitted successfully. We appreciate your input!',
+  returnToHome: 'Return to Home',
+  provideFeedbackAnonymously: 'You can provide feedback anonymously',
+  orProvideContactInfo: 'Or provide your contact information (optional)',
+  nameOptional: 'Your Name (Optional)',
+  emailOptional: 'Your Email (Optional)',
+  yourRatings: 'Your Ratings',
+  pleaseRateAllCategories: 'Please rate all categories',
+  failedToSubmitFeedback: 'Failed to submit feedback'
 };
 
 // Khmer translations
@@ -753,7 +911,86 @@ export const kmTranslations: TrainingTranslations = {
   // Page Descriptions
   manageParticipants: 'គ្រប់គ្រងការចុះឈ្មោះ និងវត្តមានរបស់អ្នកចូលរួម',
   generateManageQrCodes: 'បង្កើត និងគ្រប់គ្រងកូដ QR សម្រាប់វគ្គបណ្តុះបណ្តាល',
-  viewAnalyzeFeedback: 'មើល និងវិភាគមតិយោបល់ពីអ្នកចូលរួមពីវគ្គបណ្តុះបណ្តាល'
+  viewAnalyzeFeedback: 'មើល និងវិភាគមតិយោបល់ពីអ្នកចូលរួមពីវគ្គបណ្តុះបណ្តាល',
+  
+  // Attendance Page
+  trainingAttendance: 'វត្តមានការបណ្តុះបណ្តាល',
+  markAttendanceDescription: 'កត់ត្រាវត្តមានសម្រាប់អ្នកចូលរួមបណ្តុះបណ្តាល',
+  markAttendance: 'កត់ត្រាវត្តមាន',
+  walkInRegistration: 'ការចុះឈ្មោះនៅទីកន្លែង',
+  attendanceManagement: 'ការគ្រប់គ្រងវត្តមាន',
+  markPresent: 'កត់ត្រាវត្តមាន',
+  totalRegistered: 'ចុះឈ្មោះសរុប',
+  attended: 'បានចូលរួម',
+  notAttended: 'មិនបានចូលរួម',
+  searchByNameEmailSchool: 'ស្វែងរកតាមឈ្មោះ អ៊ីមែល ឬសាលា...',
+  filterByStatus: 'ចម្រាញ់តាមស្ថានភាព',
+  allParticipants: 'អ្នកចូលរួមទាំងអស់',
+  searchExistingParticipant: 'ស្វែងរកអ្នកចូលរួមដែលមានស្រាប់',
+  newParticipant: 'អ្នកចូលរួមថ្មី',
+  searchByNameEmailPhone: 'ស្វែងរកតាមឈ្មោះ អ៊ីមែល ឬលេខទូរស័ព្ទ',
+  enterAtLeast2Chars: 'សូមបញ្ចូលយ៉ាងហោចណាស់ ២ តួអក្សរដើម្បីស្វែងរក',
+  search: 'ស្វែងរក',
+  foundParticipants: 'អ្នកចូលរួមដែលរកឃើញ៖',
+  noExistingParticipantsFound: 'រកមិនឃើញអ្នកចូលរួមដែលមានស្រាប់។ អ្នកអាចចុះឈ្មោះជាថ្មី។',
+  canRegisterAsNew: 'អ្នកអាចចុះឈ្មោះជាថ្មី។',
+  fillDetailsForNew: 'បំពេញព័ត៌មានលម្អិតខាងក្រោមសម្រាប់អ្នកចូលរួមថ្មី',
+  fullName: 'ឈ្មោះពេញ',
+  emailAddress: 'អាសយដ្ឋានអ៊ីមែល',
+  phoneNumber: 'លេខទូរស័ព្ទ',
+  schoolOrganization: 'សាលា/ស្ថាប័ន',
+  district: 'ស្រុក/ខណ្ឌ',
+  province: 'ខេត្ត/រាជធានី',
+  markWalkInAttendance: 'កត់ត្រាវត្តមាននៅទីកន្លែង',
+  resetForm: 'កំណត់ទម្រង់ឡើងវិញ',
+  trainingHistory: 'ប្រវត្តិការបណ្តុះបណ្តាល',
+  firstTraining: 'ការបណ្តុះបណ្តាលដំបូង',
+  attendanceRate: 'អត្រាវត្តមាន',
+  nameEmailRequired: 'ឈ្មោះ និងអ៊ីមែលត្រូវតែបំពេញ',
+  attendanceMarkedSuccess: 'បានកត់ត្រាវត្តមានដោយជោគជ័យ',
+  walkInAttendanceMarkedSuccess: 'បានកត់ត្រាវត្តមាននៅទីកន្លែងដោយជោគជ័យ!',
+  failedToMarkAttendance: 'បរាជ័យក្នុងការកត់ត្រាវត្តមាន',
+  failedToSearchParticipants: 'បរាជ័យក្នុងការស្វែងរកអ្នកចូលរួម',
+  noRegistrationsFound: 'មិនមានការចុះឈ្មោះសម្រាប់វគ្គនេះ',
+  registerWalkInDescription: 'ចុះឈ្មោះអ្នកចូលរួមនៅទីកន្លែងដែលមិនបានចុះឈ្មោះទុកជាមុនសម្រាប់វគ្គនេះ',
+  selectParticipant: 'បានជ្រើសរើស',
+  
+  // Public Feedback Page
+  trainingSessionFeedback: 'មតិយោបល់វគ្គបណ្តុះបណ្តាល',
+  shareFeedbackDescription: 'ចែករំលែកមតិយោបល់របស់អ្នកដើម្បីជួយយើងកែលម្អ',
+  overallExperience: 'បទពិសោធន៍ទូទៅ',
+  contentRelevance: 'ភាពពាក់ព័ន្ធនៃមាតិកា',
+  trainerKnowledge: 'ចំណេះដឹងរបស់គ្រូបណ្តុះបណ្តាល',
+  venueAndFacilities: 'ទីតាំង និងសម្ភារៈ',
+  excellent: 'ល្អបំផុត',
+  good: 'ល្អ',
+  average: 'មធ្យម',
+  poor: 'អន់',
+  veryPoor: 'អន់ខ្លាំង',
+  overallExperienceDesc: 'តើបទពិសោធន៍បណ្តុះបណ្តាលទូទៅរបស់អ្នកយ៉ាងដូចម្តេច?',
+  contentRelevanceDesc: 'តើមាតិកាមានភាពពាក់ព័ន្ធ និងមានប្រយោជន៍ដែរឬទេ?',
+  trainerKnowledgeDesc: 'តើគ្រូបណ្តុះបណ្តាលមានចំណេះដឹងប៉ុណ្ណា?',
+  venueAndFacilitiesDesc: 'តើទីតាំង និងសម្ភារៈយ៉ាងដូចម្តេច?',
+  additionalFeedback: 'មតិយោបល់បន្ថែម',
+  whatDidYouLike: 'តើអ្នកចូលចិត្តអ្វីបំផុតអំពីការបណ្តុះបណ្តាលនេះ?',
+  whatCouldImprove: 'តើអ្វីដែលអាចកែលម្អបាន?',
+  wouldYouRecommend: 'តើអ្នកនឹងណែនាំការបណ្តុះបណ្តាលនេះទៅអ្នកដទៃដែរឬទេ?',
+  yes: 'បាទ/ចាស',
+  no: 'ទេ',
+  maybe: 'ប្រហែល',
+  submitFeedback: 'ដាក់ស្នើមតិយោបល់',
+  submittingFeedback: 'កំពុងដាក់ស្នើមតិយោបល់...',
+  feedbackSubmittedSuccess: 'បានដាក់ស្នើមតិយោបល់ដោយជោគជ័យ!',
+  thankYouForFeedback: 'សូមអរគុណ!',
+  feedbackAppreciated: 'មតិយោបល់របស់អ្នកត្រូវបានដាក់ស្នើដោយជោគជ័យ។ យើងសូមកោតសរសើរចំពោះការបញ្ចូលរបស់អ្នក!',
+  returnToHome: 'ត្រឡប់ទៅទំព័រដើម',
+  provideFeedbackAnonymously: 'អ្នកអាចផ្តល់មតិយោបល់ដោយអនាមិក',
+  orProvideContactInfo: 'ឬផ្តល់ព័ត៌មានទំនាក់ទំនងរបស់អ្នក (ស្រេចចិត្ត)',
+  nameOptional: 'ឈ្មោះរបស់អ្នក (ស្រេចចិត្ត)',
+  emailOptional: 'អ៊ីមែលរបស់អ្នក (ស្រេចចិត្ត)',
+  yourRatings: 'ការវាយតម្លៃរបស់អ្នក',
+  pleaseRateAllCategories: 'សូមវាយតម្លៃគ្រប់ប្រភេទ',
+  failedToSubmitFeedback: 'បរាជ័យក្នុងការដាក់ស្នើមតិយោបល់'
 };
 
 // Translation map

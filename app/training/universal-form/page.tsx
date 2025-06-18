@@ -287,7 +287,7 @@ export default function UniversalTrainingFormPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div className="flex items-center gap-2 text-blue-700">
                   <Calendar className="h-4 w-4" />
-                  {new Date(session.session_date).toLocaleDateString()}
+                  {new Date(session.session_date).toLocaleDateString('en-US')}
                 </div>
                 <div className="flex items-center gap-2 text-blue-700">
                   <Clock className="h-4 w-4" />
@@ -588,7 +588,7 @@ export default function UniversalTrainingFormPage() {
                     <p className="text-gray-600">First Training</p>
                     <p className="font-semibold">
                       {selectedParticipant.first_training_date 
-                        ? new Date(selectedParticipant.first_training_date).toLocaleDateString()
+                        ? new Date(selectedParticipant.first_training_date).toLocaleDateString('en-US')
                         : 'N/A'
                       }
                     </p>
