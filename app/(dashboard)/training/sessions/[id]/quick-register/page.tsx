@@ -21,9 +21,14 @@ import {
   AlertCircle,
   QrCode,
   Search,
-  Loader2
+  Loader2,
+  ArrowLeft
 } from "lucide-react";
 import { toast } from "sonner";
+import { TrainingBreadcrumb } from "@/components/training-breadcrumb";
+import { useTrainingTranslation } from "@/lib/training-i18n";
+import { TrainingLocaleProvider } from "@/components/training-locale-provider";
+import { TrainingLanguageSwitcher } from "@/components/training-language-switcher";
 
 interface Session {
   id: string;
@@ -45,10 +50,11 @@ interface ParticipantData {
   province?: string;
 }
 
-export default function QuickRegisterPage() {
+function QuickRegisterPageContent() {
   const params = useParams();
   const router = useRouter();
   const sessionId = params.id as string;
+  const { t } = useTrainingTranslation();
   
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,7 +86,7 @@ export default function QuickRegisterPage() {
       }
     } catch (error) {
       console.error("Error fetching session:", error);
-      toast.error("Failed to load session details");
+      toast.error(t.failedToLoadSession);
     } finally {
       setLoading(false);
     }
@@ -88,7 +94,7 @@ export default function QuickRegisterPage() {
 
   const searchParticipant = async () => {
     if (!searchEmail || !searchEmail.includes('@')) {
-      toast.error("Please enter a valid email address");
+      toast.error(t.pleaseEnterValidEmail);
       return;
     }
 
@@ -110,19 +116,19 @@ export default function QuickRegisterPage() {
             district: data.participant.district || "",
             province: data.participant.province || ""
           });
-          toast.success("Participant found! Information pre-filled.");
+          toast.success(t.participantFoundPreFilled);
         } else {
           // New participant, just set email
           setFormData(prev => ({
             ...prev,
             participant_email: searchEmail
           }));
-          toast.info("New participant - please fill in their details");
+          toast.info(t.newParticipantFillDetails);
         }
       }
     } catch (error) {
       console.error("Error searching participant:", error);
-      toast.error("Failed to search participant");
+      toast.error(t.failedToSearchParticipant);
     } finally {
       setSubmitting(false);
     }
@@ -130,7 +136,7 @@ export default function QuickRegisterPage() {
 
   const handleQuickRegister = async () => {
     if (!formData.participant_email || !formData.participant_name) {
-      toast.error("Email and name are required");
+      toast.error(t.emailNameRequired);
       return;
     }
 
@@ -147,7 +153,7 @@ export default function QuickRegisterPage() {
 
       if (response.ok) {
         const result = await response.json();
-        toast.success(result.message || "Registration and attendance marked successfully!");
+        toast.success(result.message || t.registrationAttendanceSuccess);
         
         // Clear form for next participant
         setFormData({
@@ -166,11 +172,11 @@ export default function QuickRegisterPage() {
         fetchSession();
       } else {
         const error = await response.json();
-        toast.error(error.error || "Failed to register participant");
+        toast.error(error.error || t.failedToRegisterParticipant);
       }
     } catch (error) {
       console.error("Error registering participant:", error);
-      toast.error("Failed to register participant");
+      toast.error(t.failedToRegisterParticipant);
     } finally {
       setSubmitting(false);
     }
@@ -194,7 +200,7 @@ export default function QuickRegisterPage() {
       <div className="container mx-auto p-6">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>Session not found</AlertDescription>
+          <AlertDescription>{t.sessionNotFound}</AlertDescription>
         </Alert>
       </div>
     );
@@ -202,48 +208,71 @@ export default function QuickRegisterPage() {
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
-      {/* Session Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">{session.session_title}</h1>
-        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Clock className="h-4 w-4" />
-            {new Date(session.session_date).toLocaleDateString()} at {session.start_time}
+      <TrainingBreadcrumb />
+      
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex-1">
+          <div className="flex items-center gap-4 mb-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => router.back()}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {t.back}
+            </Button>
+            <div>
+              <h1 className="text-3xl font-bold">{t.quickRegistration}</h1>
+              <p className="text-lg text-muted-foreground">{session.session_title}</p>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <MapPin className="h-4 w-4" />
-            {session.location}
+          
+          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              {new Date(session.session_date).toLocaleDateString('en-US')} {t.at} {session.start_time}
+            </div>
+            <div className="flex items-center gap-1">
+              <MapPin className="h-4 w-4" />
+              {session.location}
+            </div>
+            <Badge variant={session.current_attendance >= session.capacity ? "destructive" : "default"}>
+              {session.current_attendance} / {session.capacity} {t.attendees}
+            </Badge>
           </div>
-          <Badge variant={session.current_attendance >= session.capacity ? "destructive" : "default"}>
-            {session.current_attendance} / {session.capacity} Attendees
-          </Badge>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <TrainingLanguageSwitcher />
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="quick">Quick Check-in</TabsTrigger>
-          <TabsTrigger value="bulk">Bulk Operations</TabsTrigger>
+          <TabsTrigger value="quick">{t.quickCheckin}</TabsTrigger>
+          <TabsTrigger value="bulk">{t.bulkOperations}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="quick" className="space-y-6">
           {/* Search Section */}
           <Card>
             <CardHeader>
-              <CardTitle>Quick Registration & Attendance</CardTitle>
+              <CardTitle>{t.quickRegistrationAndAttendance}</CardTitle>
               <CardDescription>
-                Register walk-in participants and mark their attendance in one step
+                {t.registerWalkInParticipants}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Email Search */}
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <Label htmlFor="search-email">Search by Email</Label>
+                  <Label htmlFor="search-email">{t.searchByEmail}</Label>
                   <Input
                     id="search-email"
                     type="email"
-                    placeholder="participant@email.com"
+                    placeholder={t.emailPlaceholder}
                     value={searchEmail}
                     onChange={(e) => setSearchEmail(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && searchParticipant()}
@@ -256,7 +285,7 @@ export default function QuickRegisterPage() {
                     size="default"
                   >
                     {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                    Search
+                    {t.search}
                   </Button>
                 </div>
               </div>
@@ -268,14 +297,14 @@ export default function QuickRegisterPage() {
                   <AlertDescription>
                     {searchResult.isReturning ? (
                       <div className="space-y-2">
-                        <p className="font-semibold">Welcome back, {searchResult.participant.fullName}!</p>
+                        <p className="font-semibold">{t.welcomeBack.replace('{name}', searchResult.participant.fullName)}</p>
                         <div className="flex gap-2">
-                          <Badge variant="outline">{searchResult.participant.totalSessionsAttended} sessions attended</Badge>
-                          <Badge variant="outline">{searchResult.participant.attendanceRate}% attendance rate</Badge>
+                          <Badge variant="outline">{searchResult.participant.totalSessionsAttended} {t.sessionsAttended}</Badge>
+                          <Badge variant="outline">{searchResult.participant.attendanceRate}% {t.attendanceRate}</Badge>
                         </div>
                       </div>
                     ) : (
-                      <p>New participant - please fill in their information below</p>
+                      <p>{t.newParticipantFillInfo}</p>
                     )}
                   </AlertDescription>
                 </Alert>
@@ -285,7 +314,7 @@ export default function QuickRegisterPage() {
               <div className="space-y-4 pt-4 border-t">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="email">Email *</Label>
+                    <Label htmlFor="email">{t.email} *</Label>
                     <Input
                       id="email"
                       type="email"
@@ -295,7 +324,7 @@ export default function QuickRegisterPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="name">Full Name *</Label>
+                    <Label htmlFor="name">{t.fullName} *</Label>
                     <Input
                       id="name"
                       value={formData.participant_name}
@@ -307,7 +336,7 @@ export default function QuickRegisterPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="phone">Phone</Label>
+                    <Label htmlFor="phone">{t.phone}</Label>
                     <Input
                       id="phone"
                       type="tel"
@@ -316,18 +345,18 @@ export default function QuickRegisterPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="role">Role</Label>
+                    <Label htmlFor="role">{t.role}</Label>
                     <Input
                       id="role"
                       value={formData.participant_role}
                       onChange={(e) => setFormData({...formData, participant_role: e.target.value})}
-                      placeholder="Teacher, Coordinator, etc."
+                      placeholder={t.rolePlaceholder}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <Label htmlFor="organization">School/Organization</Label>
+                  <Label htmlFor="organization">{t.schoolOrganization}</Label>
                   <Input
                     id="organization"
                     value={formData.school_name}
@@ -337,7 +366,7 @@ export default function QuickRegisterPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="district">District</Label>
+                    <Label htmlFor="district">{t.district}</Label>
                     <Input
                       id="district"
                       value={formData.district}
@@ -345,7 +374,7 @@ export default function QuickRegisterPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="province">Province</Label>
+                    <Label htmlFor="province">{t.province}</Label>
                     <Input
                       id="province"
                       value={formData.province}
@@ -365,12 +394,12 @@ export default function QuickRegisterPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Processing...
+                      {t.processing}
                     </>
                   ) : (
                     <>
                       <CheckCircle2 className="h-4 w-4 mr-2" />
-                      Register & Mark Attendance
+                      {t.registerAndMarkAttendance}
                     </>
                   )}
                 </Button>
@@ -382,9 +411,9 @@ export default function QuickRegisterPage() {
         <TabsContent value="bulk" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Bulk Operations</CardTitle>
+              <CardTitle>{t.bulkOperations}</CardTitle>
               <CardDescription>
-                Manage attendance for multiple participants
+                {t.manageAttendanceMultiple}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -397,8 +426,8 @@ export default function QuickRegisterPage() {
                 >
                   <UserCheck className="h-5 w-5 mr-2" />
                   <div className="text-left">
-                    <p className="font-semibold">Bulk Attendance Check-in</p>
-                    <p className="text-sm text-muted-foreground">Mark attendance for pre-registered participants</p>
+                    <p className="font-semibold">{t.bulkAttendanceCheckin}</p>
+                    <p className="text-sm text-muted-foreground">{t.markAttendancePreRegistered}</p>
                   </div>
                 </Button>
 
@@ -410,8 +439,8 @@ export default function QuickRegisterPage() {
                 >
                   <QrCode className="h-5 w-5 mr-2" />
                   <div className="text-left">
-                    <p className="font-semibold">QR Code Check-in</p>
-                    <p className="text-sm text-muted-foreground">Scan QR codes for quick attendance</p>
+                    <p className="font-semibold">{t.qrCodeCheckin}</p>
+                    <p className="text-sm text-muted-foreground">{t.scanQrCodesQuickAttendance}</p>
                   </div>
                 </Button>
               </div>
@@ -420,5 +449,13 @@ export default function QuickRegisterPage() {
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+export default function QuickRegisterPage() {
+  return (
+    <TrainingLocaleProvider>
+      <QuickRegisterPageContent />
+    </TrainingLocaleProvider>
   );
 }

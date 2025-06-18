@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   ClipboardList, 
   Settings,
@@ -18,10 +19,14 @@ import {
   Calendar,
   FileText,
   ExternalLink,
-  Paperclip
+  Paperclip,
+  ArrowLeft,
+  Eye,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 import TrainingProgramForm from '@/components/training-program-form';
 import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 import { TrainingLocaleProvider } from '@/components/training-locale-provider';
@@ -45,11 +50,21 @@ interface TrainingProgram {
 function TrainingProgramsPageContent() {
   const { user } = useAuth();
   const { t } = useTrainingTranslation();
+  const router = useRouter();
   const [programs, setPrograms] = useState<TrainingProgram[]>([]);
   const [filteredPrograms, setFilteredPrograms] = useState<TrainingProgram[]>([]);
   const [loading, setLoading] = useState(true);
   const [showProgramForm, setShowProgramForm] = useState(false);
   const [editingProgram, setEditingProgram] = useState<TrainingProgram | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    programId: number;
+    programName: string;
+  }>({
+    isOpen: false,
+    programId: 0,
+    programName: ''
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
 
@@ -119,6 +134,11 @@ function TrainingProgramsPageContent() {
     fetchPrograms();
   };
 
+  const handleViewDetails = (program: TrainingProgram) => {
+    // Navigate to program details page
+    router.push(`/training/programs/${program.id}`);
+  };
+
   const handleEditProgram = (program: TrainingProgram) => {
     setEditingProgram(program);
     setShowProgramForm(true);
@@ -129,10 +149,24 @@ function TrainingProgramsPageContent() {
     setEditingProgram(null);
   };
 
-  const handleDeleteProgram = async (programId: number) => {
-    if (!confirm(t.deleteConfirmation)) {
-      return;
-    }
+  const handleDeleteProgram = (programId: number, programName: string) => {
+    setDeleteDialog({
+      isOpen: true,
+      programId,
+      programName
+    });
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteDialog({
+      isOpen: false,
+      programId: 0,
+      programName: ''
+    });
+  };
+
+  const handleDeleteConfirm = async () => {
+    const { programId } = deleteDialog;
 
     try {
       const response = await fetch(`/api/training/programs?id=${programId}`, {
@@ -146,6 +180,7 @@ function TrainingProgramsPageContent() {
       if (response.ok) {
         toast.success(t.deleteSuccess);
         fetchPrograms();
+        handleDeleteCancel();
       } else {
         const error = await response.json();
         toast.error(error.error || t.deleteFailed);
@@ -191,29 +226,48 @@ function TrainingProgramsPageContent() {
 
   return (
     <div className="p-6 space-y-6">
-      <TrainingBreadcrumb />
+      {/* <TrainingBreadcrumb /> */}
       {/* Header */}
-      <div className="flex items-center justify-between mt-4">
-        <div>
-          <h1 className="text-3xl font-bold">{t.trainingPrograms}</h1>
-          <p className="text-muted-foreground mt-1">
-            {t.programsDescription}
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <TrainingLanguageSwitcher />
-          {/* <Badge className="bg-blue-100 text-blue-800" variant="secondary">
-            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-          </Badge> */}
-          {canCreatePrograms && (
-            <Button 
+      <div className="space-y-4">
+        {/* Navigation Row */}
+        
+        
+        {/* Title and Actions Row */}
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold">{t.trainingPrograms}</h1>
+            <p className="text-muted-foreground mt-1">
+              {t.programsDescription}
+            </p>
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 ml-4">
+            {canCreatePrograms && (
+              <>
+              <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => router.back()}
               className="flex items-center gap-2"
-              onClick={() => setShowProgramForm(true)}
             >
-              <Plus className="h-4 w-4" />
-              {t.createProgram}
+              <ArrowLeft className="h-4 w-4" />
+              {t.back}
             </Button>
-          )}
+                <Button 
+                size="sm"
+                  className="flex items-center gap-2"
+                  onClick={() => setShowProgramForm(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                  {t.createProgram}
+                </Button>
+                
+              </>
+            )}
+          </div>
+          <div className="h-6 w-px bg-border" />
+          <div className="flex items-center gap-4"><TrainingLanguageSwitcher /></div>
         </div>
       </div>
 
@@ -393,7 +447,13 @@ function TrainingProgramsPageContent() {
                       </div>
                       
                       <div className="flex gap-2 pt-2">
-                        <Button variant="outline" size="sm" className="flex-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => handleViewDetails(program)}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
                           {t.viewDetails}
                         </Button>
                         {canCreatePrograms && (
@@ -402,16 +462,18 @@ function TrainingProgramsPageContent() {
                               variant="outline" 
                               size="sm"
                               onClick={() => handleEditProgram(program)}
+                              title={t.editSession}
                             >
                               <Settings className="h-4 w-4" />
                             </Button>
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => handleDeleteProgram(program.id)}
-                              className="text-red-600 hover:text-red-700"
+                              onClick={() => handleDeleteProgram(program.id, program.program_name)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              title={t.delete}
                             >
-                              {t.delete}
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </>
                         )}
@@ -433,6 +495,28 @@ function TrainingProgramsPageContent() {
           onCancel={handleCancelProgramForm}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialog.isOpen} onOpenChange={handleDeleteCancel}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t.deleteConfirmation}</DialogTitle>
+            <DialogDescription>
+              {t.deleteConfirmationText?.replace('{name}', deleteDialog.programName) || 
+               `Are you sure you want to delete "${deleteDialog.programName}"? This action cannot be undone.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={handleDeleteCancel}>
+              {t.cancel}
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              <Trash2 className="h-4 w-4 mr-1" />
+              {t.delete}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -229,35 +229,43 @@ function TrainingFeedbackContent() {
 
   return (
     <div className="p-6 space-y-6">
-      <TrainingBreadcrumb />
+      {/* <TrainingBreadcrumb /> */}
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">{t.trainingFeedback}</h1>
-          <p className="text-muted-foreground mt-1">
-            {t.viewAnalyzeFeedback}
-          </p>
-          {searchParams.get('session') && (
-            <p className="text-sm text-blue-600 mt-1">
-              {t.showingForSession}: {searchParams.get('session')}
+      <div className="space-y-4">
+        {/* Navigation Row */}
+        
+        
+        {/* Title and Actions Row */}
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold">{t.trainingFeedback}</h1>
+            <p className="text-muted-foreground mt-1">
+              {t.viewAnalyzeFeedback}
             </p>
-          )}
-        </div>
-        <div className="flex items-center gap-4">
-        <TrainingLanguageSwitcher />
-          {/* <Badge className="bg-blue-100 text-blue-800" variant="secondary">
-            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-          </Badge> */}
-          {searchParams.get('session') && (
+            {searchParams.get('session') && (
+              <p className="text-sm text-blue-600 mt-1">
+                {t.showingForSession}: {searchParams.get('session')}
+              </p>
+            )}
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 ml-4">
+            <>
             <Button 
-              variant="outline"
-              onClick={() => window.history.back()}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              {t.backToSessions}
-            </Button>
-          )}
+            variant="outline" 
+            size="sm"
+            onClick={() => window.history.back()}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t.back}
+          </Button>
+              
+            </>
+          </div>
+          <div className="h-6 w-px bg-border" />
+          <div className="flex items-center gap-4"><TrainingLanguageSwitcher /></div>
         </div>
       </div>
 

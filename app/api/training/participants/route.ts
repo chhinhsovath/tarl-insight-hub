@@ -29,47 +29,97 @@ export async function GET(request: NextRequest) {
 
   try {
 
-    let query = `
-      SELECT 
-        tp.*,
-        ts.session_title,
-        ts.session_date,
-        ts.session_time,
-        ts.location,
-        tprog.program_name,
-        confirmer.full_name as confirmed_by_name,
-        sch."sclName" as school_name
-      FROM tbl_tarl_training_participants tp
-      LEFT JOIN tbl_tarl_training_sessions ts ON tp.session_id = ts.id
-      LEFT JOIN tbl_tarl_training_programs tprog ON ts.program_id = tprog.id
-      LEFT JOIN tbl_tarl_users confirmer ON tp.confirmed_by = confirmer.id
-      LEFT JOIN tbl_tarl_schools sch ON tp.school_id = sch."sclAutoID"
-      WHERE 1=1
-    `;
+    // If session_id is provided, get registrations from registrations table
+    // Otherwise, get from participants table
+    let query;
+    if (sessionId) {
+      query = `
+        SELECT 
+          tr.id,
+          tr.participant_name as name,
+          tr.participant_email as email,
+          tr.participant_phone as phone,
+          tr.participant_role as role,
+          tr.school_name,
+          NULL as school_id,
+          tr.district,
+          tr.province,
+          tr.session_id,
+          CASE WHEN tr.attendance_status = 'attended' THEN true ELSE false END as attendance_confirmed,
+          tr.attendance_marked_at as attendance_time,
+          tr.attendance_status as registration_status,
+          tr.created_at,
+          tr.updated_at,
+          NULL as confirmed_by,
+          ts.session_title,
+          ts.session_date,
+          ts.session_time,
+          ts.location,
+          tprog.program_name,
+          NULL as confirmed_by_name,
+          tr.school_name as school_name
+        FROM tbl_tarl_training_registrations tr
+        LEFT JOIN tbl_tarl_training_sessions ts ON tr.session_id = ts.id
+        LEFT JOIN tbl_tarl_training_programs tprog ON ts.program_id = tprog.id
+        WHERE tr.is_active = true AND tr.session_id = $1
+      `;
+    } else {
+      query = `
+        SELECT 
+          tp.*,
+          ts.session_title,
+          ts.session_date,
+          ts.session_time,
+          ts.location,
+          tprog.program_name,
+          confirmer.full_name as confirmed_by_name,
+          sch."sclName" as school_name
+        FROM tbl_tarl_training_participants tp
+        LEFT JOIN tbl_tarl_training_sessions ts ON tp.session_id = ts.id
+        LEFT JOIN tbl_tarl_training_programs tprog ON ts.program_id = tprog.id
+        LEFT JOIN tbl_tarl_users confirmer ON tp.confirmed_by = confirmer.id
+        LEFT JOIN tbl_tarl_schools sch ON tp.school_id = sch."sclAutoID"
+        WHERE 1=1
+      `;
+    }
 
     const params = [];
     let paramIndex = 1;
 
     if (sessionId) {
-      query += ` AND tp.session_id = $${paramIndex}`;
       params.push(parseInt(sessionId));
       paramIndex++;
-    }
+      
+      if (status) {
+        query += ` AND tr.attendance_status = $${paramIndex}`;
+        params.push(status);
+        paramIndex++;
+      }
+      
+      // Apply role-based filtering for registrations
+      if (user.role === 'teacher') {
+        query += ` AND ts.trainer_id = $${paramIndex}`;
+        params.push(user.user_id);
+        paramIndex++;
+      }
+      
+      query += ` ORDER BY tr.created_at DESC`;
+    } else {
+      if (status) {
+        query += ` AND tp.registration_status = $${paramIndex}`;
+        params.push(status);
+        paramIndex++;
+      }
 
-    if (status) {
-      query += ` AND tp.registration_status = $${paramIndex}`;
-      params.push(status);
-      paramIndex++;
-    }
+      // Apply role-based filtering for participants
+      if (user.role === 'teacher') {
+        query += ` AND ts.trainer_id = $${paramIndex}`;
+        params.push(user.user_id);
+        paramIndex++;
+      }
 
-    // Apply role-based filtering
-    if (user.role === 'teacher') {
-      query += ` AND ts.trainer_id = $${paramIndex}`;
-      params.push(user.user_id);
-      paramIndex++;
+      query += ` ORDER BY tp.created_at DESC`;
     }
-
-    query += ` ORDER BY tp.created_at DESC`;
 
     const result = await client.query(query, params);
     

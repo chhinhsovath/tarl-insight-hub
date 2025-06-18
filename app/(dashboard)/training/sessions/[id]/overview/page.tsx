@@ -30,6 +30,10 @@ import { toast } from 'sonner';
 import { makeAuthenticatedRequest, handleApiResponse } from '@/lib/session-utils';
 import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 import { PhotoActivitiesManager } from '@/components/training/photo-activities-manager';
+import { TrainingLocaleProvider } from '@/components/training-locale-provider';
+import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
+import { useTrainingTranslation } from '@/lib/training-i18n';
+import { ArrowLeft } from 'lucide-react';
 
 interface SessionInfo {
   id: number;
@@ -93,10 +97,11 @@ interface SessionOverview {
   recentActivities: RecentActivity[];
 }
 
-export default function SessionOverviewPage() {
+function SessionOverviewPageContent() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
+  const { t } = useTrainingTranslation();
   const sessionId = params.id as string;
   const [overview, setOverview] = useState<SessionOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -120,7 +125,7 @@ export default function SessionOverviewPage() {
       }
     } catch (error) {
       console.error('Error fetching session overview:', error);
-      toast.error('Failed to fetch session overview');
+      toast.error(t.failedToFetch || 'Failed to fetch session overview');
     } finally {
       setLoading(false);
     }
@@ -166,7 +171,7 @@ export default function SessionOverviewPage() {
           <div className="text-center">
             <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
             <p className="text-muted-foreground">
-              {authLoading ? 'Checking authentication...' : 'Loading session overview...'}
+              {authLoading ? (t.checkingAuth || 'Checking authentication...') : (t.loadingOverview || 'Loading session overview...')}
             </p>
           </div>
         </div>
@@ -180,9 +185,9 @@ export default function SessionOverviewPage() {
         <TrainingBreadcrumb />
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <p className="text-muted-foreground mb-4">Please log in to access session overview.</p>
+            <p className="text-muted-foreground mb-4">{t.pleaseLogIn} {t.overview.toLowerCase()}.</p>
             <Button onClick={() => router.push('/login')}>
-              Go to Login
+              {t.goToLogin || 'Go to Login'}
             </Button>
           </div>
         </div>
@@ -195,12 +200,12 @@ export default function SessionOverviewPage() {
       <div className="p-6 space-y-6">
         <TrainingBreadcrumb />
         <div className="text-center py-8">
-          <p className="text-muted-foreground">Session not found</p>
+          <p className="text-muted-foreground">{t.sessionNotFound || 'Session not found'}</p>
           <Button 
             className="mt-4" 
             onClick={() => router.push('/training/sessions')}
           >
-            Back to Sessions
+            {t.backToSessions || 'Back to Sessions'}
           </Button>
         </div>
       </div>
@@ -211,60 +216,82 @@ export default function SessionOverviewPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <TrainingBreadcrumb />
-      
+      {/* <TrainingBreadcrumb /> */}
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-4 mb-4">
-            <div>
-              <h1 className="text-3xl font-bold">{session.session_title}</h1>
-              <p className="text-lg text-muted-foreground">{session.program_name}</p>
-            </div>
-            <Badge className={getStatusBadge(session.session_status)} variant="secondary">
-              {session.session_status}
-            </Badge>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-blue-600" />
-              <span>{formatDate(session.session_date)}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-blue-600" />
-              <span>{formatTime(session.session_time)}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-blue-600" />
-              <span>{session.location}</span>
-            </div>
-          </div>
-          
-          {session.trainer_name && (
-            <p className="text-sm text-muted-foreground mt-2">
-              Trainer: <span className="font-medium">{session.trainer_name}</span>
-              {session.coordinator_name && (
-                <span className="ml-4">Coordinator: <span className="font-medium">{session.coordinator_name}</span></span>
-              )}
-            </p>
-          )}
-        </div>
+      <div className="space-y-4">
+        {/* Navigation Row */}
         
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => router.push(`/training/sessions/${sessionId}/edit`)}
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Session
-          </Button>
-          <Button 
-            onClick={() => router.push(`/training/qr-codes?session=${sessionId}`)}
-          >
-            <QrCode className="h-4 w-4 mr-2" />
-            QR Codes
-          </Button>
+        
+        {/* Title and Actions Row */}
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-4 mb-4">
+              <div>
+                <h1 className="text-3xl font-bold">{session.session_title}</h1>
+                <p className="text-lg text-muted-foreground">{session.program_name}</p>
+              </div>
+              <Badge className={getStatusBadge(session.session_status)} variant="secondary">
+                {t[session.session_status] || session.session_status}
+              </Badge>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-blue-600" />
+                <span>{formatDate(session.session_date)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-blue-600" />
+                <span>{formatTime(session.session_time)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-blue-600" />
+                <span>{session.location}</span>
+              </div>
+            </div>
+            
+            {session.trainer_name && (
+              <p className="text-sm text-muted-foreground mt-2">
+                {t.trainer}: <span className="font-medium">{session.trainer_name}</span>
+                {session.coordinator_name && (
+                  <span className="ml-4">{t.coordinator}: <span className="font-medium">{session.coordinator_name}</span></span>
+                )}
+              </p>
+            )}
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 ml-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => router.back()}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {t.back}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => router.push(`/training/sessions/${sessionId}/edit`)}
+              className="flex items-center gap-2"
+            >
+              <Edit className="h-4 w-4" />
+              {t.editSession}
+            </Button>
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`/training/qr-codes?session=${sessionId}`)}
+              className="flex items-center gap-2"
+            >
+              <QrCode className="h-4 w-4" />
+              {t.qrCodes}
+            </Button>
+          </div>
+          <div className="h-6 w-px bg-border" />
+          <div className="flex items-center gap-4"><TrainingLanguageSwitcher /></div>
         </div>
       </div>
 
@@ -274,9 +301,9 @@ export default function SessionOverviewPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Registrations</p>
+                <p className="text-sm text-muted-foreground">{t.registrations}</p>
                 <p className="text-2xl font-bold">{statistics.registration.total_registrations || 0}</p>
-                <p className="text-xs text-green-600">{statistics.registration.confirmed_count || 0} confirmed</p>
+                <p className="text-xs text-green-600">{statistics.registration.confirmed_count || 0} {t.confirmed}</p>
               </div>
               <Users className="h-8 w-8 text-blue-600" />
             </div>
@@ -287,12 +314,12 @@ export default function SessionOverviewPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Attendance</p>
+                <p className="text-sm text-muted-foreground">{t.attendance}</p>
                 <p className="text-2xl font-bold">{statistics.attendance.present_count || 0}</p>
                 <p className="text-xs text-green-600">
                   {statistics.attendance.total_attendance > 0 
                     ? Math.round((statistics.attendance.present_count / statistics.attendance.total_attendance) * 100)
-                    : 0}% present
+                    : 0}% {t.present}
                 </p>
               </div>
               <UserCheck className="h-8 w-8 text-green-600" />
@@ -304,7 +331,7 @@ export default function SessionOverviewPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Feedback</p>
+                <p className="text-sm text-muted-foreground">{t.feedback}</p>
                 <p className="text-2xl font-bold">{statistics.feedback.total_feedback || 0}</p>
                 <div className="flex items-center gap-1">
                   <Star className="h-3 w-3 text-yellow-500" />
@@ -322,9 +349,9 @@ export default function SessionOverviewPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Materials</p>
+                <p className="text-sm text-muted-foreground">{t.materials}</p>
                 <p className="text-2xl font-bold">{statistics.engagePrograms.total_materials || 0}</p>
-                <p className="text-xs text-purple-600">{statistics.engagePrograms.total_programs || 0} programs</p>
+                <p className="text-xs text-purple-600">{statistics.engagePrograms.total_programs || 0} {t.programs}</p>
               </div>
               <FileText className="h-8 w-8 text-purple-600" />
             </div>
@@ -335,9 +362,9 @@ export default function SessionOverviewPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Photos</p>
+                <p className="text-sm text-muted-foreground">{t.photoActivities}</p>
                 <p className="text-2xl font-bold">{statistics.photoActivities.total_photos || 0}</p>
-                <p className="text-xs text-pink-600">{statistics.photoActivities.featured_count || 0} featured</p>
+                <p className="text-xs text-pink-600">{statistics.photoActivities.featured_count || 0} {t.featured}</p>
               </div>
               <Camera className="h-8 w-8 text-pink-600" />
             </div>
@@ -348,12 +375,12 @@ export default function SessionOverviewPage() {
       {/* Main Content Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="participants">Participants</TabsTrigger>
-          <TabsTrigger value="materials">Materials</TabsTrigger>
-          <TabsTrigger value="photos">Photo Activities</TabsTrigger>
-          <TabsTrigger value="feedback">Feedback</TabsTrigger>
-          <TabsTrigger value="qr-codes">QR Codes</TabsTrigger>
+          <TabsTrigger value="overview">{t.overview}</TabsTrigger>
+          <TabsTrigger value="participants">{t.participants}</TabsTrigger>
+          <TabsTrigger value="materials">{t.materials}</TabsTrigger>
+          <TabsTrigger value="photos">{t.photoActivities}</TabsTrigger>
+          <TabsTrigger value="feedback">{t.feedback}</TabsTrigger>
+          <TabsTrigger value="qr-codes">{t.qrCodes}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -361,23 +388,23 @@ export default function SessionOverviewPage() {
             {/* Session Details */}
             <Card>
               <CardHeader>
-                <CardTitle>Session Information</CardTitle>
+                <CardTitle>{t.sessionInformation}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <h4 className="font-medium">Agenda</h4>
+                  <h4 className="font-medium">{t.agenda}</h4>
                   <div className="text-sm text-muted-foreground mt-1">
                     {session.agenda ? (
                       <div dangerouslySetInnerHTML={{ __html: session.agenda }} />
                     ) : (
-                      <p>No agenda set</p>
+                      <p>{t.noAgendaSet}</p>
                     )}
                   </div>
                 </div>
                 
                 {session.notes && (
                   <div>
-                    <h4 className="font-medium">Notes</h4>
+                    <h4 className="font-medium">{t.notes}</h4>
                     <div className="text-sm text-muted-foreground mt-1">
                       <div dangerouslySetInnerHTML={{ __html: session.notes }} />
                     </div>
@@ -385,7 +412,7 @@ export default function SessionOverviewPage() {
                 )}
                 
                 <div>
-                  <h4 className="font-medium">Venue Details</h4>
+                  <h4 className="font-medium">{t.venueDetails}</h4>
                   <p className="text-sm text-muted-foreground">{session.location}</p>
                   {session.venue_address && (
                     <p className="text-sm text-muted-foreground">{session.venue_address}</p>
@@ -399,7 +426,7 @@ export default function SessionOverviewPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Activity className="h-5 w-5" />
-                  Recent Activities
+                  {t.recentActivities}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -418,7 +445,7 @@ export default function SessionOverviewPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No recent activities</p>
+                  <p className="text-sm text-muted-foreground">{t.noRecentActivities}</p>
                 )}
               </CardContent>
             </Card>
@@ -428,7 +455,7 @@ export default function SessionOverviewPage() {
         <TabsContent value="participants">
           <Card>
             <CardHeader>
-              <CardTitle>Participant Management</CardTitle>
+              <CardTitle>{t.participantManagement}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -437,64 +464,64 @@ export default function SessionOverviewPage() {
                   onClick={() => router.push(`/training/participants?session=${sessionId}`)}
                 >
                   <Users className="h-4 w-4" />
-                  View All Participants
+                  {t.viewAllParticipants}
                 </Button>
                 <Button 
                   variant="outline"
-                  onClick={() => router.push(`/training/session/${sessionId}/register`)}
+                  onClick={() => window.open(`/training/register?session=${sessionId}`, '_blank')}
                 >
                   <Share2 className="h-4 w-4" />
-                  Registration Page
+                  {t.registrationPage}
                 </Button>
                 <Button 
                   variant="outline"
-                  onClick={() => router.push(`/training/session/${sessionId}/attendance`)}
+                  onClick={() => window.open(`/training/attendance?session=${sessionId}`, '_blank')}
                 >
                   <UserCheck className="h-4 w-4" />
-                  Attendance Page
+                  {t.attendancePage}
                 </Button>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium">Registration Status</h4>
+                  <h4 className="font-medium">{t.registrationStatus}</h4>
                   <div className="text-sm space-y-1">
                     <div className="flex justify-between">
-                      <span>Total Registered:</span>
+                      <span>{t.totalRegistered}:</span>
                       <span className="font-medium">{statistics.registration.total_registrations || 0}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Confirmed:</span>
+                      <span>{t.confirmed}:</span>
                       <span className="font-medium text-green-600">{statistics.registration.confirmed_count || 0}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Pending:</span>
+                      <span>{t.pending}:</span>
                       <span className="font-medium text-yellow-600">{statistics.registration.pending_count || 0}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Cancelled:</span>
+                      <span>{t.cancelled}:</span>
                       <span className="font-medium text-red-600">{statistics.registration.cancelled_count || 0}</span>
                     </div>
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <h4 className="font-medium">Attendance Status</h4>
+                  <h4 className="font-medium">{t.attendanceStatus}</h4>
                   <div className="text-sm space-y-1">
                     <div className="flex justify-between">
-                      <span>Total Checked:</span>
+                      <span>{t.totalChecked}:</span>
                       <span className="font-medium">{statistics.attendance.total_attendance || 0}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Present:</span>
+                      <span>{t.present}:</span>
                       <span className="font-medium text-green-600">{statistics.attendance.present_count || 0}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Late:</span>
+                      <span>{t.late}:</span>
                       <span className="font-medium text-yellow-600">{statistics.attendance.late_count || 0}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Absent:</span>
+                      <span>{t.absent}:</span>
                       <span className="font-medium text-red-600">{statistics.attendance.absent_count || 0}</span>
                     </div>
                   </div>
@@ -507,7 +534,7 @@ export default function SessionOverviewPage() {
         <TabsContent value="materials">
           <Card>
             <CardHeader>
-              <CardTitle>Training Materials</CardTitle>
+              <CardTitle>{t.trainingMaterials}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -516,36 +543,36 @@ export default function SessionOverviewPage() {
                   onClick={() => router.push(`/training/materials?session=${sessionId}`)}
                 >
                   <FileText className="h-4 w-4" />
-                  Manage Materials
+                  {t.manageMaterials}
                 </Button>
                 <Button 
                   variant="outline"
                   onClick={() => window.open(generateQRLink('materials'), '_blank')}
                 >
                   <Eye className="h-4 w-4" />
-                  Public Materials Page
+                  {t.publicMaterialsPage}
                 </Button>
                 <Button 
                   variant="outline"
                   onClick={() => router.push(`/training/qr-codes?session=${sessionId}`)}
                 >
                   <QrCode className="h-4 w-4" />
-                  QR Code for Materials
+                  {t.qrCodeForMaterials}
                 </Button>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="text-center p-4 bg-blue-50 rounded-lg">
                   <p className="text-2xl font-bold text-blue-600">{statistics.engagePrograms.before_count || 0}</p>
-                  <p className="text-sm text-blue-600">Before Training</p>
+                  <p className="text-sm text-blue-600">{t.before}</p>
                 </div>
                 <div className="text-center p-4 bg-yellow-50 rounded-lg">
                   <p className="text-2xl font-bold text-yellow-600">{statistics.engagePrograms.during_count || 0}</p>
-                  <p className="text-sm text-yellow-600">During Training</p>
+                  <p className="text-sm text-yellow-600">{t.during}</p>
                 </div>
                 <div className="text-center p-4 bg-green-50 rounded-lg">
                   <p className="text-2xl font-bold text-green-600">{statistics.engagePrograms.after_count || 0}</p>
-                  <p className="text-sm text-green-600">After Training</p>
+                  <p className="text-sm text-green-600">{t.after}</p>
                 </div>
               </div>
             </CardContent>
@@ -559,7 +586,7 @@ export default function SessionOverviewPage() {
         <TabsContent value="feedback">
           <Card>
             <CardHeader>
-              <CardTitle>Feedback Overview</CardTitle>
+              <CardTitle>{t.feedbackOverview}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -571,20 +598,20 @@ export default function SessionOverviewPage() {
                         {statistics.feedback.average_rating ? parseFloat(statistics.feedback.average_rating).toFixed(1) : '0.0'}
                       </p>
                     </div>
-                    <p className="text-sm text-muted-foreground">Average Rating</p>
+                    <p className="text-sm text-muted-foreground">{t.averageRating}</p>
                   </div>
                   
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span>Total Responses:</span>
+                      <span>{t.totalResponses}:</span>
                       <span className="font-medium">{statistics.feedback.total_feedback || 0}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Positive (4-5 stars):</span>
+                      <span>{t.positiveRating}:</span>
                       <span className="font-medium text-green-600">{statistics.feedback.positive_feedback || 0}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Negative (1-2 stars):</span>
+                      <span>{t.negativeRating}:</span>
                       <span className="font-medium text-red-600">{statistics.feedback.negative_feedback || 0}</span>
                     </div>
                   </div>
@@ -596,15 +623,15 @@ export default function SessionOverviewPage() {
                     onClick={() => router.push(`/training/feedback?session=${sessionId}`)}
                   >
                     <MessageSquare className="h-4 w-4" />
-                    View All Feedback
+                    {t.viewAllFeedback}
                   </Button>
                   <Button 
                     variant="outline"
                     className="w-full"
-                    onClick={() => window.open(generateQRLink('feedback'), '_blank')}
+                    onClick={() => window.open(`/training/public-feedback?session=${sessionId}`, '_blank')}
                   >
                     <Share2 className="h-4 w-4" />
-                    Public Feedback Page
+                    {t.publicFeedbackPage}
                   </Button>
                 </div>
               </div>
@@ -615,43 +642,43 @@ export default function SessionOverviewPage() {
         <TabsContent value="qr-codes">
           <Card>
             <CardHeader>
-              <CardTitle>QR Code Management</CardTitle>
+              <CardTitle>{t.qrCodeManagement}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="text-center p-4 border rounded-lg">
                   <QrCode className="h-12 w-12 mx-auto mb-2 text-blue-600" />
-                  <h4 className="font-medium">Registration</h4>
-                  <p className="text-xs text-muted-foreground mb-3">For participant signup</p>
+                  <h4 className="font-medium">{t.qrCodeForRegistration}</h4>
+                  <p className="text-xs text-muted-foreground mb-3">{t.forParticipantSignup}</p>
                   <Button size="sm" variant="outline" className="w-full">
-                    Generate QR
+                    {t.generateQr}
                   </Button>
                 </div>
                 
                 <div className="text-center p-4 border rounded-lg">
                   <QrCode className="h-12 w-12 mx-auto mb-2 text-green-600" />
-                  <h4 className="font-medium">Attendance</h4>
-                  <p className="text-xs text-muted-foreground mb-3">For check-in/check-out</p>
+                  <h4 className="font-medium">{t.qrCodeForAttendance}</h4>
+                  <p className="text-xs text-muted-foreground mb-3">{t.forCheckInCheckOut}</p>
                   <Button size="sm" variant="outline" className="w-full">
-                    Generate QR
+                    {t.generateQr}
                   </Button>
                 </div>
                 
                 <div className="text-center p-4 border rounded-lg">
                   <QrCode className="h-12 w-12 mx-auto mb-2 text-purple-600" />
-                  <h4 className="font-medium">Materials</h4>
-                  <p className="text-xs text-muted-foreground mb-3">For accessing resources</p>
+                  <h4 className="font-medium">{t.qrCodeForMaterials}</h4>
+                  <p className="text-xs text-muted-foreground mb-3">{t.forAccessingResources}</p>
                   <Button size="sm" variant="outline" className="w-full">
-                    Generate QR
+                    {t.generateQr}
                   </Button>
                 </div>
                 
                 <div className="text-center p-4 border rounded-lg">
                   <QrCode className="h-12 w-12 mx-auto mb-2 text-yellow-600" />
-                  <h4 className="font-medium">Feedback</h4>
-                  <p className="text-xs text-muted-foreground mb-3">For session evaluation</p>
+                  <h4 className="font-medium">{t.qrCodeForFeedback}</h4>
+                  <p className="text-xs text-muted-foreground mb-3">{t.forSessionEvaluation}</p>
                   <Button size="sm" variant="outline" className="w-full">
-                    Generate QR
+                    {t.generateQr}
                   </Button>
                 </div>
               </div>
@@ -662,7 +689,7 @@ export default function SessionOverviewPage() {
                   onClick={() => router.push(`/training/qr-codes?session=${sessionId}`)}
                 >
                   <QrCode className="h-4 w-4 mr-2" />
-                  Manage All QR Codes
+                  {t.manageAllQrCodes}
                 </Button>
               </div>
             </CardContent>

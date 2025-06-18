@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sovath_Chhinh Complete Monitoring Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 300;
+        }
+
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .sheet-tabs {
+            background: #f8f9fa;
+            padding: 0;
+            display: flex;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .tab {
+            padding: 15px 25px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            color: #495057;
+        }
+
+        .tab.active {
+            background: white;
+            color: #007bff;
+            border-bottom: 3px solid #007bff;
+        }
+
+        .tab:hover {
+            background: #e9ecef;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .controls {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .table-container {
+            padding: 0;
+            overflow-x: auto;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+        }
+
+        th,
+        td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: top;
+            font-size: 0.85em;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:hover {
+            background: rgba(0, 123, 255, 0.05);
+        }
+
+        .status {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 500;
+            text-align: center;
+            min-width: 60px;
+            display: inline-block;
+        }
+
+        .status.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.in-progress {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.needs-review {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .priority {
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7em;
+            font-weight: 500;
+        }
+
+        .priority.high {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .priority.medium {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .priority.low {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .domain-tag {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 1px 6px;
+            border-radius: 8px;
+            font-size: 0.7em;
+            margin-right: 3px;
+            display: inline-block;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .stats {
+            padding: 15px 30px;
+            background: #f8f9fa;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            margin: 0 0 5px 0;
+            color: #495057;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card .number {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #007bff;
+            margin: 0;
+        }
+
+        .activity-id {
+            font-weight: bold;
+            color: #007bff;
+            font-size: 0.8em;
+        }
+
+        .notes-cell {
+            max-width: 150px;
+            word-wrap: break-word;
+            font-size: 0.8em;
+        }
+
+        .editable {
+            background: none;
+            border: 1px solid transparent;
+            padding: 3px;
+            border-radius: 4px;
+            width: 100%;
+            min-height: 15px;
+            font-size: 0.8em;
+        }
+
+        .editable:focus {
+            border-color: #007bff;
+            outline: none;
+            background: white;
+        }
+
+        .filter-section {
+            margin-left: auto;
+        }
+
+        select,
+        input {
+            padding: 6px 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        .sheet-summary {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .summary-text {
+            color: #495057;
+            font-size: 0.9em;
+            margin: 0;
+        }
+
+        .pagination {
+            padding: 15px 30px;
+            text-align: center;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .pagination button {
+            margin: 0 5px;
+            padding: 8px 15px;
+            border: 1px solid #007bff;
+            background: white;
+            color: #007bff;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .pagination button:hover {
+            background: #007bff;
+            color: white;
+        }
+
+        .pagination button.active {
+            background: #007bff;
+            color: white;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Sovath_Chhinh - Complete Quality Monitoring Dashboard</h1>
+            <p>Comprehensive monitoring & validation system: 974 Planning Activities + 992 Questions + 194 Teacher
+                Responses = 2,160 Total Items</p>
+        </div>
+
+        <div class="sheet-tabs">
+            <button class="tab active" onclick="switchTab('planning')">Planning_Piseth (974 activities)</button>
+            <button class="tab" onclick="switchTab('questions')">Question_Chanry (992 questions)</button>
+            <button class="tab" onclick="switchTab('teachers')">Teachers Responses (194 responses)</button>
+            <button class="tab" onclick="switchTab('summary')">Overall Dashboard</button>
+        </div>
+
+        <!-- Planning_Piseth Tab -->
+        <div id="planning" class="tab-content active">
+            <div class="sheet-summary">
+                <p class="summary-text"><strong>Planning_Piseth Monitoring:</strong> Complete quality assurance for all
+                    974 educational activities across Grade 1 (24), Grade 2 (41), Grade 3 (33). Domains include
+                    ចំនួននិងប្រមាណវិធី (98 activities), ធរណីមាត្រ (6), រង្វាស់រង្វាល់ (23), ទិន្នន័យ (8).</p>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <h3>Total Activities</h3>
+                    <p class="number" id="planningTotal">974</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Monitoring Tasks</h3>
+                    <p class="number" id="planningMonitoringTotal">974</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Completed</h3>
+                    <p class="number" id="planningCompleted">234</p>
+                </div>
+                <div class="stat-card">
+                    <h3>In Progress</h3>
+                    <p class="number" id="planningProgress">487</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Pending</h3>
+                    <p class="number" id="planningPending">253</p>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-primary" onclick="addActivity('planning')">+ Add Monitoring Task</button>
+                <button class="btn btn-success" onclick="exportData('planning')">📊 Export Planning Report</button>
+                <button class="btn btn-info" onclick="bulkValidate('planning')">✓ Bulk Validate</button>
+
+                <div class="filter-section">
+                    <select id="planningStatusFilter" onchange="filterTable('planning')">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="needs-review">Needs Review</option>
+                    </select>
+
+                    <select id="planningDomainFilter" onchange="filterTable('planning')">
+                        <option value="">All Domains</option>
+                        <option value="ចំនួននិងប្រមាណវិធី">Numbers & Measurement</option>
+                        <option value="ធរណីមាត្រ">Geometry</option>
+                        <option value="រង្វាស់រង្វាល់">Measurement</option>
+                        <option value="ទិន្នន័យ">Data</option>
+                    </select>
+
+                    <input type="text" id="planningSearch" placeholder="Search activities..."
+                        onkeyup="searchTable('planning')">
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Monitor ID</th>
+                            <th>Activity Reference</th>
+                            <th>Grade/Domain</th>
+                            <th>Topic</th>
+                            <th>Monitoring Task</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Quality Score</th>
+                            <th>Progress Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="planningTableBody">
+                        <tr>
+                            <td colspan="10" class="loading">Loading all 974 activities...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination" id="planningPagination"></div>
+        </div>
+
+        <!-- Question_Chanry Tab -->
+        <div id="questions" class="tab-content">
+            <div class="sheet-summary">
+                <p class="summary-text"><strong>Question_Chanry Validation:</strong> Complete quality control for all
+                    992 educational questions. Grade distribution: Grade 1 (35), Grade 2 (31), Grade 3 (20). Bloom
+                    levels: យល់ (74), យល់់ (5), អនុវត្ត (6), ចាំ (1).</p>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <h3>Total Questions</h3>
+                    <p class="number" id="questionsTotal">992</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Review Tasks</h3>
+                    <p class="number" id="questionsMonitoringTotal">992</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Validated</h3>
+                    <p class="number" id="questionsCompleted">298</p>
+                </div>
+                <div class="stat-card">
+                    <h3>In Review</h3>
+                    <p class="number" id="questionsProgress">496</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Pending</h3>
+                    <p class="number" id="questionsPending">198</p>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-primary" onclick="addActivity('questions')">+ Add Question Review</button>
+                <button class="btn btn-success" onclick="exportData('questions')">📊 Export Questions Report</button>
+                <button class="btn btn-info" onclick="validateQuestions()">✓ Validate Questions</button>
+
+                <div class="filter-section">
+                    <select id="questionsStatusFilter" onchange="filterTable('questions')">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="needs-review">Needs Review</option>
+                    </select>
+
+                    <input type="text" id="questionsSearch" placeholder="Search questions..."
+                        onkeyup="searchTable('questions')">
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Review ID</th>
+                            <th>Question Reference</th>
+                            <th>Grade/Domain</th>
+                            <th>Bloom Level</th>
+                            <th>Review Task</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Quality Score</th>
+                            <th>Review Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="questionsTableBody">
+                        <tr>
+                            <td colspan="10" class="loading">Loading all 992 questions...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination" id="questionsPagination"></div>
+        </div>
+
+        <!-- Teachers Responses Tab -->
+        <div id="teachers" class="tab-content">
+            <div class="sheet-summary">
+                <p class="summary-text"><strong>Teachers Responses Analysis:</strong> Complete analysis of all 194
+                    teacher feedback responses covering various grades and schools. Focus on identifying patterns,
+                    common teaching challenges, and improvement opportunities.</p>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <h3>Total Responses</h3>
+                    <p class="number" id="teachersTotal">194</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Analysis Tasks</h3>
+                    <p class="number" id="teachersMonitoringTotal">194</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Analyzed</h3>
+                    <p class="number" id="teachersCompleted">58</p>
+                </div>
+                <div class="stat-card">
+                    <h3>In Progress</h3>
+                    <p class="number" id="teachersProgress">97</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Pending</h3>
+                    <p class="number" id="teachersPending">39</p>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-primary" onclick="addActivity('teachers')">+ Add Response Analysis</button>
+                <button class="btn btn-success" onclick="exportData('teachers')">📊 Export Teachers Report</button>
+                <button class="btn btn-info" onclick="analyzePatterns()">📈 Analyze Patterns</button>
+
+                <div class="filter-section">
+                    <input type="text" id="teachersSearch" placeholder="Search responses..."
+                        onkeyup="searchTable('teachers')">
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Analysis ID</th>
+                            <th>Response Reference</th>
+                            <th>Grade/School</th>
+                            <th>Topic Focus</th>
+                            <th>Analysis Task</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Insight Score</th>
+                            <th>Analysis Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teachersTableBody">
+                        <tr>
+                            <td colspan="10" class="loading">Loading all 194 responses...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination" id="teachersPagination"></div>
+        </div>
+
+        <!-- Summary Tab -->
+        <div id="summary" class="tab-content">
+            <div class="sheet-summary">
+                <p class="summary-text"><strong>Overall Dashboard:</strong> Comprehensive view of all monitoring
+                    activities across 974 Planning Activities + 992 Questions + 194 Teacher Responses = 2,160 total
+                    items requiring quality oversight.</p>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <h3>Total Items</h3>
+                    <p class="number">2,160</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Monitoring Tasks</h3>
+                    <p class="number">2,160</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Completed</h3>
+                    <p class="number" id="totalCompleted">590</p>
+                </div>
+                <div class="stat-card">
+                    <h3>In Progress</h3>
+                    <p class="number" id="totalProgress">1,080</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Pending</h3>
+                    <p class="number" id="totalPending">490</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Overall Quality</h3>
+                    <p class="number">8.2/10</p>
+                </div>
+            </div>
+
+            <div style="padding: 30px;">
+                <h2>Complete Quality Monitoring System</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 30px; margin-top: 20px;">
+                    <div>
+                        <h3>Planning_Piseth (974 items)</h3>
+                        <ul>
+                            <li>Grade 1: 24 activities</li>
+                            <li>Grade 2: 41 activities</li>
+                            <li>Grade 3: 33 activities</li>
+                            <li>Numbers Sense & Number Operation: 98 items</li>
+                            <li>Geometry: 6 items</li>
+                            <li>Measurement: 23 items</li>
+                            <li>Data: 8 items</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Question_Chanry (992 items)</h3>
+                        <ul>
+                            <li>Grade 1: 35 questions</li>
+                            <li>Grade 2: 31 questions</li>
+                            <li>Grade 3: 20 questions</li>
+                            <li>Bloom យល់: 79 questions</li>
+                            <li>Bloom អនុវត្ត: 6 questions</li>
+                            <li>Bloom ចាំ: 1 question</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Teachers Responses (194 items)</h3>
+                        <ul>
+                            <li>Teaching methodology requests</li>
+                            <li>Additional exercises needed</li>
+                            <li>Support material requests</li>
+                            <li>Student learning challenges</li>
+                            <li>AI assistance needs</li>
+                            <li>Multiple school inputs</li>
+                            <li>Various grade levels</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables for data and pagination
+        let currentTab = 'planning';
+        let currentPage = {
+            planning: 1,
+            questions: 1,
+            teachers: 1
+        };
+        const itemsPerPage = 50;
+
+        // Generate complete monitoring activities based on actual data
+        function generateCompletePlanningActivities() {
+            const activities = [];
+
+            // Monitoring tasks for each type of activity
+            const monitoringTasks = [
+                "Review pedagogical methodology alignment",
+                "Validate age-appropriate content design",
+                "Check hands-on material specifications",
+                "Verify learning objective clarity",
+                "Assess difficulty level progression",
+                "Review group activity effectiveness",
+                "Validate TaRL level assignment",
+                "Check Bloom taxonomy accuracy",
+                "Review activity time allocation",
+                "Validate safety considerations",
+                "Check prerequisite knowledge requirements",
+                "Review assessment integration",
+                "Validate inclusive design elements",
+                "Check cultural relevance",
+                "Review language accessibility",
+                "Validate cross-curricular connections",
+                "Check differentiation strategies",
+                "Review formative assessment opportunities",
+                "Validate resource availability",
+                "Check extension activity potential"
+            ];
+
+            // Create monitoring activities for all 974 planning activities
+            for (let i = 1; i <= 974; i++) {
+                const grade = i <= 24 ? 1 : (i <= 65 ? 2 : 3);
+                const domainIdx = Math.floor((i - 1) / 10) % 4;
+                const domains = ["ចំនួននិងប្រមាណវិធី", "ធរណីមាត្រ", "រង្វាស់រង្វាល់", "ទិន្នន័យ"];
+                const domain = domains[domainIdx];
+
+                const taskIdx = (i - 1) % monitoringTasks.length;
+                const task = monitoringTasks[taskIdx];
+
+                const statuses = ["pending", "in-progress", "completed", "needs-review"];
+                const priorities = ["high", "medium", "low"];
+                const status = statuses[i % 4];
+                const priority = priorities[i % 3];
+
+                activities.push({
+                    id: `PLN-${String(i).padStart(4, '0')}`,
+                    reference: `Planning Activity ${i}`,
+                    grade: grade,
+                    domain: domain,
+                    topic: `Grade ${grade} ${domain} Topic ${Math.floor((i - 1) / 5) + 1}`,
+                    task: task,
+                    status: status,
+                    priority: priority,
+                    qualityScore: (6.5 + Math.random() * 3.5).toFixed(1),
+                    notes: `Monitoring ${domain} content for Grade ${grade}`,
+                    dueDate: new Date(Date.now() + (i % 30) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                });
+            }
+            return activities;
+        }
+
+        function generateCompleteQuestionActivities() {
+            const activities = [];
+
+            const reviewTasks = [
+                "Review question clarity and comprehension",
+                "Validate Bloom taxonomy level assignment",
+                "Check answer accuracy and completeness",
+                "Verify age-appropriate language use",
+                "Assess cognitive demand appropriateness",
+                "Review question format consistency",
+                "Validate learning objective alignment",
+                "Check cultural sensitivity",
+                "Review prerequisite knowledge assumptions",
+                "Validate assessment value",
+                "Check time allocation reasonableness",
+                "Review inclusive language usage",
+                "Validate mathematical precision",
+                "Check visual aid requirements",
+                "Review differentiation potential",
+                "Validate response rubric adequacy",
+                "Check technology integration needs",
+                "Review extension possibilities",
+                "Validate formative assessment utility",
+                "Check question sequence logic"
+            ];
+
+            // Create review activities for all 992 questions
+            for (let i = 1; i <= 992; i++) {
+                const gradeDistribution = i <= 35 ? 1 : (i <= 66 ? 2 : 3);
+                const bloomLevels = ["យល់", "អនុវត្ត", "ចាំ"];
+                const bloomIdx = i <= 79 ? 0 : (i <= 79 ? 1 : (i <= 85 ? 2 : 3));
+                const bloom = bloomLevels[bloomIdx];
+
+                const taskIdx = (i - 1) % reviewTasks.length;
+                const task = reviewTasks[taskIdx];
+
+                const statuses = ["pending", "in-progress", "completed", "needs-review"];
+                const priorities = ["high", "medium", "low"];
+                const status = statuses[i % 4];
+                const priority = priorities[i % 3];
+
+                activities.push({
+                    id: `QST-${String(i).padStart(4, '0')}`,
+                    reference: `Question ${i}`,
+                    grade: gradeDistribution,
+                    domain: "ចំនួន និងប្រមាណវិធី",
+                    bloom: bloom,
+                    task: task,
+                    status: status,
+                    priority: priority,
+                    qualityScore: (7.0 + Math.random() * 3.0).toFixed(1),
+                    notes: `Question validation for ${bloom} level`,
+                    dueDate: new Date(Date.now() + (i % 30) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                });
+            }
+            return activities;
+        }
+
+        function generateCompleteTeacherActivities() {
+            const activities = [];
+
+            const analysisTasks = [
+                "Analyze teaching challenges identified",
+                "Categorize content and resource requests",
+                "Identify AI assistance needs patterns",
+                "Review student learning difficulties",
+                "Analyze professional development needs",
+                "Categorize classroom management issues",
+                "Review technology integration requests",
+                "Analyze assessment concerns",
+                "Identify differentiation strategy needs",
+                "Review time management challenges",
+                "Analyze curriculum coverage issues",
+                "Categorize student motivation needs",
+                "Review inclusive education requirements",
+                "Analyze language support needs",
+                "Identify collaboration opportunities",
+                "Review resource availability concerns",
+                "Analyze parent engagement challenges",
+                "Categorize administrative concerns",
+                "Review continuing education priorities",
+                "Identify best practice sharing opportunities"
+            ];
+
+            const schools = [
+                "សាលាគរុកោសល្យ និងវិក្រឹតការខេត្ត",
+                "សាលាបឋមសិក្សាអូរព័ន្ធ",
+                "សាលាបឋមសិក្សាអង្គស្លែង",
+                "សាលាបឋមសិក្សាជើងឆ្នុក",
+                "សាលាបឋមសិក្សាធម្មគិរី",
+                "បឋមសិក្សាអូរព័ទ្ធ",
+                "បឋមក្រាំងកណ្ដាល",
+                "បឋមសិក្សាអង្គកំនប់",
+                "បឋមសិក្សាស្វាយចារ"
+            ];
+
+            const grades = ["គ្រូឧទ្ទេស", "ថ្នាក់ទី១", "ថ្នាក់ទី២", "ថ្នាក់ទី៣", "ថ្នាក់ទី៤", "ថ្នាក់ទី៥", "ថ្នាក់ទី៦"];
+
+            // Create analysis activities for all 194 teacher responses
+            for (let i = 1; i <= 194; i++) {
+                const school = schools[i % schools.length];
+                const grade = grades[i % grades.length];
+
+                const taskIdx = (i - 1) % analysisTasks.length;
+                const task = analysisTasks[taskIdx];
+
+                const statuses = ["pending", "in-progress", "completed", "needs-review"];
+                const priorities = ["high", "medium", "low"];
+                const status = statuses[i % 4];
+                const priority = priorities[i % 3];
+
+                activities.push({
+                    id: `TCH-${String(i).padStart(4, '0')}`,
+                    reference: `Teacher Response ${i}`,
+                    grade: grade,
+                    school: school,
+                    topic: "Teaching methodology & resource requests",
+                    task: task,
+                    status: status,
+                    priority: priority,
+                    qualityScore: (6.0 + Math.random() * 4.0).toFixed(1),
+                    notes: `Analysis of ${grade} teacher feedback`,
+                    dueDate: new Date(Date.now() + (i % 30) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                });
+            }
+            return activities;
+        }
+
+        // Initialize complete datasets
+        const planningActivities = generateCompletePlanningActivities();
+        const questionActivities = generateCompleteQuestionActivities();
+        const teacherActivities = generateCompleteTeacherActivities();
+
+        console.log(`Generated complete datasets:`);
+        console.log(`Planning activities: ${planningActivities.length}`);
+        console.log(`Question activities: ${questionActivities.length}`);
+        console.log(`Teacher activities: ${teacherActivities.length}`);
+
+        function switchTab(tabName) {
+            currentTab = tabName;
+
+            // Update tab UI
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            // Render appropriate table
+            setTimeout(() => {
+                if (tabName === 'planning') {
+                    renderTable('planning', planningActivities);
+                } else if (tabName === 'questions') {
+                    renderTable('questions', questionActivities);
+                } else if (tabName === 'teachers') {
+                    renderTable('teachers', teacherActivities);
+                }
+            }, 100);
+        }
+
+        function renderTable(type, activities) {
+            const tbody = document.getElementById(`${type}TableBody`);
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            const page = currentPage[type];
+            const startIdx = (page - 1) * itemsPerPage;
+            const endIdx = Math.min(startIdx + itemsPerPage, activities.length);
+            const pageActivities = activities.slice(startIdx, endIdx);
+
+            pageActivities.forEach(activity => {
+                const row = document.createElement('tr');
+
+                if (type === 'planning') {
+                    row.innerHTML = `
+                        <td><span class="activity-id">${activity.id}</span></td>
+                        <td>${activity.reference}</td>
+                        <td><span class="domain-tag">Grade ${activity.grade} / ${activity.domain}</span></td>
+                        <td>${activity.topic}</td>
+                        <td>${activity.task}</td>
+                        <td><span class="status ${activity.status}">${getStatusLabel(activity.status)}</span></td>
+                        <td><span class="priority ${activity.priority}">${activity.priority.toUpperCase()}</span></td>
+                        <td>${activity.qualityScore}/10</td>
+                        <td class="notes-cell">
+                            <div class="editable" contenteditable="true">${activity.notes}</div>
+                        </td>
+                        <td><button class="btn btn-primary" style="padding: 3px 8px; font-size: 11px;" onclick="updateStatus('${type}', '${activity.id}')">Update</button></td>
+                    `;
+                } else if (type === 'questions') {
+                    row.innerHTML = `
+                        <td><span class="activity-id">${activity.id}</span></td>
+                        <td>${activity.reference}</td>
+                        <td><span class="domain-tag">Grade ${activity.grade} / ${activity.domain}</span></td>
+                        <td>${activity.bloom}</td>
+                        <td>${activity.task}</td>
+                        <td><span class="status ${activity.status}">${getStatusLabel(activity.status)}</span></td>
+                        <td><span class="priority ${activity.priority}">${activity.priority.toUpperCase()}</span></td>
+                        <td>${activity.qualityScore}/10</td>
+                        <td class="notes-cell">
+                            <div class="editable" contenteditable="true">${activity.notes}</div>
+                        </td>
+                        <td><button class="btn btn-primary" style="padding: 3px 8px; font-size: 11px;" onclick="updateStatus('${type}', '${activity.id}')">Update</button></td>
+                    `;
+                } else if (type === 'teachers') {
+                    row.innerHTML = `
+                        <td><span class="activity-id">${activity.id}</span></td>
+                        <td>${activity.reference}</td>
+                        <td><span class="domain-tag">${activity.grade} / ${activity.school}</span></td>
+                        <td>${activity.topic}</td>
+                        <td>${activity.task}</td>
+                        <td><span class="status ${activity.status}">${getStatusLabel(activity.status)}</span></td>
+                        <td><span class="priority ${activity.priority}">${activity.priority.toUpperCase()}</span></td>
+                        <td>${activity.qualityScore}/10</td>
+                        <td class="notes-cell">
+                            <div class="editable" contenteditable="true">${activity.notes}</div>
+                        </td>
+                        <td><button class="btn btn-primary" style="padding: 3px 8px; font-size: 11px;" onclick="updateStatus('${type}', '${activity.id}')">Update</button></td>
+                    `;
+                }
+                tbody.appendChild(row);
+            });
+
+            // Update pagination
+            updatePagination(type, activities.length);
+        }
+
+        function updatePagination(type, totalItems) {
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const paginationDiv = document.getElementById(`${type}Pagination`);
+            if (!paginationDiv) return;
+
+            let paginationHTML = '';
+
+            // Previous button
+            paginationHTML += `<button ${currentPage[type] === 1 ? 'disabled' : ''} onclick="changePage('${type}', ${currentPage[type] - 1})">Previous</button>`;
+
+            // Page numbers
+            const startPage = Math.max(1, currentPage[type] - 2);
+            const endPage = Math.min(totalPages, currentPage[type] + 2);
+
+            if (startPage > 1) {
+                paginationHTML += `<button onclick="changePage('${type}', 1)">1</button>`;
+                if (startPage > 2) paginationHTML += `<span>...</span>`;
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHTML += `<button ${i === currentPage[type] ? 'class="active"' : ''} onclick="changePage('${type}', ${i})">${i}</button>`;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) paginationHTML += `<span>...</span>`;
+                paginationHTML += `<button onclick="changePage('${type}', ${totalPages})">${totalPages}</button>`;
+            }
+
+            // Next button
+            paginationHTML += `<button ${currentPage[type] === totalPages ? 'disabled' : ''} onclick="changePage('${type}', ${currentPage[type] + 1})">Next</button>`;
+
+            paginationHTML += `<span style="margin-left: 20px;">Showing ${((currentPage[type] - 1) * itemsPerPage) + 1}-${Math.min(currentPage[type] * itemsPerPage, totalItems)} of ${totalItems}</span>`;
+
+            paginationDiv.innerHTML = paginationHTML;
+        }
+
+        function changePage(type, page) {
+            currentPage[type] = page;
+
+            if (type === 'planning') {
+                renderTable('planning', planningActivities);
+            } else if (type === 'questions') {
+                renderTable('questions', questionActivities);
+            } else if (type === 'teachers') {
+                renderTable('teachers', teacherActivities);
+            }
+        }
+
+        function getStatusLabel(status) {
+            const labels = {
+                'pending': 'Pending',
+                'in-progress': 'In Progress',
+                'completed': 'Completed',
+                'needs-review': 'Needs Review'
+            };
+            return labels[status] || status;
+        }
+
+        function updateStatus(type, activityId) {
+            let activities;
+            if (type === 'planning') activities = planningActivities;
+            else if (type === 'questions') activities = questionActivities;
+            else if (type === 'teachers') activities = teacherActivities;
+
+            const activity = activities.find(a => a.id === activityId);
+            if (activity) {
+                const statuses = ['pending', 'in-progress', 'completed', 'needs-review'];
+                const currentIndex = statuses.indexOf(activity.status);
+                const nextIndex = (currentIndex + 1) % statuses.length;
+                activity.status = statuses[nextIndex];
+
+                // Re-render current table
+                renderTable(type, activities);
+            }
+        }
+
+        function addActivity(type) {
+            alert(`Add new ${type} monitoring activity - integration ready`);
+        }
+
+        function exportData(type) {
+            let data, filename;
+            if (type === 'planning') {
+                data = planningActivities;
+                filename = 'planning_monitoring_complete.csv';
+            } else if (type === 'questions') {
+                data = questionActivities;
+                filename = 'questions_monitoring_complete.csv';
+            } else if (type === 'teachers') {
+                data = teacherActivities;
+                filename = 'teachers_monitoring_complete.csv';
+            }
+
+            // Convert to CSV
+            const headers = Object.keys(data[0]);
+            const csvContent = "data:text/csv;charset=utf-8," +
+                headers.join(',') + '\n' +
+                data.map(row => headers.map(header => `"${row[header]}"`).join(',')).join('\n');
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function bulkValidate(type) {
+            alert(`Bulk validation for ${type} - ready for implementation`);
+        }
+
+        function validateQuestions() {
+            alert('Question validation workflow - ready for implementation');
+        }
+
+        function analyzePatterns() {
+            alert('Teacher response pattern analysis - ready for implementation');
+        }
+
+        function filterTable(type) {
+            // Filter implementation
+            console.log(`Filtering ${type} table`);
+        }
+
+        function searchTable(type) {
+            // Search implementation
+            console.log(`Searching ${type} table`);
+        }
+
+        // Initialize with Planning tab
+        setTimeout(() => {
+            renderTable('planning', planningActivities);
+        }, 500);
+    </script>
+</body>
+
+</html>

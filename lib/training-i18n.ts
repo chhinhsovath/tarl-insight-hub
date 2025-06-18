@@ -56,6 +56,7 @@ export interface TrainingTranslations {
   editSession: string;
   deleteSession: string;
   viewSession: string;
+  importSessions: string;
   
   // Common labels
   sessions: string;
@@ -120,6 +121,11 @@ export interface TrainingTranslations {
   for: string;
   from: string;
   to: string;
+  back: string;
+  attendees: string;
+  email: string;
+  phone: string;
+  processing: string;
   
   // Program types
   programType: string;
@@ -331,6 +337,125 @@ export interface TrainingTranslations {
   yourRatings: string;
   pleaseRateAllCategories: string;
   failedToSubmitFeedback: string;
+  
+  // Quick Registration
+  quickRegistration: string;
+  quickCheckin: string;
+  bulkOperations: string;
+  quickRegistrationAndAttendance: string;
+  registerWalkInParticipants: string;
+  searchByEmail: string;
+  emailPlaceholder: string;
+  welcomeBack: string;
+  sessionsAttended: string;
+  newParticipantFillInfo: string;
+  newParticipantFillDetails: string;
+  rolePlaceholder: string;
+  registerAndMarkAttendance: string;
+  manageAttendanceMultiple: string;
+  bulkAttendanceCheckin: string;
+  markAttendancePreRegistered: string;
+  qrCodeCheckin: string;
+  scanQrCodesQuickAttendance: string;
+  failedToLoadSession: string;
+  pleaseEnterValidEmail: string;
+  participantFoundPreFilled: string;
+  failedToSearchParticipant: string;
+  emailNameRequired: string;
+  registrationAttendanceSuccess: string;
+  failedToRegisterParticipant: string;
+  sessionNotFound: string;
+  
+  // Button tooltips
+  quickCheckinTooltip: string;
+  editSessionTooltip: string;
+  deleteSessionTooltip: string;
+  qrCodesTooltip: string;
+  participantsTooltip: string;
+  
+  // Delete confirmation
+  deleteConfirmationText: string;
+  
+  // Program Detail Page
+  programDetails: string;
+  programNotFound: string;
+  editProgram: string;
+  createdBy: string;
+  totalDuration: string;
+  
+  // Edit Session Page
+  currentSession: string;
+  updateSessionDescription: string;
+  updateSessionDetails: string;
+  overview: string;
+  sessionTitle: string;
+  enterSessionTitle: string;
+  sessionDate: string;
+  sessionTime: string;
+  enterLocation: string;
+  venueAddress: string;
+  enterVenueAddress: string;
+  sessionAgenda: string;
+  agendaPlaceholder: string;
+  additionalNotes: string;
+  notesPlaceholder: string;
+  maxParticipants: string;
+  sessionStatus: string;
+  selectStatus: string;
+  assignedTrainer: string;
+  selectTrainer: string;
+  noTrainerAssigned: string;
+  assignedCoordinator: string;
+  selectCoordinator: string;
+  noCoordinatorAssigned: string;
+  registrationDeadline: string;
+  updating: string;
+  updateSession: string;
+  engageProgramsMaterials: string;
+  manageMaterialsDescription: string;
+  sessionUpdatedSuccess: string;
+  updateSessionError: string;
+  fillRequiredFields: string;
+  trainingProgram: string;
+  selectProgram: string;
+
+  // Session Overview Page
+  sessionOverview: string;
+  checkingAuth: string;
+  loadingOverview: string;
+  registrations: string;
+  sessionInformation: string;
+  noAgendaSet: string;
+  venueDetails: string;
+  recentActivities: string;
+  noRecentActivities: string;
+  participantManagement: string;
+  viewAllParticipants: string;
+  registrationPage: string;
+  attendancePage: string;
+  registrationStatus: string;
+  attendanceStatus: string;
+  totalChecked: string;
+  trainingMaterials: string;
+  manageMaterials: string;
+  publicMaterialsPage: string;
+  qrCodeForMaterials: string;
+  photoActivities: string;
+  feedbackOverview: string;
+  averageRating: string;
+  totalResponses: string;
+  viewAllFeedback: string;
+  publicFeedbackPage: string;
+  qrCodeManagement: string;
+  qrCodeForRegistration: string;
+  forParticipantSignup: string;
+  qrCodeForAttendance: string;
+  forCheckInCheckOut: string;
+  forAccessingResources: string;
+  qrCodeForFeedback: string;
+  forSessionEvaluation: string;
+  generateQr: string;
+  manageAllQrCodes: string;
 }
 
 // English translations
@@ -386,6 +511,7 @@ export const enTranslations: TrainingTranslations = {
   editSession: 'Edit Session',
   deleteSession: 'Delete Session',
   viewSession: 'View Session',
+  importSessions: 'Import Sessions',
   
   // Common labels
   sessions: 'sessions',
@@ -450,6 +576,11 @@ export const enTranslations: TrainingTranslations = {
   for: 'for',
   from: 'from',
   to: 'to',
+  back: 'Back',
+  attendees: 'Attendees',
+  email: 'Email',
+  phone: 'Phone',
+  processing: 'Processing...',
   
   // Program types
   programType: 'program type',
@@ -660,7 +791,126 @@ export const enTranslations: TrainingTranslations = {
   emailOptional: 'Your Email (Optional)',
   yourRatings: 'Your Ratings',
   pleaseRateAllCategories: 'Please rate all categories',
-  failedToSubmitFeedback: 'Failed to submit feedback'
+  failedToSubmitFeedback: 'Failed to submit feedback',
+  
+  // Quick Registration
+  quickRegistration: 'Quick Registration',
+  quickCheckin: 'Quick Check-in',
+  bulkOperations: 'Bulk Operations',
+  quickRegistrationAndAttendance: 'Quick Registration & Attendance',
+  registerWalkInParticipants: 'Register walk-in participants and mark their attendance in one step',
+  searchByEmail: 'Search by Email',
+  emailPlaceholder: 'participant@email.com',
+  welcomeBack: 'Welcome back, {name}!',
+  sessionsAttended: 'sessions attended',
+  newParticipantFillInfo: 'New participant - please fill in their information below',
+  newParticipantFillDetails: 'New participant - please fill in their details',
+  rolePlaceholder: 'Teacher, Coordinator, etc.',
+  registerAndMarkAttendance: 'Register & Mark Attendance',
+  manageAttendanceMultiple: 'Manage attendance for multiple participants',
+  bulkAttendanceCheckin: 'Bulk Attendance Check-in',
+  markAttendancePreRegistered: 'Mark attendance for pre-registered participants',
+  qrCodeCheckin: 'QR Code Check-in',
+  scanQrCodesQuickAttendance: 'Scan QR codes for quick attendance',
+  failedToLoadSession: 'Failed to load session details',
+  pleaseEnterValidEmail: 'Please enter a valid email address',
+  participantFoundPreFilled: 'Participant found! Information pre-filled.',
+  failedToSearchParticipant: 'Failed to search participant',
+  emailNameRequired: 'Email and name are required',
+  registrationAttendanceSuccess: 'Registration and attendance marked successfully!',
+  failedToRegisterParticipant: 'Failed to register participant',
+  sessionNotFound: 'Session not found',
+  
+  // Button tooltips
+  quickCheckinTooltip: 'Quick Check-in',
+  editSessionTooltip: 'Edit Session',
+  deleteSessionTooltip: 'Delete Session',
+  qrCodesTooltip: 'QR Codes',
+  participantsTooltip: 'Participants',
+  
+  // Delete confirmation
+  deleteConfirmationText: 'Are you sure you want to delete "{name}"? This action cannot be undone.',
+  
+  // Program Detail Page
+  programDetails: 'Program Details',
+  programNotFound: 'Program not found',
+  editProgram: 'Edit Program',
+  createdBy: 'Created by',
+  totalDuration: 'Total Duration',
+  
+  // Edit Session Page
+  currentSession: 'Current Session',
+  updateSessionDescription: 'Update session details and scheduling information',
+  updateSessionDetails: 'Update Session Details',
+  overview: 'Overview',
+  sessionTitle: 'Session Title',
+  enterSessionTitle: 'Enter session title',
+  sessionDate: 'Session Date',
+  sessionTime: 'Session Time',
+  enterLocation: 'Enter location name',
+  venueAddress: 'Venue Address',
+  enterVenueAddress: 'Enter full venue address',
+  sessionAgenda: 'Session Agenda',
+  agendaPlaceholder: 'Create your session agenda with timing, activities, and breaks...',
+  additionalNotes: 'Additional Notes',
+  notesPlaceholder: 'Any additional information or notes for this session',
+  maxParticipants: 'Maximum Participants',
+  sessionStatus: 'Session Status',
+  selectStatus: 'Select status',
+  assignedTrainer: 'Assigned Trainer',
+  selectTrainer: 'Select a trainer (optional)',
+  noTrainerAssigned: 'No trainer assigned',
+  assignedCoordinator: 'Assigned Coordinator',
+  selectCoordinator: 'Select a coordinator (optional)',
+  noCoordinatorAssigned: 'No coordinator assigned',
+  registrationDeadline: 'Registration Deadline',
+  updating: 'Updating...',
+  updateSession: 'Update Session',
+  engageProgramsMaterials: 'Engage Programs & Materials',
+  manageMaterialsDescription: 'Manage materials and resources for before, during, and after training stages',
+  sessionUpdatedSuccess: 'Training session updated successfully!',
+  updateSessionError: 'Failed to update training session',
+  fillRequiredFields: 'Please fill in all required fields',
+  trainingProgram: 'Training Program',
+  selectProgram: 'Select a training program',
+
+  // Session Overview Page
+  sessionOverview: 'Session Overview',
+  checkingAuth: 'Checking authentication...',
+  loadingOverview: 'Loading session overview...',
+  registrations: 'Registrations',
+  sessionInformation: 'Session Information',
+  noAgendaSet: 'No agenda set',
+  venueDetails: 'Venue Details',
+  recentActivities: 'Recent Activities',
+  noRecentActivities: 'No recent activities',
+  participantManagement: 'Participant Management',
+  viewAllParticipants: 'View All Participants',
+  registrationPage: 'Registration Page',
+  attendancePage: 'Attendance Page',
+  registrationStatus: 'Registration Status',
+  attendanceStatus: 'Attendance Status',
+  totalChecked: 'Total Checked',
+  trainingMaterials: 'Training Materials',
+  manageMaterials: 'Manage Materials',
+  publicMaterialsPage: 'Public Materials Page',
+  qrCodeForMaterials: 'QR Code for Materials',
+  photoActivities: 'Photo Activities',
+  feedbackOverview: 'Feedback Overview',
+  averageRating: 'Average Rating',
+  totalResponses: 'Total Responses',
+  viewAllFeedback: 'View All Feedback',
+  publicFeedbackPage: 'Public Feedback Page',
+  qrCodeManagement: 'QR Code Management',
+  qrCodeForRegistration: 'Registration',
+  forParticipantSignup: 'For participant signup',
+  qrCodeForAttendance: 'Attendance',
+  forCheckInCheckOut: 'For check-in/check-out',
+  forAccessingResources: 'For accessing resources',
+  qrCodeForFeedback: 'Feedback',
+  forSessionEvaluation: 'For session evaluation',
+  generateQr: 'Generate QR',
+  manageAllQrCodes: 'Manage All QR Codes'
 };
 
 // Khmer translations
@@ -716,6 +966,7 @@ export const kmTranslations: TrainingTranslations = {
   editSession: 'កែសម្រួលវគ្គសិក្សា',
   deleteSession: 'លុបវគ្គសិក្សា',
   viewSession: 'មើលវគ្គសិក្សា',
+  importSessions: 'នាំចូលវគ្គសិក្សា',
   
   // Common labels
   sessions: 'វគ្គសិក្សា',
@@ -780,6 +1031,11 @@ export const kmTranslations: TrainingTranslations = {
   for: 'សម្រាប់',
   from: 'ពី',
   to: 'ទៅ',
+  back: 'ត្រឡប់',
+  attendees: 'អ្នកចូលរួម',
+  email: 'អ៊ីមែល',
+  phone: 'ទូរស័ព្ទ',
+  processing: 'កំពុងដំណើរការ...',
   
   // Program types
   programType: 'ប្រភេទកម្មវិធី',
@@ -990,7 +1246,126 @@ export const kmTranslations: TrainingTranslations = {
   emailOptional: 'អ៊ីមែលរបស់អ្នក (ស្រេចចិត្ត)',
   yourRatings: 'ការវាយតម្លៃរបស់អ្នក',
   pleaseRateAllCategories: 'សូមវាយតម្លៃគ្រប់ប្រភេទ',
-  failedToSubmitFeedback: 'បរាជ័យក្នុងការដាក់ស្នើមតិយោបល់'
+  failedToSubmitFeedback: 'បរាជ័យក្នុងការដាក់ស្នើមតិយោបល់',
+  
+  // Quick Registration
+  quickRegistration: 'ការចុះឈ្មោះរហ័ស',
+  quickCheckin: 'ការចូលរួមរហ័ស',
+  bulkOperations: 'ប្រតិបត្តិការជាបណ្តុំ',
+  quickRegistrationAndAttendance: 'ការចុះឈ្មោះ និងវត្តមានរហ័ស',
+  registerWalkInParticipants: 'ចុះឈ្មោះអ្នកចូលរួមដែលមកដោយផ្ទាល់ និងកត់ត្រាវត្តមានរបស់ពួកគេក្នុងជំហានតែមួយ',
+  searchByEmail: 'ស្វែងរកតាមអ៊ីមែល',
+  emailPlaceholder: 'អ៊ីមែលអ្នកចូលរួម@email.com',
+  welcomeBack: 'សូមស្វាគមន៍ម្តងទៀត {name}!',
+  sessionsAttended: 'វគ្គសិក្សាដែលបានចូលរួម',
+  newParticipantFillInfo: 'អ្នកចូលរួមថ្មី - សូមបំពេញព័ត៌មានរបស់ពួកគេខាងក្រោម',
+  newParticipantFillDetails: 'អ្នកចូលរួមថ្មី - សូមបំពេញព័ត៌មានលម្អិតរបស់ពួកគេ',
+  rolePlaceholder: 'គ្រូបង្រៀន, អ្នកសម្របសម្រួល, ។ល។',
+  registerAndMarkAttendance: 'ចុះឈ្មោះ និងកត់ត្រាវត្តមាន',
+  manageAttendanceMultiple: 'គ្រប់គ្រងវត្តមានសម្រាប់អ្នកចូលរួមច្រើននាក់',
+  bulkAttendanceCheckin: 'ការចូលរួមជាបណ្តុំ',
+  markAttendancePreRegistered: 'កត់ត្រាវត្តមានសម្រាប់អ្នកចូលរួមដែលបានចុះឈ្មោះមុន',
+  qrCodeCheckin: 'ការចូលរួមតាម QR Code',
+  scanQrCodesQuickAttendance: 'ស្កេន QR កូដសម្រាប់វត្តមានរហ័ស',
+  failedToLoadSession: 'បរាជ័យក្នុងការផ្ទុកព័ត៌មានវគ្គសិក្សា',
+  pleaseEnterValidEmail: 'សូមបញ្ចូលអាសយដ្ឋានអ៊ីមែលត្រឹមត្រូវ',
+  participantFoundPreFilled: 'រកឃើញអ្នកចូលរួម! ព័ត៌មានត្រូវបានបំពេញរួចហើយ។',
+  failedToSearchParticipant: 'បរាជ័យក្នុងការស្វែងរកអ្នកចូលរួម',
+  emailNameRequired: 'អ៊ីមែល និងឈ្មោះចាំបាច់',
+  registrationAttendanceSuccess: 'ការចុះឈ្មោះ និងវត្តមានត្រូវបានកត់ត្រាដោយជោគជ័យ!',
+  failedToRegisterParticipant: 'បរាជ័យក្នុងការចុះឈ្មោះអ្នកចូលរួម',
+  sessionNotFound: 'រកមិនឃើញវគ្គសិក្សា',
+  
+  // Button tooltips
+  quickCheckinTooltip: 'ការចូលរួមរហ័ស',
+  editSessionTooltip: 'កែសម្រួលវគ្គសិក្សា',
+  deleteSessionTooltip: 'លុបវគ្គសិក្សា',
+  qrCodesTooltip: 'QR កូដ',
+  participantsTooltip: 'អ្នកចូលរួម',
+  
+  // Delete confirmation
+  deleteConfirmationText: 'តើអ្នកពិតជាចង់លុប "{name}" មែនទេ? សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។',
+  
+  // Program Detail Page
+  programDetails: 'ព័ត៌មានលម្អិតកម្មវិធី',
+  programNotFound: 'រកមិនឃើញកម្មវិធី',
+  editProgram: 'កែសម្រួលកម្មវិធី',
+  createdBy: 'បង្កើតដោយ',
+  totalDuration: 'រយៈពេលសរុប',
+  
+  // Edit Session Page
+  currentSession: 'វគ្គសិក្សាបច្ចុប្បន្ន',
+  updateSessionDescription: 'កែប្រែព័ត៌មានលម្អិត និងកាលវិភាគវគ្គសិក្សា',
+  updateSessionDetails: 'កែប្រែព័ត៌មានលម្អិតវគ្គសិក្សា',
+  overview: 'ទិដ្ឋភាពទូទៅ',
+  sessionTitle: 'ចំណងជើងវគ្គសិក្សា',
+  enterSessionTitle: 'បញ្ចូលចំណងជើងវគ្គសិក្សា',
+  sessionDate: 'កាលបរិច្ឆេទវគ្គសិក្សា',
+  sessionTime: 'ម៉ោងវគ្គសិក្សា',
+  enterLocation: 'បញ្ចូលឈ្មោះទីតាំង',
+  venueAddress: 'អាសយដ្ឋានកន្លែងធ្វើ',
+  enterVenueAddress: 'បញ្ចូលអាសយដ្ឋានពេញលេញ',
+  sessionAgenda: 'កម្មវិធីវគ្គសិក្សា',
+  agendaPlaceholder: 'បង្កើតកម្មវិធីវគ្គសិក្សារបស់អ្នកជាមួយពេលវេលា សកម្មភាព និងការសម្រាក...',
+  additionalNotes: 'ចំណាំបន្ថែម',
+  notesPlaceholder: 'ព័ត៌មានបន្ថែម ឬចំណាំសម្រាប់វគ្គសិក្សានេះ',
+  maxParticipants: 'អ្នកចូលរួមអតិបរមា',
+  sessionStatus: 'ស្ថានភាពវគ្គសិក្សា',
+  selectStatus: 'ជ្រើសរើសស្ថានភាព',
+  assignedTrainer: 'គ្រូបណ្តុះបណ្តាលបានកំណត់',
+  selectTrainer: 'ជ្រើសរើសគ្រូបណ្តុះបណ្តាល (ស្រេចចិត្ត)',
+  noTrainerAssigned: 'មិនបានកំណត់គ្រូបណ្តុះបណ្តាល',
+  assignedCoordinator: 'អ្នកសម្របសម្រួលបានកំណត់',
+  selectCoordinator: 'ជ្រើសរើសអ្នកសម្របសម្រួល (ស្រេចចិត្ត)',
+  noCoordinatorAssigned: 'មិនបានកំណត់អ្នកសម្របសម្រួល',
+  registrationDeadline: 'ថ្ងៃកំណត់ចុះឈ្មោះ',
+  updating: 'កំពុងកែប្រែ...',
+  updateSession: 'កែប្រែវគ្គសិក្សា',
+  engageProgramsMaterials: 'កម្មវិធី និងសម្ភារៈចូលរួម',
+  manageMaterialsDescription: 'គ្រប់គ្រងសម្ភារៈ និងធនធានសម្រាប់មុន កំឡុងពេល និងក្រោយការបណ្តុះបណ្តាល',
+  sessionUpdatedSuccess: 'វគ្គបណ្តុះបណ្តាលត្រូវបានកែប្រែដោយជោគជ័យ!',
+  updateSessionError: 'បរាជ័យក្នុងការកែប្រែវគ្គបណ្តុះបណ្តាល',
+  fillRequiredFields: 'សូមបំពេញអន្ទាក់ចាំបាច់ទាំងអស់',
+  trainingProgram: 'កម្មវិធីបណ្តុះបណ្តាល',
+  selectProgram: 'ជ្រើសរើសកម្មវិធីបណ្តុះបណ្តាល',
+
+  // Session Overview Page
+  sessionOverview: 'ទិដ្ឋភាពទូទៅវគ្គសិក្សា',
+  checkingAuth: 'កំពុងពិនិត្យការផ្ទៀងផ្ទាត់...',
+  loadingOverview: 'កំពុងផ្ទុកទិដ្ឋភាពទូទៅវគ្គសិក្សា...',
+  registrations: 'ការចុះឈ្មោះ',
+  sessionInformation: 'ព័ត៌មានវគ្គសិក្សា',
+  noAgendaSet: 'មិនបានកំណត់កម្មវិធី',
+  venueDetails: 'ព័ត៌មានលម្អិតកន្លែងធ្វើ',
+  recentActivities: 'សកម្មភាពថ្មីៗ',
+  noRecentActivities: 'មិនមានសកម្មភាពថ្មីៗ',
+  participantManagement: 'ការគ្រប់គ្រងអ្នកចូលរួម',
+  viewAllParticipants: 'មើលអ្នកចូលរួមទាំងអស់',
+  registrationPage: 'ទំព័រចុះឈ្មោះ',
+  attendancePage: 'ទំព័រវត្តមាន',
+  registrationStatus: 'ស្ថានភាពការចុះឈ្មោះ',
+  attendanceStatus: 'ស្ថានភាពវត្តមាន',
+  totalChecked: 'បានពិនិត្យសរុប',
+  trainingMaterials: 'សម្ភារៈបណ្តុះបណ្តាល',
+  manageMaterials: 'គ្រប់គ្រងសម្ភារៈ',
+  publicMaterialsPage: 'ទំព័រសម្ភារៈសាធារណៈ',
+  qrCodeForMaterials: 'កូដ QR សម្រាប់សម្ភារៈ',
+  photoActivities: 'សកម្មភាពរូបថត',
+  feedbackOverview: 'ទិដ្ឋភាពទូទៅមតិយោបល់',
+  averageRating: 'ការវាយតម្លៃជាមធ្យម',
+  totalResponses: 'ចម្លើយសរុប',
+  viewAllFeedback: 'មើលមតិយោបល់ទាំងអស់',
+  publicFeedbackPage: 'ទំព័រមតិយោបល់សាធារណៈ',
+  qrCodeManagement: 'ការគ្រប់គ្រងកូដ QR',
+  qrCodeForRegistration: 'ការចុះឈ្មោះ',
+  forParticipantSignup: 'សម្រាប់ការចុះឈ្មោះអ្នកចូលរួម',
+  qrCodeForAttendance: 'វត្តមាន',
+  forCheckInCheckOut: 'សម្រាប់ការចុះឈ្មោះចូល/ចេញ',
+  forAccessingResources: 'សម្រាប់ការចូលដំណើរការធនធាន',
+  qrCodeForFeedback: 'មតិយោបល់',
+  forSessionEvaluation: 'សម្រាប់ការវាយតម្លៃវគ្គសិក្សា',
+  generateQr: 'បង្កើតកូដ QR',
+  manageAllQrCodes: 'គ្រប់គ្រងកូដ QR ទាំងអស់'
 };
 
 // Translation map

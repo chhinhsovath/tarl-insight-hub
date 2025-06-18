@@ -23,7 +23,56 @@ export async function GET(request: NextRequest) {
   const client = await pool.connect();
 
   try {
+    const { searchParams } = new URL(request.url);
+    const programId = searchParams.get('id');
+    const includeDetails = searchParams.get('include_materials') === 'true';
 
+    // If requesting a specific program by ID
+    if (programId) {
+      const query = `
+        SELECT 
+          tp.*,
+          creator.full_name as created_by_name,
+          COUNT(DISTINCT ts.id)::int as session_count,
+          COUNT(DISTINCT tpt.id)::int as total_participants,
+          COUNT(DISTINCT tm.id)::int as materials_count
+        FROM tbl_tarl_training_programs tp
+        LEFT JOIN tbl_tarl_users creator ON tp.created_by = creator.id
+        LEFT JOIN tbl_tarl_training_sessions ts ON tp.id = ts.program_id AND ts.is_active = true
+        LEFT JOIN tbl_tarl_training_participants tpt ON ts.id = tpt.session_id
+        LEFT JOIN tbl_tarl_training_materials tm ON tp.id = tm.program_id AND tm.is_active = true
+        WHERE tp.id = $1 AND tp.is_active = true
+        GROUP BY tp.id, creator.full_name
+      `;
+
+      const result = await client.query(query, [parseInt(programId)]);
+      
+      if (result.rows.length === 0) {
+        return NextResponse.json({ error: 'Program not found' }, { status: 404 });
+      }
+
+      const program = result.rows[0];
+
+      // Add materials if requested
+      if (includeDetails) {
+        const materialsQuery = `
+          SELECT 
+            tm.*,
+            creator.full_name as created_by_name
+          FROM tbl_tarl_training_materials tm
+          LEFT JOIN tbl_tarl_users creator ON tm.created_by = creator.id
+          WHERE tm.program_id = $1 AND tm.is_active = true
+          ORDER BY tm.sort_order ASC, tm.created_at DESC
+        `;
+        
+        const materialsResult = await client.query(materialsQuery, [parseInt(programId)]);
+        program.materials = materialsResult.rows;
+      }
+
+      return NextResponse.json(program);
+    }
+
+    // Fetch all programs
     const query = `
       SELECT 
         tp.*,
@@ -44,9 +93,6 @@ export async function GET(request: NextRequest) {
     const result = await client.query(query);
     
     // For detailed view, also fetch materials for each program
-    const { searchParams } = new URL(request.url);
-    const includeDetails = searchParams.get('include_materials') === 'true';
-    
     if (includeDetails && result.rows.length > 0) {
       const programIds = result.rows.map(p => p.id);
       const materialsQuery = `

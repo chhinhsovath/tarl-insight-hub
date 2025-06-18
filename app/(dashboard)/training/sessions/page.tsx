@@ -21,17 +21,20 @@ import {
   Search,
   Filter,
   Trash2,
-  UserPlus
+  UserPlus,
+  ArrowLeft,
+  Upload
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 import { makeAuthenticatedRequest, handleApiResponse } from '@/lib/session-utils';
 import { useRouter } from 'next/navigation';
 import DeleteSessionDialog from '@/components/delete-session-dialog';
-import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
+// import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 import { TrainingLocaleProvider } from '@/components/training-locale-provider';
-import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
+// import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
 import { useTrainingTranslation } from '@/lib/training-i18n';
+import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
 
 interface TrainingSession {
   id: number;
@@ -137,6 +140,11 @@ function TrainingSessionsPageContent() {
 
   const handleCreateSession = () => {
     router.push('/training/sessions/new');
+  };
+
+  const handleImportSessions = () => {
+    // Navigate to bulk import/operations page
+    router.push('/training/sessions/import');
   };
 
   const handleEditSession = (session: TrainingSession) => {
@@ -253,29 +261,48 @@ function TrainingSessionsPageContent() {
 
   return (
     <div className="p-6 space-y-6">
-      <TrainingBreadcrumb />
+      {/* <TrainingBreadcrumb /> */}
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">{t.trainingSessions}</h1>
-          <p className="text-muted-foreground mt-1">
-            {t.sessionsDescription}
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          <TrainingLanguageSwitcher />
-          {/* <Badge className="bg-blue-100 text-blue-800" variant="secondary">
-            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-          </Badge> */}
-          {canCreateSessions && (
-            <Button 
+      <div className="space-y-4">
+        {/* Navigation Row */}
+        
+        
+        {/* Title and Actions Row */}
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold">{t.trainingSessions}</h1>
+            <p className="text-muted-foreground mt-1">
+              {t.sessionsDescription}
+            </p>
+          </div>
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 ml-4">
+            {canCreateSessions && (
+              <>
+              <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => router.back()}
               className="flex items-center gap-2"
-              onClick={handleCreateSession}
             >
-              <Plus className="h-4 w-4" />
-              {t.createSession}
+              <ArrowLeft className="h-4 w-4" />
+              {t.back}
             </Button>
-          )}
+                <Button 
+                size="sm"
+                  className="flex items-center gap-2"
+                  onClick={handleCreateSession}
+                >
+                  <Plus className="h-4 w-4" />
+                  {t.createSession}
+                </Button>
+                
+              </>
+            )}
+          </div>
+          <div className="h-6 w-px bg-border" />
+          <div className="flex items-center gap-4"><TrainingLanguageSwitcher /></div>
         </div>
       </div>
 
@@ -472,7 +499,7 @@ function TrainingSessionsPageContent() {
                             variant="default" 
                             size="sm"
                             onClick={() => router.push(`/training/sessions/${session.id}/quick-register`)}
-                            title="Quick Check-in"
+                            title={t.quickCheckinTooltip}
                             className="bg-green-600 hover:bg-green-700"
                           >
                             <UserPlus className="h-4 w-4" />
@@ -485,7 +512,7 @@ function TrainingSessionsPageContent() {
                               variant="outline" 
                               size="sm"
                               onClick={() => handleEditSession(session)}
-                              title="Edit Session"
+                              title={t.editSessionTooltip}
                             >
                               <Settings className="h-4 w-4" />
                             </Button>
@@ -494,7 +521,7 @@ function TrainingSessionsPageContent() {
                               size="sm"
                               onClick={() => handleDeleteSession(session.id, session.session_title, session.participant_count || 0)}
                               className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                              title="Delete Session"
+                              title={t.deleteSessionTooltip}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -503,7 +530,7 @@ function TrainingSessionsPageContent() {
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          title="QR Codes"
+                          title={t.qrCodesTooltip}
                           onClick={() => router.push(`/training/qr-codes?session=${session.id}`)}
                         >
                           <QrCode className="h-4 w-4" />
@@ -511,7 +538,7 @@ function TrainingSessionsPageContent() {
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          title="Participants"
+                          title={t.participantsTooltip}
                           onClick={() => router.push(`/training/participants?session=${session.id}`)}
                         >
                           <Users className="h-4 w-4" />

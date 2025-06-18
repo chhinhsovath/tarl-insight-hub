@@ -4,7 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 const publicRoutes = [
   '/',
   '/login',
-  '/unauthorized'
+  '/unauthorized',
+  '/participant'
 ];
 
 // Define route patterns that don't require authentication
@@ -17,7 +18,8 @@ const publicRoutePatterns = [
   /^\/training\/materials$/,
   /^\/training\/attendance$/,
   /^\/training\/public-feedback$/,
-  /^\/training\/qr\/\w+$/
+  /^\/training\/qr\/\w+$/,
+  /^\/participant.*$/
 ];
 
 // Define API routes that should be excluded from middleware
@@ -26,7 +28,8 @@ const apiExcludeRoutes = [
   '/api/_next',
   '/_next',
   '/api/training/public',
-  '/api/training/sessions/'
+  '/api/training/sessions/',
+  '/api/participant'
 ];
 
 // Static file extensions to skip

@@ -17,6 +17,9 @@ import { EngageProgramsManager } from '@/components/training/engage-programs-man
 import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 import { BackButton } from '@/components/ui/back-button';
+import { TrainingLocaleProvider } from '@/components/training-locale-provider';
+import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
+import { useTrainingTranslation } from '@/lib/training-i18n';
 
 interface TrainingProgram {
   id: number;
@@ -50,10 +53,11 @@ interface TrainingSession {
   notes?: string;
 }
 
-export default function EditTrainingSessionPage() {
+function EditTrainingSessionPageContent() {
   const router = useRouter();
   const params = useParams();
   const { user, loading: authLoading } = useAuth();
+  const { t } = useTrainingTranslation();
   const [programs, setPrograms] = useState<TrainingProgram[]>([]);
   const [trainers, setTrainers] = useState<User[]>([]);
   const [coordinators, setCoordinators] = useState<User[]>([]);
@@ -153,12 +157,12 @@ export default function EditTrainingSessionPage() {
           notes: sessionData.notes || ''
         });
       } else {
-        toast.error('Training session not found');
+        toast.error(t.sessionNotFound || 'Training session not found');
         router.push('/training/sessions');
       }
     } catch (error) {
       console.error('Error fetching session data:', error);
-      toast.error('Failed to load session data');
+      toast.error(t.failedToFetch || 'Failed to load session data');
       router.push('/training/sessions');
     } finally {
       setSessionLoading(false);
@@ -175,7 +179,7 @@ export default function EditTrainingSessionPage() {
       }
     } catch (error) {
       console.error('Error fetching programs:', error);
-      toast.error('Failed to load training programs');
+      toast.error(t.fetchProgramsError || 'Failed to load training programs');
     }
   };
 
@@ -191,7 +195,7 @@ export default function EditTrainingSessionPage() {
       }
     } catch (error) {
       console.error('Error fetching users:', error);
-      toast.error('Failed to load users');
+      toast.error(t.failedToFetch || 'Failed to load users');
     }
   };
 
@@ -210,7 +214,7 @@ export default function EditTrainingSessionPage() {
     
     if (!formData.program_id || !formData.session_title || !formData.session_date || 
         !formData.session_time || !formData.location) {
-      toast.error('Please fill in all required fields');
+      toast.error(t.fillRequiredFields || 'Please fill in all required fields');
       return;
     }
 
@@ -245,7 +249,7 @@ export default function EditTrainingSessionPage() {
       
       if (result) {
         console.log('Update result:', result);
-        toast.success('Training session updated successfully!');
+        toast.success(t.sessionUpdatedSuccess || 'Training session updated successfully!');
         router.push('/training/sessions');
       }
     } catch (error) {
@@ -253,7 +257,7 @@ export default function EditTrainingSessionPage() {
       if (error instanceof Error) {
         toast.error(error.message);
       } else {
-        toast.error('Failed to update training session');
+        toast.error(t.updateSessionError || 'Failed to update training session');
       }
     } finally {
       setLoading(false);
@@ -281,7 +285,7 @@ export default function EditTrainingSessionPage() {
       const result = await handleApiResponse(response);
       
       if (result) {
-        toast.success(result.message || 'Training session deleted successfully');
+        toast.success(result.message || t.sessionDeletedSuccess || 'Training session deleted successfully');
         router.push('/training/sessions');
       }
     } catch (error) {
@@ -289,7 +293,7 @@ export default function EditTrainingSessionPage() {
       if (error instanceof Error) {
         toast.error(error.message);
       } else {
-        toast.error('Failed to delete training session');
+        toast.error(t.deleteSessionError || 'Failed to delete training session');
       }
     }
   };
@@ -303,7 +307,7 @@ export default function EditTrainingSessionPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading session data...</p>
+          <p className="text-muted-foreground">{t.loadingSessions || 'Loading session data...'}</p>
         </div>
       </div>
     );
@@ -313,9 +317,9 @@ export default function EditTrainingSessionPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <p className="text-muted-foreground mb-4">Please log in to edit training sessions.</p>
+          <p className="text-muted-foreground mb-4">{t.pleaseLogIn} {t.editSession.toLowerCase()}.</p>
           <Button onClick={() => router.push('/login')}>
-            Go to Login
+            {t.goToLogin || 'Go to Login'}
           </Button>
         </div>
       </div>
@@ -326,9 +330,9 @@ export default function EditTrainingSessionPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <p className="text-muted-foreground mb-4">Session not found.</p>
+          <p className="text-muted-foreground mb-4">{t.sessionNotFound || 'Session not found'}.</p>
           <Button onClick={() => router.push('/training/sessions')}>
-            Back to Sessions
+            {t.backToSessions || 'Back to Sessions'}
           </Button>
         </div>
       </div>
@@ -337,59 +341,71 @@ export default function EditTrainingSessionPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Breadcrumb */}
-      <TrainingBreadcrumb />
-
+      {/* <TrainingBreadcrumb /> */}
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 mt-4">
-        <div className="flex items-center gap-4">
-          <BackButton onClick={handleCancel}>
-            Back to Sessions
-          </BackButton>
-          <div>
-            <h1 className="text-3xl font-bold">Edit Training Session</h1>
+      <div className="space-y-4">
+        {/* Navigation Row */}
+        
+        
+        {/* Title and Actions Row */}
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold">{t.editSession}</h1>
             <p className="text-muted-foreground mt-1">
-              Update session details and scheduling information
+              {t.updateSessionDescription || 'Update session details and scheduling information'}
             </p>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => router.push(`/training/sessions/${sessionId}/overview`)}
-            className="flex items-center gap-2"
-          >
-            <Eye className="h-4 w-4" />
-            Overview
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleDeleteSession}
-            className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            <Trash2 className="h-4 w-4" />
-            Delete Session
-          </Button>
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 ml-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleCancel}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {t.back}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => router.push(`/training/sessions/${sessionId}/overview`)}
+              className="flex items-center gap-2"
+            >
+              <Eye className="h-4 w-4" />
+              {t.overview || 'Overview'}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleDeleteSession}
+              className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" />
+              {t.deleteSession}
+            </Button>
+          </div>
+          <div className="h-6 w-px bg-border" />
+          <div className="flex items-center gap-4"><TrainingLanguageSwitcher /></div>
         </div>
       </div>
 
       {/* Session Info */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Current Session: {session.session_title}</CardTitle>
+          <CardTitle>{t.currentSession || 'Current Session'}: {session.session_title}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
-              <span className="font-medium">Program:</span> {session.program_name}
+              <span className="font-medium">{t.program || 'Program'}:</span> {session.program_name}
             </div>
             <div>
-              <span className="font-medium">Date:</span> {new Date(session.session_date).toLocaleDateString()}
+              <span className="font-medium">{t.date || 'Date'}:</span> {new Date(session.session_date).toLocaleDateString()}
             </div>
             <div>
-              <span className="font-medium">Status:</span> 
+              <span className="font-medium">{t.status || 'Status'}:</span> 
               <span className={`ml-2 px-2 py-1 rounded text-xs ${
                 session.session_status === 'completed' ? 'bg-green-100 text-green-800' :
                 session.session_status === 'ongoing' ? 'bg-yellow-100 text-yellow-800' :
@@ -408,17 +424,17 @@ export default function EditTrainingSessionPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Update Session Details
+            {t.updateSessionDetails || 'Update Session Details'}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Program Selection */}
             <div className="space-y-2">
-              <Label htmlFor="program_id">Training Program *</Label>
+              <Label htmlFor="program_id">{t.trainingProgram || 'Training Program'} *</Label>
               <Select value={formData.program_id} onValueChange={(value) => handleInputChange('program_id', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a training program" />
+                  <SelectValue placeholder={t.selectProgram || 'Select a training program'} />
                 </SelectTrigger>
                 <SelectContent>
                   {programs.filter(program => program && program.id).map((program) => (
@@ -432,12 +448,12 @@ export default function EditTrainingSessionPage() {
 
             {/* Session Title */}
             <div className="space-y-2">
-              <Label htmlFor="session_title">Session Title *</Label>
+              <Label htmlFor="session_title">{t.sessionTitle || 'Session Title'} *</Label>
               <Input
                 id="session_title"
                 value={formData.session_title}
                 onChange={(e) => handleInputChange('session_title', e.target.value)}
-                placeholder="Enter session title"
+                placeholder={t.enterSessionTitle || 'Enter session title'}
                 required
               />
             </div>
@@ -445,7 +461,7 @@ export default function EditTrainingSessionPage() {
             {/* Date and Time */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="session_date">Session Date *</Label>
+                <Label htmlFor="session_date">{t.sessionDate || 'Session Date'} *</Label>
                 <Input
                   id="session_date"
                   type="date"
@@ -455,7 +471,7 @@ export default function EditTrainingSessionPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="session_time">Session Time *</Label>
+                <Label htmlFor="session_time">{t.sessionTime || 'Session Time'} *</Label>
                 <Input
                   id="session_time"
                   type="time"
@@ -468,47 +484,47 @@ export default function EditTrainingSessionPage() {
 
             {/* Location */}
             <div className="space-y-2">
-              <Label htmlFor="location">Location *</Label>
+              <Label htmlFor="location">{t.location || 'Location'} *</Label>
               <Input
                 id="location"
                 value={formData.location}
                 onChange={(e) => handleInputChange('location', e.target.value)}
-                placeholder="Enter location name"
+                placeholder={t.enterLocation || 'Enter location name'}
                 required
               />
             </div>
 
             {/* Venue Address */}
             <div className="space-y-2">
-              <Label htmlFor="venue_address">Venue Address</Label>
+              <Label htmlFor="venue_address">{t.venueAddress || 'Venue Address'}</Label>
               <Textarea
                 id="venue_address"
                 value={formData.venue_address}
                 onChange={(e) => handleInputChange('venue_address', e.target.value)}
-                placeholder="Enter full venue address"
+                placeholder={t.enterVenueAddress || 'Enter full venue address'}
                 rows={2}
               />
             </div>
 
             {/* Session Agenda */}
             <div className="space-y-2">
-              <Label htmlFor="agenda">Session Agenda</Label>
+              <Label htmlFor="agenda">{t.sessionAgenda || 'Session Agenda'}</Label>
               <RichTextEditor
                 content={formData.agenda}
                 onChange={(content) => handleInputChange('agenda', content)}
-                placeholder="Create your session agenda with timing, activities, and breaks..."
+                placeholder={t.agendaPlaceholder || 'Create your session agenda with timing, activities, and breaks...'}
                 minHeight="250px"
               />
             </div>
 
             {/* Additional Notes */}
             <div className="space-y-2">
-              <Label htmlFor="notes">Additional Notes</Label>
+              <Label htmlFor="notes">{t.additionalNotes || 'Additional Notes'}</Label>
               <Textarea
                 id="notes"
                 value={formData.notes}
                 onChange={(e) => handleInputChange('notes', e.target.value)}
-                placeholder="Any additional information or notes for this session"
+                placeholder={t.notesPlaceholder || 'Any additional information or notes for this session'}
                 rows={3}
               />
             </div>
@@ -516,7 +532,7 @@ export default function EditTrainingSessionPage() {
             {/* Max Participants and Status */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="max_participants">Maximum Participants</Label>
+                <Label htmlFor="max_participants">{t.maxParticipants || 'Maximum Participants'}</Label>
                 <Input
                   id="max_participants"
                   type="number"
@@ -528,16 +544,16 @@ export default function EditTrainingSessionPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="session_status">Session Status</Label>
+                <Label htmlFor="session_status">{t.sessionStatus || 'Session Status'}</Label>
                 <Select value={formData.session_status} onValueChange={(value) => handleInputChange('session_status', value)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
+                    <SelectValue placeholder={t.selectStatus || 'Select status'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="scheduled">Scheduled</SelectItem>
-                    <SelectItem value="ongoing">Ongoing</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="scheduled">{t.scheduled}</SelectItem>
+                    <SelectItem value="ongoing">{t.ongoing}</SelectItem>
+                    <SelectItem value="completed">{t.completed}</SelectItem>
+                    <SelectItem value="cancelled">{t.cancelled}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -545,13 +561,13 @@ export default function EditTrainingSessionPage() {
 
             {/* Trainer */}
             <div className="space-y-2">
-              <Label htmlFor="trainer_id">Assigned Trainer</Label>
+              <Label htmlFor="trainer_id">{t.assignedTrainer || 'Assigned Trainer'}</Label>
               <Select value={formData.trainer_id} onValueChange={(value) => handleInputChange('trainer_id', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a trainer (optional)" />
+                  <SelectValue placeholder={t.selectTrainer || 'Select a trainer (optional)'} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No trainer assigned</SelectItem>
+                  <SelectItem value="none">{t.noTrainerAssigned || 'No trainer assigned'}</SelectItem>
                   {trainers.filter(trainer => trainer && trainer.id).map((trainer) => (
                     <SelectItem key={trainer.id} value={trainer.id.toString()}>
                       {trainer.full_name} ({trainer.role})
@@ -563,13 +579,13 @@ export default function EditTrainingSessionPage() {
 
             {/* Coordinator */}
             <div className="space-y-2">
-              <Label htmlFor="coordinator_id">Assigned Coordinator</Label>
+              <Label htmlFor="coordinator_id">{t.assignedCoordinator || 'Assigned Coordinator'}</Label>
               <Select value={formData.coordinator_id} onValueChange={(value) => handleInputChange('coordinator_id', value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a coordinator (optional)" />
+                  <SelectValue placeholder={t.selectCoordinator || 'Select a coordinator (optional)'} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">No coordinator assigned</SelectItem>
+                  <SelectItem value="none">{t.noCoordinatorAssigned || 'No coordinator assigned'}</SelectItem>
                   {coordinators.filter(coordinator => coordinator && coordinator.id).map((coordinator) => (
                     <SelectItem key={coordinator.id} value={coordinator.id.toString()}>
                       {coordinator.full_name} ({coordinator.role})
@@ -581,7 +597,7 @@ export default function EditTrainingSessionPage() {
 
             {/* Registration Deadline */}
             <div className="space-y-2">
-              <Label htmlFor="registration_deadline">Registration Deadline</Label>
+              <Label htmlFor="registration_deadline">{t.registrationDeadline || 'Registration Deadline'}</Label>
               <Input
                 id="registration_deadline"
                 type="date"
@@ -593,18 +609,18 @@ export default function EditTrainingSessionPage() {
             {/* Form Actions */}
             <div className="flex items-center justify-end gap-3 pt-6 border-t">
               <Button type="button" variant="outline" onClick={handleCancel}>
-                Cancel
+                {t.cancel}
               </Button>
               <Button type="submit" disabled={loading} className="flex items-center gap-2">
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Updating...
+                    {t.updating || 'Updating...'}
                   </>
                 ) : (
                   <>
                     <Save className="h-4 w-4" />
-                    Update Session
+                    {t.updateSession || 'Update Session'}
                   </>
                 )}
               </Button>
@@ -616,9 +632,9 @@ export default function EditTrainingSessionPage() {
       {/* Engage Programs */}
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Engage Programs & Materials</CardTitle>
+          <CardTitle>{t.engageProgramsMaterials || 'Engage Programs & Materials'}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Manage materials and resources for before, during, and after training stages
+            {t.manageMaterialsDescription || 'Manage materials and resources for before, during, and after training stages'}
           </p>
         </CardHeader>
         <CardContent>
@@ -639,5 +655,13 @@ export default function EditTrainingSessionPage() {
         onClose={handleDeleteCancel}
       />
     </div>
+  );
+}
+
+export default function EditTrainingSessionPage() {
+  return (
+    <TrainingLocaleProvider>
+      <EditTrainingSessionPageContent />
+    </TrainingLocaleProvider>
   );
 }
