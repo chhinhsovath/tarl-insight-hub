@@ -25,7 +25,6 @@ import {
   ArrowLeft
 } from "lucide-react";
 import { toast } from "sonner";
-import { TrainingBreadcrumb } from "@/components/training-breadcrumb";
 import { useTrainingTranslation } from "@/lib/training-i18n";
 import { TrainingLocaleProvider } from "@/components/training-locale-provider";
 import { TrainingLanguageSwitcher } from "@/components/training-language-switcher";
@@ -211,24 +210,11 @@ function QuickRegisterPageContent() {
       {/* Header Section - Full Width */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-6">
-          <TrainingBreadcrumb />
-          
-          <div className="flex items-center justify-between mt-6">
+          <div className="flex items-center justify-between">
             <div className="flex-1">
-              <div className="flex items-center gap-6 mb-4">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => router.back()}
-                  className="flex items-center gap-2 hover:bg-gray-50 transition-colors"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  {t.back}
-                </Button>
-                <div>
-                  <h1 className="text-4xl font-bold text-gray-900">{t.quickRegistration}</h1>
-                  <p className="text-xl text-gray-600 mt-1">{session.session_title}</p>
-                </div>
+              <div className="mb-4">
+                <h1 className="text-4xl font-bold text-gray-900">{t.quickRegistration}</h1>
+                <p className="text-xl text-gray-600 mt-1">{session.session_title}</p>
               </div>
               
               <div className="flex flex-wrap gap-6 text-base">
@@ -252,6 +238,15 @@ function QuickRegisterPageContent() {
             </div>
             
             <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => router.back()}
+                className="flex items-center gap-2 hover:bg-gray-50 transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                {t.back}
+              </Button>
               <TrainingLanguageSwitcher />
             </div>
           </div>
