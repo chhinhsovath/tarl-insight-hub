@@ -1,36 +1,18 @@
-// Supabase configuration - Currently disabled for static demo
-// This file is kept for future database integration
+import { createClient } from '@supabase/supabase-js'
 
-export const supabase = null
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-export const createServerSupabaseClient = () => {
-  return null
-}
+// Create a single supabase client for interacting with your database
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Mock functions for compatibility
-export const mockSupabaseClient = {
-  from: (table: string) => ({
-    select: (columns: string) => ({
-      eq: (column: string, value: any) => ({
-        order: (column: string, options?: any) => ({
-          data: [],
-          error: new Error("Static mode - no database connection"),
-        }),
-      }),
-      order: (column: string, options?: any) => ({
-        data: [],
-        error: new Error("Static mode - no database connection"),
-      }),
-      data: [],
-      error: new Error("Static mode - no database connection"),
-    }),
-    insert: (data: any) => ({
-      select: () => ({
-        single: () => ({
-          data: null,
-          error: new Error("Static mode - no database connection"),
-        }),
-      }),
-    }),
-  }),
+// Database connection for direct queries (using Supabase's connection pooler)
+export const getSupabaseConnection = () => {
+  return {
+    user: process.env.PGUSER || 'postgres',
+    host: process.env.PGHOST || 'db.xbsndhaswzuvkarvzjyq.supabase.co',
+    database: process.env.PGDATABASE || 'postgres',
+    password: process.env.PGPASSWORD!,
+    port: parseInt(process.env.PGPORT || '5432', 10),
+  }
 }

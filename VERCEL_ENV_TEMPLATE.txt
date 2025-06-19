@@ -1,0 +1,21 @@
+# Copy these environment variables to Vercel Dashboard
+# Settings → Environment Variables
+
+NEXT_PUBLIC_SUPABASE_URL=https://xbsndhaswzuvkarvzjyq.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhic25kaGFzd3p1dmthcnZ6anlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyNjc3MjgsImV4cCI6MjA2NDg0MzcyOH0.81UginSeGIP2mJsF4DOcH4cAR75larG69vDrrRNJZHQ
+PGUSER=postgres
+PGHOST=db.xbsndhaswzuvkarvzjyq.supabase.co
+PGDATABASE=postgres
+PGPASSWORD=YOUR_SUPABASE_DATABASE_PASSWORD_HERE
+PGPORT=5432
+SESSION_SECRET=GENERATE_RANDOM_STRING_HERE
+NODE_ENV=production
+NEXT_PUBLIC_APP_URL=https://your-app-name.vercel.app
+
+# To generate SESSION_SECRET, run:
+# openssl rand -base64 32
+
+# To get PGPASSWORD:
+# 1. Go to Supabase Dashboard
+# 2. Settings → Database
+# 3. Find your database password or reset it
