@@ -4,22 +4,6 @@
   "framework": "nextjs",
   "installCommand": "npm install",
   "devCommand": "npm run dev",
-  "env": {
-    "PGUSER": "@pguser",
-    "PGHOST": "@pghost", 
-    "PGDATABASE": "@pgdatabase",
-    "PGPASSWORD": "@pgpassword",
-    "PGPORT": "@pgport"
-  },
-  "build": {
-    "env": {
-      "PGUSER": "@pguser",
-      "PGHOST": "@pghost",
-      "PGDATABASE": "@pgdatabase", 
-      "PGPASSWORD": "@pgpassword",
-      "PGPORT": "@pgport"
-    }
-  },
   "functions": {
     "app/api/**": {
       "maxDuration": 30
