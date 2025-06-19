@@ -1,14 +1,6 @@
 import { NextResponse } from "next/server"
-import { Pool } from "pg"
 import { cookies } from "next/headers"
-
-const pool = new Pool({
-  user: process.env.PGUSER,
-  host: process.env.PGHOST,
-  database: process.env.PGDATABASE,
-  password: process.env.PGPASSWORD,
-  port: parseInt(process.env.PGPORT || '5432', 10),
-})
+import { getDbClient } from "@/lib/database-config"
 
 export async function POST() {
   try {
@@ -16,7 +8,7 @@ export async function POST() {
     const sessionToken = cookiesStore.get("session-token")?.value
 
     if (sessionToken) {
-      const client = await pool.connect()
+      const client = await getDbClient()
 
       try {
         // Clear session token in database

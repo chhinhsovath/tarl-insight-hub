@@ -1,16 +1,8 @@
 import { NextResponse } from "next/server";
-import { Pool } from "pg";
 import bcrypt from "bcrypt";
 import { randomBytes } from "crypto";
 import { cookies } from "next/headers";
-
-const pool = new Pool({
-  user: process.env.PGUSER,
-  host: process.env.PGHOST,
-  database: process.env.PGDATABASE,
-  password: process.env.PGPASSWORD,
-  port: parseInt(process.env.PGPORT || '5432', 10),
-});
+import { getDbClient } from "@/lib/database-config";
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 30;
@@ -27,7 +19,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const client = await pool.connect();
+    const client = await getDbClient();
 
     try {
       let user = null;
