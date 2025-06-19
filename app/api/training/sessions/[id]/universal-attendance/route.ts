@@ -46,7 +46,7 @@ export async function POST(
 
       // Check if session exists
       const sessionResult = await client.query(
-        `SELECT session_title, capacity FROM tbl_tarl_training_sessions WHERE id = $1`,
+        `SELECT session_title, max_participants as capacity FROM tbl_tarl_training_sessions WHERE id = $1`,
         [sessionId]
       );
 

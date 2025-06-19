@@ -67,12 +67,8 @@ export async function POST(
       WHERE id = $1
     `, [registration_id]);
 
-    // Update session attendance count
-    await client.query(`
-      UPDATE tbl_tarl_training_sessions
-      SET current_attendance = current_attendance + 1
-      WHERE id = $1
-    `, [parseInt(sessionId)]);
+    // Note: We don't update a current_attendance column as it may not exist
+    // The attendance count should be calculated dynamically when needed
 
     // Log QR code usage if QR ID provided
     if (qr_id) {

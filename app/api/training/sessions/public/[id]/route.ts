@@ -30,7 +30,7 @@ export async function GET(
           s.session_time,
           s.location,
           s.venue_address,
-          s.max_participants as capacity,
+          COALESCE(s.capacity, s.max_participants) as capacity,
           s.registration_deadline,
           s.session_status,
           p.program_name,

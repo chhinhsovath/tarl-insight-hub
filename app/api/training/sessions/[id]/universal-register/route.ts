@@ -47,11 +47,11 @@ export async function POST(
 
       // Check if session exists and has capacity
       const sessionResult = await client.query(
-        `SELECT s.capacity, s.session_title, COUNT(r.id) as current_registrations
+        `SELECT s.max_participants as capacity, s.session_title, COUNT(r.id) as current_registrations
          FROM tbl_tarl_training_sessions s
          LEFT JOIN tbl_tarl_training_registrations r ON s.id = r.session_id AND r.is_active = true
          WHERE s.id = $1
-         GROUP BY s.id, s.capacity, s.session_title`,
+         GROUP BY s.id, s.max_participants, s.session_title`,
         [sessionId]
       );
 
