@@ -5,11 +5,12 @@ import { existsSync } from 'fs';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
   try {
     // Reconstruct the file path
-    const filePath = params.path.join('/');
+    const { path } = await params;
+    const filePath = path.join('/');
     const fullPath = path.join(process.cwd(), 'uploads', filePath);
     
     // Security check: ensure the path is within uploads directory

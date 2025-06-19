@@ -14,10 +14,11 @@ const pool = new Pool({
 // POST - Download training materials for a specific session
 export async function POST(
   request: NextRequest,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
-    const sessionId = parseInt(params.sessionId);
+    const { sessionId: sessionIdStr } = await params;
+    const sessionId = parseInt(sessionIdStr);
     const body = await request.json();
     const { participant_name, participant_phone } = body;
 

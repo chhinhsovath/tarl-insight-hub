@@ -13,9 +13,10 @@ const pool = new Pool({
 // POST - Quick register and mark attendance in one step
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const sessionId = parseInt(params.id);
+  const { id } = await params;
+  const sessionId = parseInt(id);
   
   try {
     const cookieStore = await cookies();
@@ -243,9 +244,10 @@ export async function POST(
 // GET - Get quick registration statistics for a session
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const sessionId = parseInt(params.id);
+  const { id } = await params;
+  const sessionId = parseInt(id);
   
   try {
     const cookieStore = await cookies();

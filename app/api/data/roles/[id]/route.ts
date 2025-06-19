@@ -11,9 +11,10 @@ const pool = new Pool({
   port: parseInt(process.env.PGPORT || '5432', 10),
 });
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const roleId = parseInt(params.id);
+    const { id } = await params;
+    const roleId = parseInt(id);
     const { name } = await request.json();
     
     const cookieStore = await cookies();
@@ -95,9 +96,10 @@ export async function PUT(request: Request, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const roleId = parseInt(params.id);
+    const { id } = await params;
+    const roleId = parseInt(id);
     
     const cookieStore = await cookies();
     const sessionToken = cookieStore.get("session-token")?.value;

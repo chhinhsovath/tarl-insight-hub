@@ -12,9 +12,10 @@ const pool = new Pool({
 // POST - Mark attendance for a registered participant
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const sessionId = params.id;
+  const { id } = await params;
+  const sessionId = id;
   const client = await pool.connect();
 
   try {

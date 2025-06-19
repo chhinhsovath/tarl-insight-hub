@@ -20,7 +20,7 @@ async function validateSession(sessionToken: string) {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const sessionToken = request.cookies.get("session-token")?.value;
@@ -33,7 +33,8 @@ export async function GET(
       return NextResponse.json({ error: "Invalid session" }, { status: 401 });
     }
 
-    const sessionId = params.id;
+    const { id } = await params;
+    const sessionId = id;
 
     // Get session basic information
     const sessionQuery = `

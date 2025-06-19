@@ -13,9 +13,10 @@ const pool = new Pool({
 // GET - Get all registrations for a training session
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const sessionId = parseInt(params.id);
+  const { id } = await params;
+  const sessionId = parseInt(id);
   
   try {
     // Check if it's a public request (from attendance page)

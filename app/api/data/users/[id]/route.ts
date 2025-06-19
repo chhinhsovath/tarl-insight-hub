@@ -13,10 +13,11 @@ const pool = new Pool({
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = parseInt(params.id);
+    const { id } = await params;
+    const userId = parseInt(id);
 
     const cookieStore = await cookies();
     const sessionToken = cookieStore.get("session-token")?.value;
@@ -64,11 +65,12 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json();
-    const userId = parseInt(params.id);
+    const { id } = await params;
+    const userId = parseInt(id);
 
     const cookieStore = await cookies();
     const sessionToken = cookieStore.get("session-token")?.value;
@@ -168,10 +170,11 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const userId = parseInt(params.id);
+    const { id } = await params;
+    const userId = parseInt(id);
 
     const cookieStore = await cookies();
     const sessionToken = cookieStore.get("session-token")?.value;

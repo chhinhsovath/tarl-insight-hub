@@ -12,7 +12,7 @@ const pool = new Pool({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { searchParams } = new URL(request.url);
   const month = searchParams.get('month');
@@ -40,7 +40,8 @@ export async function GET(
     }
 
     const user = sessionResult.rows[0];
-    const studentId = parseInt(params.id);
+    const { id } = await params;
+    const studentId = parseInt(id);
 
     // Check if user has access to this student
     if (user.role !== 'admin') {
@@ -127,10 +128,10 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Get session token from cookies
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const sessionToken = cookieStore.get('session-token')?.value;
 
   if (!sessionToken) {
@@ -151,7 +152,8 @@ export async function POST(
     }
 
     const user = sessionResult.rows[0];
-    const studentId = parseInt(params.id);
+    const { id } = await params;
+    const studentId = parseInt(id);
 
     // Check if user can create transcripts
     const allowedRoles = ['admin', 'director', 'partner', 'teacher', 'coordinator'];

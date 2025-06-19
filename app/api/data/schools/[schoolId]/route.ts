@@ -9,10 +9,10 @@ const pool = new Pool({
   port: parseInt(process.env.PGPORT || '5432', 10),
 });
 
-export async function GET(request: Request) {
+export async function GET(request: Request, { params }: { params: Promise<{ schoolId: string }> }) {
   try {
-    const { pathname } = new URL(request.url);
-    const schoolId = parseInt(pathname.split('/').pop() || '', 10);
+    const { schoolId: schoolIdStr } = await params;
+    const schoolId = parseInt(schoolIdStr, 10);
 
     if (isNaN(schoolId)) {
       return NextResponse.json({ message: "Invalid School ID" }, { status: 400 });
@@ -60,10 +60,10 @@ export async function GET(request: Request) {
   }
 }
 
-export async function PUT(request: Request) {
+export async function PUT(request: Request, { params }: { params: Promise<{ schoolId: string }> }) {
   try {
-    const { pathname } = new URL(request.url);
-    const schoolId = parseInt(pathname.split('/').pop() || '', 10);
+    const { schoolId: schoolIdStr } = await params;
+    const schoolId = parseInt(schoolIdStr, 10);
 
     if (isNaN(schoolId)) {
       return NextResponse.json({ message: "Invalid School ID" }, { status: 400 });

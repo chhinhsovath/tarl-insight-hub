@@ -12,9 +12,10 @@ const pool = new Pool({
 // GET - Check if participant is registered for a session
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const sessionId = parseInt(params.id);
+  const { id } = await params;
+  const sessionId = parseInt(id);
   const { searchParams } = new URL(request.url);
   const email = searchParams.get('email');
   
