@@ -87,11 +87,11 @@ const demoUsers = [
   },
   {
     role: "Participant",
-    username: "participant1",
-    password: "participant123",
-    description: "Training participant",
+    username: "Demo Participant",
+    password: "012345678",
+    description: "Training participant portal",
     icon: <GraduationCap className="h-12 w-12 text-pink-600" />,
-    features: ["View Sessions", "Submit Feedback", "Access Materials", "Track Progress"],
+    features: ["Training History", "Download Materials", "Track Progress", "Certificates"],
     color: "from-pink-50 to-pink-100"
   }
 ]
@@ -123,8 +123,7 @@ const allUsers = [
   { username: "intern1", password: "intern123", role: "Intern" },
   { username: "intern2", password: "intern123", role: "Intern" },
   // Participant
-  { username: "participant1", password: "participant123", role: "Participant" },
-  { username: "participant2", password: "participant123", role: "Participant" }
+  { username: "Demo Participant", password: "012345678", role: "Participant" },
 ]
 
 export default function LoginPage() {

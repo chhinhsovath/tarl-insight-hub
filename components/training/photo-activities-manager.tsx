@@ -636,3 +636,6 @@ export function PhotoActivitiesManager({ sessionId }: PhotoActivitiesManagerProp
     </Card>
   );
 }
+
+// Add both named and default export for compatibility
+export default PhotoActivitiesManager;

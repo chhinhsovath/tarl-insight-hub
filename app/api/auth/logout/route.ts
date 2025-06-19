@@ -31,8 +31,9 @@ export async function POST() {
         client.release()
       }
 
-      // Clear session cookie
+      // Clear session cookies
       cookiesStore.delete("session-token")
+      cookiesStore.delete("user-type")
     }
 
     return NextResponse.json({ message: "Logged out successfully" })

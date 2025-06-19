@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,28 @@ export default function ParticipantPortalLogin() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    // Only check localStorage session to avoid auth API conflicts
+    const checkExistingSession = () => {
+      const existingSession = localStorage.getItem('participant-session');
+      if (existingSession) {
+        try {
+          const sessionData = JSON.parse(existingSession);
+          // Validate session has required fields
+          if (sessionData.name && sessionData.phone) {
+            router.push('/participant/dashboard');
+            return;
+          }
+        } catch (error) {
+          // Invalid session data, clear it
+          localStorage.removeItem('participant-session');
+        }
+      }
+    };
+
+    checkExistingSession();
+  }, [router]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -64,11 +86,9 @@ export default function ParticipantPortalLogin() {
       const data = await response.json();
 
       if (response.ok) {
-        // Store participant session
+        // Store complete participant session data
         localStorage.setItem('participant-session', JSON.stringify({
-          id: data.participant.id,
-          name: data.participant.name,
-          phone: data.participant.phone,
+          ...data.participant,
           loginTime: new Date().toISOString()
         }));
         

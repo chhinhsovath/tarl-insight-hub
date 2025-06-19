@@ -509,7 +509,7 @@ function ProgramDetailPageContent() {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => router.push(`/training/sessions/${session.id}`)}
+                          onClick={() => router.push(`/training/sessions/${session.id}/overview`)}
                         >
                           {t.viewDetails}
                         </Button>

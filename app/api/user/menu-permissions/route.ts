@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Pool } from "pg";
 import { cookies } from "next/headers";
+import { transformMenuItemsForRole } from "@/lib/role-dashboard-mapping";
 
 const pool = new Pool({
   user: process.env.PGUSER,
@@ -13,7 +14,10 @@ const pool = new Pool({
 interface MenuItem {
   id: number;
   page_name: string;
+  page_name_kh?: string;
   page_path: string;
+  page_title?: string;
+  page_title_kh?: string;
   icon_name?: string;
   parent_page_id?: number;
   sort_order: number;
@@ -55,6 +59,30 @@ export async function GET() {
       userRole = roleResult.rows[0]?.name;
     }
     
+    // Check if Khmer columns exist
+    const khmerCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'page_permissions' 
+      AND column_name IN ('page_name_kh', 'page_title_kh')
+    `);
+    
+    const hasKhmer = khmerCheck.rows.length >= 2;
+    const khmerColumns = hasKhmer ? ', pp.page_name_kh, pp.page_title_kh' : '';
+
+    // Check if menu display columns exist
+    const displayCheck = await pool.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'page_permissions' 
+      AND column_name IN ('is_displayed_in_menu', 'menu_visibility')
+    `);
+    
+    const hasDisplayColumns = displayCheck.rows.length >= 2;
+    const menuDisplayConditions = hasDisplayColumns 
+      ? 'AND pp.is_displayed_in_menu = true AND pp.menu_visibility = \'visible\''
+      : ''; // No additional filtering if columns don't exist
+
     // Get menu items the user has permission to access
     const menuResult = await pool.query(`
       SELECT 
@@ -65,12 +93,12 @@ export async function GET() {
         pp.parent_page_id,
         pp.sort_order,
         rpp.is_allowed
+        ${khmerColumns}
       FROM page_permissions pp
       JOIN role_page_permissions rpp ON pp.id = rpp.page_id
       WHERE rpp.role = $1 
         AND rpp.is_allowed = true
-        AND pp.is_displayed_in_menu = true 
-        AND pp.menu_visibility = 'visible'
+        ${menuDisplayConditions}
       ORDER BY pp.sort_order ASC, pp.page_name ASC
     `, [userRole]);
 
@@ -113,14 +141,18 @@ export async function GET() {
       }
     });
 
+    // Transform menu items to use role-specific dashboard URLs
+    const transformedMenuItems = transformMenuItemsForRole(filteredRootItems, userRole);
+
     console.log(`User ${userRole} has access to ${allowedMenuItems.length} menu items`);
-    console.log('Filtered menu structure:', filteredRootItems.map(item => ({
+    console.log('Filtered menu structure:', transformedMenuItems.map(item => ({
       name: item.page_name,
-      children: item.children?.map(child => child.page_name) || []
+      path: item.page_path,
+      children: item.children?.map(child => ({ name: child.page_name, path: child.page_path })) || []
     })));
 
     return NextResponse.json({
-      menuItems: filteredRootItems,
+      menuItems: transformedMenuItems,
       userRole: userRole,
       totalAllowed: allowedMenuItems.length
     });

@@ -29,13 +29,13 @@ export async function POST(request: NextRequest) {
       const participantQuery = `
         SELECT 
           MIN(r.id) as first_registration_id,
-          r.participant_name as name,
-          r.participant_email as email,
-          r.participant_phone as phone,
-          r.participant_role as role,
-          r.school_name as organization,
-          r.district,
-          r.province,
+          MIN(r.participant_name) as name,
+          MIN(r.participant_email) as email,
+          MIN(r.participant_phone) as phone,
+          MIN(r.participant_role) as role,
+          MIN(r.school_name) as organization,
+          MIN(r.district) as district,
+          MIN(r.province) as province,
           COUNT(r.id) as total_registrations,
           COUNT(CASE WHEN r.attendance_status = 'attended' THEN 1 END) as total_attended,
           MIN(r.created_at) as first_training_date,
@@ -50,13 +50,8 @@ export async function POST(request: NextRequest) {
           AND TRIM(r.participant_phone) = TRIM($2)
           AND r.is_active = true
         GROUP BY 
-          r.participant_name, 
-          r.participant_email, 
-          r.participant_phone, 
-          r.participant_role, 
-          r.school_name, 
-          r.district, 
-          r.province
+          LOWER(TRIM(r.participant_name)), 
+          TRIM(r.participant_phone)
         LIMIT 1
       `;
 

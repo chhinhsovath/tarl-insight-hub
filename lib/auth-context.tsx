@@ -54,15 +54,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (emailOrUsername: string, password: string) => {
     try {
       setError(null)
-      const response = await fetch("/api/auth/login", {
+      const response = await fetch("/api/auth/unified-login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: emailOrUsername.includes('@') ? emailOrUsername : undefined,
-          username: !emailOrUsername.includes('@') ? emailOrUsername : undefined,
+          identifier: emailOrUsername,
           password,
+          loginType: "auto"
         }),
       })
 
@@ -75,8 +75,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(data.message || "Login failed")
       }
 
-      setUser(data)
-      router.push("/dashboard")
+      setUser(data.user)
+      
+      // For participants, also store localStorage data for backward compatibility
+      if (data.userType === 'participant' && data.participantSession) {
+        localStorage.setItem('participant-session', JSON.stringify(data.participantSession));
+      }
+      
+      // Redirect to role-specific dashboard
+      router.push(data.redirectUrl || "/dashboard")
     } catch (error) {
       setError(error instanceof Error ? error.message : "An error occurred during login")
       throw error
@@ -87,6 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await fetch("/api/auth/logout", { method: "POST" })
       setUser(null)
+      // Clear participant localStorage data if it exists
+      localStorage.removeItem("participant-session")
       router.push("/login")
     } catch (error) {
       console.error("Logout failed:", error)

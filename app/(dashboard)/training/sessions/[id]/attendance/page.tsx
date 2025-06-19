@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,9 +18,14 @@ import {
   AlertCircle,
   ArrowLeft,
   Loader2,
-  Filter
+  Filter,
+  Calendar,
+  Globe
 } from "lucide-react";
 import { toast } from "sonner";
+import { TrainingLocaleProvider } from '@/components/training-locale-provider';
+import { useTrainingTranslation } from '@/lib/training-i18n';
+import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
 
 interface Session {
   id: string;
@@ -44,7 +49,8 @@ interface Registration {
   created_at: string;
 }
 
-export default function BulkAttendancePage() {
+function BulkAttendancePageContent() {
+  const { t } = useTrainingTranslation();
   const params = useParams();
   const router = useRouter();
   const sessionId = params.id as string;
@@ -66,6 +72,16 @@ export default function BulkAttendancePage() {
   useEffect(() => {
     filterRegistrations();
   }, [registrations, searchTerm, statusFilter]);
+
+  const handleGoBack = () => {
+    // Try to go back in history first
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+    } else {
+      // Fallback to training sessions list
+      router.push('/training/sessions');
+    }
+  };
 
   const fetchSession = async () => {
     try {
@@ -182,8 +198,13 @@ export default function BulkAttendancePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="bg-white rounded-full p-4 w-16 h-16 mx-auto mb-4 shadow-lg">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          </div>
+          <p className="text-gray-600 text-lg">{t.loading || 'Loading attendance...'}</p>
+        </div>
       </div>
     );
   }
@@ -200,189 +221,269 @@ export default function BulkAttendancePage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-4 mb-4">
-          <Button 
-            variant="outline" 
-            onClick={() => router.back()}
-            size="sm"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Bulk Attendance</h1>
-            <p className="text-muted-foreground">Mark attendance for multiple participants</p>
-          </div>
-        </div>
-
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <h2 className="font-semibold text-lg mb-2">{session.session_title}</h2>
-          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Clock className="h-4 w-4" />
-              {new Date(session.session_date).toLocaleDateString()} at {session.start_time}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
+      {/* Enhanced Header with Back Button and Language Switch */}
+      <div className="bg-white shadow-sm border-b sticky top-0 z-10">
+        <div className="container mx-auto max-w-6xl px-4 py-4">
+          <div className="flex items-center justify-between">
+            {/* Left: Back button and title */}
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleGoBack}
+                className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                {t.back || 'Back'}
+              </Button>
+              <div className="hidden sm:block h-6 w-px bg-gray-300" />
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">{t.bulkAttendance || 'Bulk Attendance'}</h1>
+                <p className="text-sm text-gray-600">{session.session_title}</p>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <MapPin className="h-4 w-4" />
-              {session.location}
+            
+            {/* Right: Language switcher */}
+            <div className="flex items-center gap-2">
+              <TrainingLanguageSwitcher />
             </div>
-            <Badge variant={session.current_attendance >= session.capacity ? "destructive" : "default"}>
-              {session.current_attendance} / {session.capacity} Attendees
-            </Badge>
           </div>
         </div>
       </div>
 
-      {/* Filters */}
-      <Card className="mb-6">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search participants by name, email, or school..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+      <div className="container mx-auto max-w-6xl px-4 py-6">
+        {/* Session Info Card */}
+        <Card className="mb-6 border-0 shadow-md bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h2 className="text-xl font-bold mb-2">{session.session_title}</h2>
+                <p className="text-blue-100 text-sm">{t.markAttendanceDescription || 'Mark attendance for multiple participants'}</p>
+              </div>
+              <div className="bg-white/20 rounded-full p-3">
+                <UserCheck className="h-6 w-6" />
               </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant={statusFilter === "all" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("all")}
-              >
-                All ({registrations.length})
-              </Button>
-              <Button
-                variant={statusFilter === "registered" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("registered")}
-              >
-                Registered ({registrations.filter(r => r.attendance_status === 'registered').length})
-              </Button>
-              <Button
-                variant={statusFilter === "attended" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("attended")}
-              >
-                Attended ({registrations.filter(r => r.attendance_status === 'attended').length})
-              </Button>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="flex items-center gap-2 text-blue-100">
+                <Calendar className="h-4 w-4" />
+                {new Date(session.session_date).toLocaleDateString()}
+              </div>
+              <div className="flex items-center gap-2 text-blue-100">
+                <Clock className="h-4 w-4" />
+                {session.start_time}
+              </div>
+              <div className="flex items-center gap-2 text-blue-100">
+                <MapPin className="h-4 w-4" />
+                {session.location}
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            
+            <div className="flex flex-wrap gap-3">
+              <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+                <Users className="h-3 w-3 mr-1" />
+                {registrations.length} {t.registered || 'Registered'}
+              </Badge>
+              <Badge 
+                variant="secondary" 
+                className={`${session.current_attendance >= session.capacity ? 'bg-red-500' : 'bg-green-500'} text-white border-0`}
+              >
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                {session.current_attendance} / {session.capacity} {t.attended || 'Attended'}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Bulk Actions */}
-      {selectedParticipants.size > 0 && (
-        <Card className="mb-6 border-green-200 bg-green-50">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <UserCheck className="h-5 w-5 text-green-600" />
-                <span className="font-medium">
-                  {selectedParticipants.size} participant(s) selected
-                </span>
+        {/* Filters */}
+        <Card className="mb-6 shadow-md border-0">
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder={t.searchByNameEmailSchool || "Search participants by name, email, or school..."}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  />
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button
-                  variant="outline"
+                  variant={statusFilter === "all" ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setSelectedParticipants(new Set())}
+                  onClick={() => setStatusFilter("all")}
+                  className={statusFilter === "all" ? "bg-blue-600 hover:bg-blue-700" : "border-gray-300"}
                 >
-                  Clear Selection
+                  {t.all || 'All'} ({registrations.length})
                 </Button>
                 <Button
-                  onClick={handleBulkMarkAttendance}
-                  disabled={submitting}
+                  variant={statusFilter === "registered" ? "default" : "outline"}
                   size="sm"
-                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => setStatusFilter("registered")}
+                  className={statusFilter === "registered" ? "bg-blue-600 hover:bg-blue-700" : "border-gray-300"}
                 >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                      Mark Attendance
-                    </>
-                  )}
+                  {t.registered || 'Registered'} ({registrations.filter(r => r.attendance_status === 'registered').length})
+                </Button>
+                <Button
+                  variant={statusFilter === "attended" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setStatusFilter("attended")}
+                  className={statusFilter === "attended" ? "bg-blue-600 hover:bg-blue-700" : "border-gray-300"}
+                >
+                  {t.attended || 'Attended'} ({registrations.filter(r => r.attendance_status === 'attended').length})
                 </Button>
               </div>
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* Participants List */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Registered Participants ({filteredRegistrations.length})</span>
-            {filteredRegistrations.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSelectAll}
-              >
-                {selectedParticipants.size === filteredRegistrations.length ? "Deselect All" : "Select All"}
-              </Button>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {filteredRegistrations.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No participants found</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredRegistrations.map((registration) => (
-                <div
-                  key={registration.id}
-                  className={`p-4 border rounded-lg ${
-                    selectedParticipants.has(registration.id) 
-                      ? 'border-green-300 bg-green-50' 
-                      : 'border-gray-200'
-                  }`}
+        {/* Bulk Actions */}
+        {selectedParticipants.size > 0 && (
+          <Card className="mb-6 border-green-200 bg-green-50 shadow-md">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-green-600 rounded-full p-2">
+                    <UserCheck className="h-5 w-5 text-white" />
+                  </div>
+                  <span className="font-medium text-green-800">
+                    {selectedParticipants.size} {t.participantsSelected || 'participant(s) selected'}
+                  </span>
+                </div>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedParticipants(new Set())}
+                    className="border-green-300 text-green-700 hover:bg-green-100"
+                  >
+                    {t.clearSelection || 'Clear Selection'}
+                  </Button>
+                  <Button
+                    onClick={handleBulkMarkAttendance}
+                    disabled={submitting}
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        {t.processing || 'Processing...'}
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        {t.markAttendance || 'Mark Attendance'}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Participants List */}
+        <Card className="shadow-md border-0">
+          <CardHeader className="bg-gray-50/50">
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                {t.registeredParticipants || 'Registered Participants'} ({filteredRegistrations.length})
+              </span>
+              {filteredRegistrations.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSelectAll}
+                  className="border-gray-300"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Checkbox
-                        checked={selectedParticipants.has(registration.id)}
-                        onCheckedChange={() => handleSelectParticipant(registration.id)}
-                      />
-                      <div>
-                        <h3 className="font-medium">{registration.participant_name}</h3>
-                        <p className="text-sm text-muted-foreground">{registration.participant_email}</p>
-                        {registration.school_name && (
-                          <p className="text-sm text-muted-foreground">{registration.school_name}</p>
-                        )}
+                  {selectedParticipants.size === filteredRegistrations.length ? (t.deselectAll || "Deselect All") : (t.selectAll || "Select All")}
+                </Button>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            {filteredRegistrations.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="bg-gray-100 rounded-full p-4 w-16 h-16 mx-auto mb-4">
+                  <Users className="h-8 w-8 text-gray-400" />
+                </div>
+                <p className="text-gray-600 text-lg">{t.noParticipantsFound || 'No participants found'}</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredRegistrations.map((registration) => (
+                  <div
+                    key={registration.id}
+                    className={`p-5 border-2 rounded-lg transition-all duration-200 ${
+                      selectedParticipants.has(registration.id) 
+                        ? 'border-green-300 bg-green-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <Checkbox
+                          checked={selectedParticipants.has(registration.id)}
+                          onCheckedChange={() => handleSelectParticipant(registration.id)}
+                          className="w-5 h-5"
+                        />
+                        <div>
+                          <h3 className="font-semibold text-lg">{registration.participant_name}</h3>
+                          <p className="text-sm text-gray-600 mt-1">{registration.participant_email}</p>
+                          {registration.school_name && (
+                            <p className="text-sm text-gray-600 mt-1">
+                              <MapPin className="h-3 w-3 inline mr-1" />
+                              {registration.school_name}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge className={getStatusBadge(registration.attendance_status)} variant="secondary">
+                          {registration.attendance_status}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs border-gray-300">
+                          {registration.registration_method}
+                        </Badge>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge className={getStatusBadge(registration.attendance_status)} variant="secondary">
-                        {registration.attendance_status}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {registration.registration_method}
-                      </Badge>
-                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
+  );
+}
+
+function AttendanceLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
+      <div className="text-center">
+        <div className="bg-white rounded-full p-4 w-16 h-16 mx-auto mb-4 shadow-lg">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        </div>
+        <p className="text-gray-600 text-lg">Loading attendance...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function BulkAttendancePage() {
+  return (
+    <TrainingLocaleProvider>
+      <Suspense fallback={<AttendanceLoading />}>
+        <BulkAttendancePageContent />
+      </Suspense>
+    </TrainingLocaleProvider>
   );
 }

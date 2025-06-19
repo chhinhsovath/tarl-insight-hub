@@ -41,6 +41,9 @@ interface PagePermission {
   id: number;
   page_path: string;
   page_name: string;
+  page_name_kh?: string;
+  page_title?: string;
+  page_title_kh?: string;
   icon_name?: string;
   created_at: string;
   updated_at: string;
@@ -119,10 +122,18 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
   });
 
   // Function to get translated menu item names
-  const getTranslatedMenuName = (originalName: string, path: string) => {
-    // For training-related paths, use translation system
-    if (path.startsWith('/training/')) {
-      switch (path) {
+  const getTranslatedMenuName = (page: PagePermission) => {
+    // Check if we should use Khmer - based on training translation locale
+    const isKhmerLocale = t.locale === 'km';
+    
+    // If Khmer locale and Khmer translation exists, use it
+    if (isKhmerLocale && page.page_name_kh) {
+      return page.page_name_kh;
+    }
+    
+    // For training-related paths, use training translation system
+    if (page.page_path.startsWith('/training/')) {
+      switch (page.page_path) {
         case '/training/sessions':
           return t.trainingSessions;
         case '/training/programs':
@@ -136,11 +147,12 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
         case '/training':
           return t.trainingManagement;
         default:
-          return originalName;
+          return page.page_name;
       }
     }
+    
     // For non-training paths, return original name
-    return originalName;
+    return page.page_name;
   };
 
   useEffect(() => {
@@ -271,7 +283,7 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
     // Create menu items
     const allMenuItems: MenuItem[] = filteredPages.map(page => ({
       id: page.id,
-      name: getTranslatedMenuName(page.page_name, page.page_path),
+      name: getTranslatedMenuName(page),
       path: page.page_path,
       icon: iconMap[page.icon_name || 'default'] || iconMap.default,
       category: getCategoryFromPath(page.page_path),

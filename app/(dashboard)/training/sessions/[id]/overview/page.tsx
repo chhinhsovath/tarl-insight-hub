@@ -28,7 +28,6 @@ import {
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 import { makeAuthenticatedRequest, handleApiResponse } from '@/lib/session-utils';
-import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 import { PhotoActivitiesManager } from '@/components/training/photo-activities-manager';
 import { TrainingLocaleProvider } from '@/components/training-locale-provider';
 import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
@@ -165,8 +164,7 @@ function SessionOverviewPageContent() {
 
   if (authLoading || loading) {
     return (
-      <div className="p-6 space-y-6">
-        <TrainingBreadcrumb />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
@@ -181,8 +179,7 @@ function SessionOverviewPageContent() {
 
   if (!user) {
     return (
-      <div className="p-6 space-y-6">
-        <TrainingBreadcrumb />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <p className="text-muted-foreground mb-4">{t.pleaseLogIn} {t.overview.toLowerCase()}.</p>
@@ -197,16 +194,17 @@ function SessionOverviewPageContent() {
 
   if (!overview) {
     return (
-      <div className="p-6 space-y-6">
-        <TrainingBreadcrumb />
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">{t.sessionNotFound || 'Session not found'}</p>
-          <Button 
-            className="mt-4" 
-            onClick={() => router.push('/training/sessions')}
-          >
-            {t.backToSessions || 'Back to Sessions'}
-          </Button>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <p className="text-muted-foreground">{t.sessionNotFound || 'Session not found'}</p>
+            <Button 
+              className="mt-4" 
+              onClick={() => router.push('/training/sessions')}
+            >
+              {t.backToSessions || 'Back to Sessions'}
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -215,88 +213,97 @@ function SessionOverviewPageContent() {
   const { session, statistics, recentActivities } = overview;
 
   return (
-    <div className="p-6 space-y-6">
-      {/* <TrainingBreadcrumb /> */}
-      {/* Header */}
-      <div className="space-y-4">
-        {/* Navigation Row */}
-        
-        
-        {/* Title and Actions Row */}
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-4 mb-4">
-              <div>
-                <h1 className="text-3xl font-bold">{session.session_title}</h1>
-                <p className="text-lg text-muted-foreground">{session.program_name}</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+      {/* Header Section - Full Width */}
+      <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <div className="mb-4">
+                <div className="flex items-center gap-4 mb-2">
+                  <h1 className="text-4xl font-bold text-gray-900">{session.session_title}</h1>
+                  <Badge className={getStatusBadge(session.session_status)} variant="secondary">
+                    {t[session.session_status] || session.session_status}
+                  </Badge>
+                </div>
+                <p className="text-xl text-gray-600">{session.program_name}</p>
               </div>
-              <Badge className={getStatusBadge(session.session_status)} variant="secondary">
-                {t[session.session_status] || session.session_status}
-              </Badge>
+              
+              <div className="flex flex-wrap gap-6 text-base">
+                <div className="flex items-center gap-2 text-gray-700">
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                  <span className="font-medium">{formatDate(session.session_date)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-700">
+                  <Clock className="h-5 w-5 text-green-600" />
+                  <span className="font-medium">{formatTime(session.session_time)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-700">
+                  <MapPin className="h-5 w-5 text-purple-600" />
+                  <span className="font-medium">{session.location}</span>
+                </div>
+              </div>
+              
+              {session.trainer_name && (
+                <div className="mt-4 text-base text-gray-600">
+                  <span className="font-medium">{t.trainer}:</span> {session.trainer_name}
+                  {session.coordinator_name && (
+                    <span className="ml-6">
+                      <span className="font-medium">{t.coordinator}:</span> {session.coordinator_name}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-blue-600" />
-                <span>{formatDate(session.session_date)}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-blue-600" />
-                <span>{formatTime(session.session_time)}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-blue-600" />
-                <span>{session.location}</span>
-              </div>
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => router.back()}
+                className="flex items-center gap-2 hover:bg-gray-50 transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                {t.back}
+              </Button>
+              <TrainingLanguageSwitcher />
             </div>
-            
-            {session.trainer_name && (
-              <p className="text-sm text-muted-foreground mt-2">
-                {t.trainer}: <span className="font-medium">{session.trainer_name}</span>
-                {session.coordinator_name && (
-                  <span className="ml-4">{t.coordinator}: <span className="font-medium">{session.coordinator_name}</span></span>
-                )}
-              </p>
-            )}
           </div>
-          
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2 ml-4">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => router.back()}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              {t.back}
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => router.push(`/training/sessions/${sessionId}/edit`)}
-              className="flex items-center gap-2"
-            >
-              <Edit className="h-4 w-4" />
-              {t.editSession}
-            </Button>
-            <Button 
-              variant="outline"
-              size="sm"
-              onClick={() => router.push(`/training/qr-codes?session=${sessionId}`)}
-              className="flex items-center gap-2"
-            >
-              <QrCode className="h-4 w-4" />
-              {t.qrCodes}
-            </Button>
-          </div>
-          <div className="h-6 w-px bg-border" />
-          <div className="flex items-center gap-4"><TrainingLanguageSwitcher /></div>
         </div>
       </div>
 
-      {/* Quick Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* Main Content - Full Width Container */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+
+        {/* Action Buttons Row */}
+        <div className="flex flex-wrap gap-4 mb-8">
+          <Button 
+            onClick={() => router.push(`/training/sessions/${sessionId}/edit`)}
+            className="flex items-center gap-2"
+          >
+            <Edit className="h-4 w-4" />
+            {t.editSession}
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => router.push(`/training/qr-codes?session=${sessionId}`)}
+            className="flex items-center gap-2"
+          >
+            <QrCode className="h-4 w-4" />
+            {t.qrCodes}
+          </Button>
+          <Button 
+            variant="outline"
+            onClick={() => router.push(`/training/sessions/${sessionId}/quick-register`)}
+            className="flex items-center gap-2"
+          >
+            <UserCheck className="h-4 w-4" />
+            Quick Register
+          </Button>
+        </div>
+
+        {/* Quick Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -696,6 +703,15 @@ function SessionOverviewPageContent() {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
+  );
+}
+
+export default function SessionOverviewPage() {
+  return (
+    <TrainingLocaleProvider>
+      <SessionOverviewPageContent />
+    </TrainingLocaleProvider>
   );
 }

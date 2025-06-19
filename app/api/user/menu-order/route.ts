@@ -111,7 +111,10 @@ export async function GET() {
         SELECT 
           pp.id,
           pp.page_name,
+          pp.page_name_kh,
           pp.page_path,
+          pp.page_title,
+          pp.page_title_kh,
           pp.icon_name,
           pp.sort_order,
           COALESCE(umo.sort_order, pp.sort_order, 999) as user_sort_order,
@@ -131,7 +134,10 @@ export async function GET() {
         SELECT 
           pp.id,
           pp.page_name,
+          pp.page_name_kh,
           pp.page_path,
+          pp.page_title,
+          pp.page_title_kh,
           pp.icon_name,
           pp.sort_order,
           pp.sort_order as user_sort_order,

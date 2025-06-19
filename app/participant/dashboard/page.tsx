@@ -76,7 +76,21 @@ export default function ParticipantDashboard() {
 
     try {
       const session = JSON.parse(sessionData);
-      setParticipant(session);
+      console.log('Session data:', session);
+      
+      // Ensure stats object exists with default values
+      const participantWithDefaults = {
+        ...session,
+        stats: session.stats || {
+          total_registrations: 0,
+          total_attended: 0,
+          attendance_rate: 0,
+          first_training_date: null,
+          last_activity_date: null
+        }
+      };
+      
+      setParticipant(participantWithDefaults);
       fetchTrainingHistory(session.name, session.phone);
     } catch (error) {
       console.error('Invalid session data:', error);
@@ -141,10 +155,28 @@ export default function ParticipantDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('participant-session');
-    toast.success(t.loggedOutSuccess);
-    router.push('/participant');
+  const handleLogout = async () => {
+    try {
+      // Clear localStorage first
+      localStorage.removeItem('participant-session');
+      
+      // Call logout API to clear server session
+      await fetch('/api/auth/logout', { method: 'POST' });
+      
+      // Show success message
+      toast.success(t.loggedOutSuccess);
+      
+      // Redirect to login page
+      setTimeout(() => {
+        router.push('/login');
+      }, 100); // Small delay to ensure state is cleared
+      
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if API fails, clear local data and redirect
+      localStorage.removeItem('participant-session');
+      router.push('/login');
+    }
   };
 
   if (!participant) {

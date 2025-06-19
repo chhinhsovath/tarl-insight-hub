@@ -6,6 +6,7 @@ import { PermissionManager } from "@/components/permission-manager";
 import { PageManager } from "@/components/page-manager";
 import { MenuOrderManager } from "@/components/menu-order-manager";
 import { RoleManager } from "@/components/role-manager";
+import { PageTranslationsManager } from "@/components/page-translations-manager";
 import { PermissionProtectedRoute } from "@/components/permission-protected-route";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -30,11 +31,12 @@ export default function PagePermissionsPage() {
         description="Manage pages and role-based access permissions"
       >
         <Tabs defaultValue="permissions" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="permissions">Permission Management</TabsTrigger>
             <TabsTrigger value="roles">Role Management</TabsTrigger>
             <TabsTrigger value="pages">Page Management</TabsTrigger>
             <TabsTrigger value="menu-order">Menu Order</TabsTrigger>
+            <TabsTrigger value="translations">Translations</TabsTrigger>
           </TabsList>
           
           <TabsContent value="permissions">
@@ -51,6 +53,10 @@ export default function PagePermissionsPage() {
           
           <TabsContent value="menu-order">
             <MenuOrderManager />
+          </TabsContent>
+          
+          <TabsContent value="translations">
+            <PageTranslationsManager />
           </TabsContent>
         </Tabs>
       </PageLayout>

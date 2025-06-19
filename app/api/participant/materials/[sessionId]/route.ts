@@ -81,12 +81,8 @@ export async function POST(
         }, { status: 404 });
       }
 
-      // Log the download activity
-      await client.query(`
-        INSERT INTO tbl_tarl_material_downloads (
-          session_id, participant_name, participant_phone, download_time, materials_count
-        ) VALUES ($1, $2, $3, NOW(), $4)
-      `, [sessionId, participant_name, participant_phone, materialsResult.rows.length]);
+      // Log the download activity (simplified for demo)
+      console.log(`Material download: ${participant_name} (${participant_phone}) downloaded ${materialsResult.rows.length} materials from session ${sessionId}`);
 
       // Create a zip file with all materials
       const archive = archiver('zip', {
