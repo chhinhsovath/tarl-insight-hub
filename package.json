@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:static": "cp next.config.production.mjs next.config.mjs && next build && next export",
+    "build:cpanel": "npm run build:static",
     "start": "next start",
     "lint": "next lint",
     "db:generate": "drizzle-kit generate",

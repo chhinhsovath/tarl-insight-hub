@@ -1,271 +1,194 @@
-# Deployment Guide for TaRL Insight Hub
+# 🚀 cPanel Deployment Guide for TaRL Insight Hub
 
-## Pre-Deployment Checklist
+This guide explains how to deploy your Next.js application to cPanel hosting (like Namecheap shared hosting).
 
-### 1. Environment Variables
-Create a `.env.production` file with the following variables:
+## 📋 Prerequisites
 
-```bash
-# Database Configuration
-PGUSER=your_production_db_user
-PGPASSWORD=your_production_db_password
-PGHOST=your_production_db_host
-PGPORT=5432
-PGDATABASE=your_production_db_name
+1. **cPanel hosting account** with:
+   - Node.js support (version 18+ recommended)
+   - PostgreSQL database access
+   - File manager or FTP access
 
-# Application Settings
-NODE_ENV=production
-NEXT_PUBLIC_APP_URL=https://your-domain.com
+2. **Local development environment** with:
+   - Node.js 18+
+   - npm or yarn
+   - Git
 
-# Session Configuration (generate a secure secret)
-SESSION_SECRET=your-secure-session-secret-key
-```
+## 🛠️ Step-by-Step Deployment
 
-### 2. Database Setup
+### Step 1: Prepare Your Local Environment
 
-#### Initial Setup
-```bash
-# 1. Connect to your production database
-psql -h your_host -U your_user -d your_database
+1. **Clone and install dependencies:**
+   ```bash
+   git clone <your-repo-url>
+   cd tarl-insight-hub
+   npm install
+   ```
 
-# 2. Run the master schema
-psql -h your_host -U your_user -d your_database -f scripts/99_master_schema.sql
+2. **Create production environment file:**
+   ```bash
+   cp .env.production.example .env.production
+   ```
 
-# 3. Run additional setup scripts in order
-psql -h your_host -U your_user -d your_database -f scripts/training_management_schema.sql
-psql -h your_host -U your_user -d your_database -f scripts/create-missing-training-tables.sql
-psql -h your_host -U your_user -d your_database -f scripts/create-master-participants-system.sql
-psql -h your_host -U your_user -d your_database -f scripts/add-attendance-columns.sql
-```
+3. **Update `.env.production` with your hosting details:**
+   ```env
+   # Database (from your cPanel PostgreSQL settings)
+   PGUSER=your_cpanel_db_user
+   PGHOST=your_cpanel_db_host
+   PGDATABASE=your_cpanel_db_name
+   PGPASSWORD=your_cpanel_db_password
+   PGPORT=5432
 
-#### Permission System Setup
-```bash
-# Run these Node.js scripts after deployment
-node scripts/setup-permissions.js
-node scripts/setup-default-permissions.js
-node scripts/setup-hierarchy-system.js
-```
+   # Application
+   NODE_ENV=production
+   NEXT_PUBLIC_APP_URL=https://yourdomain.com
+   NEXTAUTH_SECRET=generate-a-secure-random-string
+   NEXTAUTH_URL=https://yourdomain.com
+   ```
 
-### 3. Build & Deployment Options
+### Step 2: Build for Production
 
-#### Option A: Vercel Deployment (Recommended)
+**Important:** Your app uses server-side features (API routes, database connections). You have two deployment options:
 
-1. **Connect to GitHub:**
-   - Go to [vercel.com](https://vercel.com)
-   - Import your GitHub repository
-   - Configure environment variables in Vercel dashboard
-
-2. **Configure Build Settings:**
-   - Framework Preset: Next.js
-   - Build Command: `npm run build`
-   - Output Directory: `.next`
-
-3. **Deploy:**
-   - Vercel will automatically deploy on push to main branch
-
-#### Option B: Docker Deployment
-
-Create a `Dockerfile`:
-```dockerfile
-FROM node:20-alpine AS base
-
-# Install dependencies only when needed
-FROM base AS deps
-RUN apk add --no-cache libc6-compat
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm ci
-
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-
-RUN npm run build
-
-# Production image
-FROM base AS runner
-WORKDIR /app
-
-ENV NODE_ENV production
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
-
-EXPOSE 3000
-
-ENV PORT 3000
-
-CMD ["node", "server.js"]
-```
-
-#### Option C: Traditional Server Deployment
+#### Option A: Node.js App (Recommended)
+If your hosting supports Node.js applications:
 
 1. **Build the application:**
    ```bash
    npm run build
    ```
 
-2. **Start the production server:**
+2. **Upload entire project** (except `node_modules`) to your hosting via cPanel File Manager or FTP
+
+3. **In cPanel, navigate to your app directory and run:**
    ```bash
+   npm install --production
    npm run start
    ```
 
-3. **Use PM2 for process management:**
+#### Option B: Static Export (Limited Functionality)
+For basic static hosting (⚠️ **API routes won't work**):
+
+1. **Build static version:**
    ```bash
-   npm install -g pm2
-   pm2 start npm --name "tarl-insight-hub" -- start
-   pm2 save
-   pm2 startup
+   npm run build:cpanel
    ```
 
-### 4. Post-Deployment Setup
+2. **Upload only the `out` folder contents** to your `public_html` directory
 
-#### Initialize Admin Account
-1. Access the login page at `/login`
-2. Use default admin credentials:
-   - Username: admin1
-   - Password: admin123
-3. **IMPORTANT:** Change the admin password immediately
+### Step 3: Database Setup
 
-#### Setup Permissions
-1. Navigate to `/settings/setup`
-2. Click "Run Setup" to initialize:
-   - Page permissions
-   - Role permissions
-   - Action permissions
+1. **Create PostgreSQL database** in cPanel
+2. **Import your database schema:**
+   ```bash
+   # Run these SQL files in order:
+   scripts/99_master_schema.sql
+   scripts/setup-permissions.js (convert to SQL)
+   scripts/hierarchy_schema.sql
+   ```
 
-#### Create Initial Data
-1. Add schools: `/schools/new`
-2. Create user accounts: `/users/new`
-3. Set up training programs: `/training/programs`
+3. **Update database connection** in your `.env.production`
 
-### 5. Security Considerations
+### Step 4: Configure cPanel
 
-#### SSL/TLS
-- Ensure HTTPS is enabled
-- Use strong SSL certificates
-- Enable HSTS headers
+1. **Set up Node.js App** (if supported):
+   - Go to "Node.js" in cPanel
+   - Create new application
+   - Set startup file: `server.js` or use `npm start`
+   - Set environment variables from your `.env.production`
 
-#### Database Security
-- Use connection pooling
-- Enable SSL for database connections
-- Restrict database access to application server only
+2. **Configure domain/subdomain** to point to your app
 
-#### Application Security
-- Change all default passwords
-- Enable rate limiting
-- Set up monitoring and alerts
-- Regular security updates
+### Step 5: Post-Deployment
 
-### 6. Performance Optimization
+1. **Test your application:**
+   - Visit your domain
+   - Test login functionality
+   - Verify database connections
 
-#### Caching
-- Enable Next.js caching
-- Use CDN for static assets
-- Configure database query caching
+2. **Set up SSL certificate** (usually free with Let's Encrypt in cPanel)
 
-#### Database Optimization
-- Run ANALYZE on tables periodically
-- Monitor slow queries
-- Ensure proper indexing
+## 📁 File Structure for Upload
 
-### 7. Monitoring & Maintenance
-
-#### Application Monitoring
-- Set up error tracking (e.g., Sentry)
-- Monitor server resources
-- Track user sessions
-
-#### Database Maintenance
-```bash
-# Regular maintenance tasks
-VACUUM ANALYZE;
-REINDEX DATABASE your_database;
+### For Node.js Deployment:
+```
+your-app-folder/
+├── .next/                 # Build output
+├── app/                   # Your app directory
+├── components/            # React components
+├── lib/                   # Utilities
+├── public/                # Static assets
+├── scripts/               # Database scripts
+├── package.json           # Dependencies
+├── next.config.mjs        # Next.js config
+├── .env.production        # Environment variables
+└── node_modules/          # Dependencies (install on server)
 ```
 
-#### Backup Strategy
-```bash
-# Daily database backup
-pg_dump -h your_host -U your_user your_database > backup_$(date +%Y%m%d).sql
-
-# Backup uploads directory
-tar -czf uploads_backup_$(date +%Y%m%d).tar.gz public/uploads/
+### For Static Export:
+```
+public_html/
+├── _next/                 # Static assets
+├── api/                   # ⚠️ Won't work in static
+├── images/                # Image assets
+├── index.html             # Home page
+├── 404.html              # Error page
+└── [other-pages].html     # Generated pages
 ```
 
-### 8. Environment-Specific Settings
+## ⚠️ Important Limitations
 
-#### Production Optimizations
-Add to `next.config.js`:
-```javascript
-module.exports = {
-  output: 'standalone',
-  compress: true,
-  poweredByHeader: false,
-  generateEtags: false,
-  reactStrictMode: true,
-}
-```
+### Static Export Limitations:
+- ❌ **API routes don't work** (all `/api/*` endpoints)
+- ❌ **No server-side rendering**
+- ❌ **No database connections**
+- ❌ **No authentication**
+- ❌ **No file uploads**
 
-### 9. Troubleshooting
+### Recommended Approach:
+Use **Node.js deployment** to maintain full functionality, including:
+- ✅ User authentication
+- ✅ Database operations
+- ✅ Training management
+- ✅ File uploads
+- ✅ API endpoints
 
-#### Common Issues
-1. **Database Connection Errors**
-   - Verify connection string
-   - Check firewall rules
-   - Ensure database is accessible
+## 🔧 Troubleshooting
 
-2. **Permission Errors**
-   - Run permission setup scripts
-   - Check role assignments
-   - Verify session handling
+### Common Issues:
 
-3. **Build Failures**
-   - Clear `.next` directory
-   - Update dependencies
-   - Check for TypeScript errors
+1. **"Module not found" errors:**
+   - Ensure all dependencies are installed: `npm install --production`
 
-### 10. Health Checks
+2. **Database connection failed:**
+   - Verify database credentials in `.env.production`
+   - Check if PostgreSQL service is enabled
 
-Create an API health check endpoint to monitor:
-- Database connectivity
-- Session management
-- File system access
-- External service availability
+3. **404 errors on routes:**
+   - Ensure your hosting supports Node.js applications
+   - Check if routing is configured correctly
 
-## Deployment Commands Summary
+4. **Environment variables not working:**
+   - Make sure `.env.production` is in the root directory
+   - Verify cPanel environment variable configuration
 
-```bash
-# Local build test
-npm run build
-npm run start
+### Getting Help:
+- Check cPanel error logs
+- Contact your hosting provider for Node.js support
+- Test locally first: `npm run build && npm start`
 
-# Production deployment
-git push origin main  # If using Vercel/automated deployment
+## 🎯 Quick Checklist
 
-# Manual deployment
-npm run build
-pm2 start npm --name "tarl-insight-hub" -- start
+- [ ] Node.js hosting enabled in cPanel
+- [ ] PostgreSQL database created and configured
+- [ ] Environment variables updated
+- [ ] Application built successfully
+- [ ] Files uploaded to server
+- [ ] Dependencies installed on server
+- [ ] Domain/subdomain configured
+- [ ] SSL certificate installed
+- [ ] Application tested and working
 
-# Database setup
-psql -f scripts/99_master_schema.sql
-node scripts/setup-permissions.js
-```
+---
 
-## Support
-
-For deployment issues, check:
-- Application logs
-- Database logs
-- Network connectivity
-- Environment variables
-
-Remember to test thoroughly in a staging environment before deploying to production.
+**Note:** This application is designed as a full-stack Next.js app with database integration. For best results, use hosting that supports Node.js applications rather than static hosting.
