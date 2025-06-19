@@ -207,247 +207,336 @@ function QuickRegisterPageContent() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-4xl">
-      <TrainingBreadcrumb />
-      
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex-1">
-          <div className="flex items-center gap-4 mb-4">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => router.back()}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              {t.back}
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold">{t.quickRegistration}</h1>
-              <p className="text-lg text-muted-foreground">{session.session_title}</p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+      {/* Header Section - Full Width */}
+      <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <TrainingBreadcrumb />
           
-          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Clock className="h-4 w-4" />
-              {new Date(session.session_date).toLocaleDateString('en-US')} {t.at} {session.start_time}
+          <div className="flex items-center justify-between mt-6">
+            <div className="flex-1">
+              <div className="flex items-center gap-6 mb-4">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => router.back()}
+                  className="flex items-center gap-2 hover:bg-gray-50 transition-colors"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  {t.back}
+                </Button>
+                <div>
+                  <h1 className="text-4xl font-bold text-gray-900">{t.quickRegistration}</h1>
+                  <p className="text-xl text-gray-600 mt-1">{session.session_title}</p>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-6 text-base">
+                <div className="flex items-center gap-2 text-gray-700">
+                  <Clock className="h-5 w-5 text-blue-600" />
+                  <span className="font-medium">
+                    {new Date(session.session_date).toLocaleDateString('en-US')} {t.at} {session.start_time}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-gray-700">
+                  <MapPin className="h-5 w-5 text-green-600" />
+                  <span className="font-medium">{session.location}</span>
+                </div>
+                <Badge 
+                  variant={session.current_attendance >= session.capacity ? "destructive" : "default"}
+                  className="text-sm px-3 py-1"
+                >
+                  {session.current_attendance} / {session.capacity} {t.attendees}
+                </Badge>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <MapPin className="h-4 w-4" />
-              {session.location}
+            
+            <div className="flex items-center gap-4">
+              <TrainingLanguageSwitcher />
             </div>
-            <Badge variant={session.current_attendance >= session.capacity ? "destructive" : "default"}>
-              {session.current_attendance} / {session.capacity} {t.attendees}
-            </Badge>
           </div>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <TrainingLanguageSwitcher />
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="quick">{t.quickCheckin}</TabsTrigger>
-          <TabsTrigger value="bulk">{t.bulkOperations}</TabsTrigger>
-        </TabsList>
+      {/* Main Content - Full Width Container */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
 
-        <TabsContent value="quick" className="space-y-6">
-          {/* Search Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{t.quickRegistrationAndAttendance}</CardTitle>
-              <CardDescription>
-                {t.registerWalkInParticipants}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Email Search */}
-              <div className="flex gap-2">
-                <div className="flex-1">
-                  <Label htmlFor="search-email">{t.searchByEmail}</Label>
-                  <Input
-                    id="search-email"
-                    type="email"
-                    placeholder={t.emailPlaceholder}
-                    value={searchEmail}
-                    onChange={(e) => setSearchEmail(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && searchParticipant()}
-                  />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full max-w-md grid-cols-2 mb-8 bg-gray-100">
+            <TabsTrigger value="quick" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              {t.quickCheckin}
+            </TabsTrigger>
+            <TabsTrigger value="bulk" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              {t.bulkOperations}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="quick" className="space-y-8">
+            {/* Search Section */}
+            <Card className="border-0 shadow-lg bg-white">
+              <CardHeader className="pb-6">
+                <CardTitle className="text-2xl text-gray-900">{t.quickRegistrationAndAttendance}</CardTitle>
+                <CardDescription className="text-base text-gray-600">
+                  {t.registerWalkInParticipants}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Email Search */}
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <Label htmlFor="search-email" className="text-base font-medium text-gray-700">
+                        {t.searchByEmail}
+                      </Label>
+                      <Input
+                        id="search-email"
+                        type="email"
+                        placeholder={t.emailPlaceholder}
+                        value={searchEmail}
+                        onChange={(e) => setSearchEmail(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && searchParticipant()}
+                        className="mt-2 h-12 text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <Button 
+                        onClick={searchParticipant} 
+                        disabled={submitting || !searchEmail}
+                        size="lg"
+                        className="h-12 px-8 bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        {submitting ? (
+                          <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                        ) : (
+                          <Search className="h-5 w-5 mr-2" />
+                        )}
+                        {t.search}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-end">
+
+                {/* Search Result */}
+                {searchResult && (
+                  <Alert className={`${searchResult.isReturning ? "border-blue-200 bg-blue-50" : "border-green-200 bg-green-50"} border-l-4`}>
+                    <UserCheck className="h-5 w-5" />
+                    <AlertDescription className="text-base">
+                      {searchResult.isReturning ? (
+                        <div className="space-y-3">
+                          <p className="font-semibold text-blue-800">
+                            {t.welcomeBack.replace('{name}', searchResult.participant.fullName)}
+                          </p>
+                          <div className="flex gap-3">
+                            <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+                              {searchResult.participant.totalSessionsAttended} {t.sessionsAttended}
+                            </Badge>
+                            <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+                              {searchResult.participant.attendanceRate}% {t.attendanceRate}
+                            </Badge>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-green-800 font-medium">{t.newParticipantFillInfo}</p>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Registration Form */}
+            <Card className="border-0 shadow-lg bg-white">
+              <CardHeader className="pb-6">
+                <CardTitle className="text-2xl text-gray-900 flex items-center gap-3">
+                  <User className="h-6 w-6 text-blue-600" />
+                  {t.participantInformation}
+                </CardTitle>
+                <CardDescription className="text-base text-gray-600">
+                  {t.fillRequiredFields}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-8">
+                {/* Essential Information */}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
+                    {t.essentialInformation}
+                  </h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                      <Label htmlFor="email" className="text-base font-medium text-gray-700 flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-gray-500" />
+                        {t.email} *
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.participant_email}
+                        onChange={(e) => setFormData({...formData, participant_email: e.target.value})}
+                        className="mt-2 h-12 text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="name" className="text-base font-medium text-gray-700 flex items-center gap-2">
+                        <User className="h-4 w-4 text-gray-500" />
+                        {t.fullName} *
+                      </Label>
+                      <Input
+                        id="name"
+                        value={formData.participant_name}
+                        onChange={(e) => setFormData({...formData, participant_name: e.target.value})}
+                        className="mt-2 h-12 text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact & Role Information */}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
+                    {t.contactRoleInformation}
+                  </h3>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                      <Label htmlFor="phone" className="text-base font-medium text-gray-700 flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-gray-500" />
+                        {t.phone}
+                      </Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={formData.participant_phone}
+                        onChange={(e) => setFormData({...formData, participant_phone: e.target.value})}
+                        className="mt-2 h-12 text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="role" className="text-base font-medium text-gray-700">
+                        {t.role}
+                      </Label>
+                      <Input
+                        id="role"
+                        value={formData.participant_role}
+                        onChange={(e) => setFormData({...formData, participant_role: e.target.value})}
+                        placeholder={t.rolePlaceholder}
+                        className="mt-2 h-12 text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Organization & Location */}
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold text-gray-800 border-b border-gray-200 pb-2">
+                    {t.organizationLocation}
+                  </h3>
+                  <div>
+                    <Label htmlFor="organization" className="text-base font-medium text-gray-700 flex items-center gap-2">
+                      <Building className="h-4 w-4 text-gray-500" />
+                      {t.schoolOrganization}
+                    </Label>
+                    <Input
+                      id="organization"
+                      value={formData.school_name}
+                      onChange={(e) => setFormData({...formData, school_name: e.target.value})}
+                      className="mt-2 h-12 text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                      <Label htmlFor="district" className="text-base font-medium text-gray-700 flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-gray-500" />
+                        {t.district}
+                      </Label>
+                      <Input
+                        id="district"
+                        value={formData.district}
+                        onChange={(e) => setFormData({...formData, district: e.target.value})}
+                        className="mt-2 h-12 text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="province" className="text-base font-medium text-gray-700">
+                        {t.province}
+                      </Label>
+                      <Input
+                        id="province"
+                        value={formData.province}
+                        onChange={(e) => setFormData({...formData, province: e.target.value})}
+                        className="mt-2 h-12 text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-4 pt-8 border-t border-gray-200">
                   <Button 
-                    onClick={searchParticipant} 
-                    disabled={submitting || !searchEmail}
-                    size="default"
+                    onClick={handleQuickRegister}
+                    disabled={submitting || !formData.participant_email || !formData.participant_name}
+                    className="flex-1 h-14 text-lg bg-green-600 hover:bg-green-700 text-white"
+                    size="lg"
                   >
-                    {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                    {t.search}
+                    {submitting ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin mr-3" />
+                        {t.processing}
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-5 w-5 mr-3" />
+                        {t.registerAndMarkAttendance}
+                      </>
+                    )}
                   </Button>
                 </div>
-              </div>
-
-              {/* Search Result */}
-              {searchResult && (
-                <Alert className={searchResult.isReturning ? "border-blue-200 bg-blue-50" : ""}>
-                  <UserCheck className="h-4 w-4" />
-                  <AlertDescription>
-                    {searchResult.isReturning ? (
-                      <div className="space-y-2">
-                        <p className="font-semibold">{t.welcomeBack.replace('{name}', searchResult.participant.fullName)}</p>
-                        <div className="flex gap-2">
-                          <Badge variant="outline">{searchResult.participant.totalSessionsAttended} {t.sessionsAttended}</Badge>
-                          <Badge variant="outline">{searchResult.participant.attendanceRate}% {t.attendanceRate}</Badge>
-                        </div>
-                      </div>
-                    ) : (
-                      <p>{t.newParticipantFillInfo}</p>
-                    )}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Registration Form */}
-              <div className="space-y-4 pt-4 border-t">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="email">{t.email} *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.participant_email}
-                      onChange={(e) => setFormData({...formData, participant_email: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="name">{t.fullName} *</Label>
-                    <Input
-                      id="name"
-                      value={formData.participant_name}
-                      onChange={(e) => setFormData({...formData, participant_name: e.target.value})}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="phone">{t.phone}</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={formData.participant_phone}
-                      onChange={(e) => setFormData({...formData, participant_phone: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="role">{t.role}</Label>
-                    <Input
-                      id="role"
-                      value={formData.participant_role}
-                      onChange={(e) => setFormData({...formData, participant_role: e.target.value})}
-                      placeholder={t.rolePlaceholder}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="organization">{t.schoolOrganization}</Label>
-                  <Input
-                    id="organization"
-                    value={formData.school_name}
-                    onChange={(e) => setFormData({...formData, school_name: e.target.value})}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="district">{t.district}</Label>
-                    <Input
-                      id="district"
-                      value={formData.district}
-                      onChange={(e) => setFormData({...formData, district: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="province">{t.province}</Label>
-                    <Input
-                      id="province"
-                      value={formData.province}
-                      onChange={(e) => setFormData({...formData, province: e.target.value})}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-4">
-                <Button 
-                  onClick={handleQuickRegister}
-                  disabled={submitting || !formData.participant_email || !formData.participant_name}
-                  className="flex-1"
-                  size="lg"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                      {t.processing}
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                      {t.registerAndMarkAttendance}
-                    </>
-                  )}
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="bulk" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t.bulkOperations}</CardTitle>
-              <CardDescription>
-                {t.manageAttendanceMultiple}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4">
-                <Button 
-                  onClick={handleBulkCheckIn}
-                  variant="outline"
-                  className="w-full justify-start"
-                  size="lg"
-                >
-                  <UserCheck className="h-5 w-5 mr-2" />
-                  <div className="text-left">
-                    <p className="font-semibold">{t.bulkAttendanceCheckin}</p>
-                    <p className="text-sm text-muted-foreground">{t.markAttendancePreRegistered}</p>
-                  </div>
-                </Button>
+          <TabsContent value="bulk" className="space-y-8">
+            <Card className="border-0 shadow-lg bg-white">
+              <CardHeader className="pb-6">
+                <CardTitle className="text-2xl text-gray-900">{t.bulkOperations}</CardTitle>
+                <CardDescription className="text-base text-gray-600">
+                  {t.manageAttendanceMultiple}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-6">
+                  <Button 
+                    onClick={handleBulkCheckIn}
+                    variant="outline"
+                    className="w-full justify-start h-20 text-left border-2 hover:border-blue-300 hover:bg-blue-50 transition-all"
+                    size="lg"
+                  >
+                    <UserCheck className="h-8 w-8 mr-4 text-blue-600" />
+                    <div>
+                      <p className="font-semibold text-lg text-gray-900">{t.bulkAttendanceCheckin}</p>
+                      <p className="text-sm text-gray-600 mt-1">{t.markAttendancePreRegistered}</p>
+                    </div>
+                  </Button>
 
-                <Button 
-                  onClick={() => router.push(`/training/sessions/${sessionId}/qr-checkin`)}
-                  variant="outline"
-                  className="w-full justify-start"
-                  size="lg"
-                >
-                  <QrCode className="h-5 w-5 mr-2" />
-                  <div className="text-left">
-                    <p className="font-semibold">{t.qrCodeCheckin}</p>
-                    <p className="text-sm text-muted-foreground">{t.scanQrCodesQuickAttendance}</p>
-                  </div>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                  <Button 
+                    onClick={() => router.push(`/training/sessions/${sessionId}/qr-checkin`)}
+                    variant="outline"
+                    className="w-full justify-start h-20 text-left border-2 hover:border-purple-300 hover:bg-purple-50 transition-all"
+                    size="lg"
+                  >
+                    <QrCode className="h-8 w-8 mr-4 text-purple-600" />
+                    <div>
+                      <p className="font-semibold text-lg text-gray-900">{t.qrCodeCheckin}</p>
+                      <p className="text-sm text-gray-600 mt-1">{t.scanQrCodesQuickAttendance}</p>
+                    </div>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }
