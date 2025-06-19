@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,7 +40,7 @@ interface TrainingMaterial {
   created_at: string;
 }
 
-export default function TrainingMaterialsPage() {
+function TrainingMaterialsPageContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session');
   const qrId = searchParams.get('qr');
@@ -370,5 +370,13 @@ export default function TrainingMaterialsPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function TrainingMaterialsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <TrainingMaterialsPageContent />
+    </Suspense>
   );
 }

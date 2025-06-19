@@ -1,10 +1,10 @@
 "use client";
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 
-export default function RegisterRedirect() {
+function RegisterRedirectContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -28,5 +28,20 @@ export default function RegisterRedirect() {
         <p className="text-gray-600">Redirecting to attendance page...</p>
       </div>
     </div>
+  );
+}
+
+export default function RegisterRedirect() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <RegisterRedirectContent />
+    </Suspense>
   );
 }

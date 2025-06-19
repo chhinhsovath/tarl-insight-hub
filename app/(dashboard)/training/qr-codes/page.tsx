@@ -737,9 +737,10 @@ function QRCodesPageContent() {
 }
 
 function QRCodesLoading() {
+  const { t } = useTrainingTranslation();
   return (
     <div className="flex items-center justify-center h-64">
-      <p className="text-muted-foreground">Loading QR codes...</p>
+      <p className="text-muted-foreground">{t.loadingQrCodes}</p>
     </div>
   );
 }

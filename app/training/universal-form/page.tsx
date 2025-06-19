@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -64,7 +64,7 @@ interface RegistrationStatus {
   registration_method?: string;
 }
 
-export default function UniversalTrainingFormPage() {
+function UniversalTrainingFormPageContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session');
   const qrId = searchParams.get('qr');
@@ -600,5 +600,13 @@ export default function UniversalTrainingFormPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function UniversalTrainingFormPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <UniversalTrainingFormPageContent />
+    </Suspense>
   );
 }

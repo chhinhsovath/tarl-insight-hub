@@ -84,6 +84,15 @@ const demoUsers = [
     icon: <User className="h-12 w-12 text-gray-600" />,
     features: ["Limited Access", "View Reports", "Learning", "Support Tasks"],
     color: "from-gray-50 to-gray-100"
+  },
+  {
+    role: "Participant",
+    username: "participant1",
+    password: "participant123",
+    description: "Training participant",
+    icon: <GraduationCap className="h-12 w-12 text-pink-600" />,
+    features: ["View Sessions", "Submit Feedback", "Access Materials", "Track Progress"],
+    color: "from-pink-50 to-pink-100"
   }
 ]
 
@@ -112,7 +121,10 @@ const allUsers = [
   { username: "collector2", password: "collector123", role: "Collector" },
   // Intern
   { username: "intern1", password: "intern123", role: "Intern" },
-  { username: "intern2", password: "intern123", role: "Intern" }
+  { username: "intern2", password: "intern123", role: "Intern" },
+  // Participant
+  { username: "participant1", password: "participant123", role: "Participant" },
+  { username: "participant2", password: "participant123", role: "Participant" }
 ]
 
 export default function LoginPage() {
@@ -266,7 +278,7 @@ export default function LoginPage() {
                     <div>• admin1 / admin123</div>
                     <div>• teacher1 / teacher123</div>
                     <div>• coordinator1 / coordinator123</div>
-                    <div>• collector1 / collector123</div>
+                    <div>• participant1 / participant123</div>
                   </div>
                 </div>
               </CardFooter>

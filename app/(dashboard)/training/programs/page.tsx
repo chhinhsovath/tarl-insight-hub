@@ -381,7 +381,7 @@ function TrainingProgramsPageContent() {
         <CardContent>
           {loading ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">{t.loadingPrograms}</p>
+              <p className="text-muted-foreground">{t.loadingTrainingPrograms}</p>
             </div>
           ) : filteredPrograms.length === 0 ? (
             <div className="text-center py-8">

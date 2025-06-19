@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -560,7 +560,9 @@ function TrainingFeedbackContent() {
 export default function TrainingFeedbackPage() {
   return (
     <TrainingLocaleProvider>
-      <TrainingFeedbackContent />
+      <Suspense fallback={<div>Loading...</div>}>
+        <TrainingFeedbackContent />
+      </Suspense>
     </TrainingLocaleProvider>
   );
 }

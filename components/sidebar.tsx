@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useTrainingLoading } from "./training-loading-provider"
+import { useTrainingTranslation } from "@/lib/training-i18n"
 import {
   Users,
   FileText,
@@ -72,6 +73,32 @@ export function Sidebar() {
   const pathname = usePathname()
   const { user, logout } = useAuth()
   const { startLoading } = useTrainingLoading()
+  const { t } = useTrainingTranslation()
+
+  // Function to get translated menu item names
+  const getTranslatedMenuName = (originalName: string, path: string) => {
+    // For training-related paths, use translation system
+    if (path.startsWith('/training/')) {
+      switch (path) {
+        case '/training/sessions':
+          return t.trainingSessions;
+        case '/training/programs':
+          return t.trainingPrograms;
+        case '/training/participants':
+          return t.participants;
+        case '/training/qr-codes':
+          return t.qrCodes;
+        case '/training/feedback':
+          return t.trainingFeedback;
+        case '/training':
+          return t.trainingManagement;
+        default:
+          return originalName;
+      }
+    }
+    // For non-training paths, return original name
+    return originalName;
+  };
 
   useEffect(() => {
     if (user) {
@@ -174,7 +201,7 @@ export function Sidebar() {
       
       const allItems: NavigationItem[] = menuItems.map((item: any) => ({
         id: item.id,
-        name: item.page_name,
+        name: getTranslatedMenuName(item.page_name, item.page_path),
         href: item.page_path,
         icon: item.icon_name || 'FileText',
         isParent: false, // Will be determined by presence of children
@@ -182,7 +209,7 @@ export function Sidebar() {
         sortOrder: item.sort_order || 999,
         children: item.children ? item.children.map((child: any) => ({
           id: child.id,
-          name: child.page_name,
+          name: getTranslatedMenuName(child.page_name, child.page_path),
           href: child.page_path,
           icon: child.icon_name || 'FileText',
           isParent: false,

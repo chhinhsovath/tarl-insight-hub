@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useMenu } from "@/lib/menu-context";
+import { useTrainingTranslation } from "@/lib/training-i18n";
 import {
   ChevronLeft,
   LogOut,
@@ -95,23 +96,52 @@ const getCategoryFromPath = (path: string): string => {
   return 'other';
 };
 
-const categoryLabels = {
-  overview: "Overview",
-  management: "Management", 
-  data: "Data Collection",
-  analytics: "Analytics & Reports",
-  learning: "Learning",
-  admin: "Administration",
-  other: "Other"
-};
+// We'll define a function to get translated category labels
 
 export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { refreshTrigger } = useMenu();
+  const { t } = useTrainingTranslation();
   const [pages, setPages] = useState<PagePermission[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  // Function to get translated category labels
+  const getCategoryLabels = () => ({
+    overview: "Overview",
+    management: "Management", 
+    data: "Data Collection",
+    analytics: "Analytics & Reports",
+    learning: t.trainingManagement || "Learning",
+    admin: "Administration",
+    other: "Other"
+  });
+
+  // Function to get translated menu item names
+  const getTranslatedMenuName = (originalName: string, path: string) => {
+    // For training-related paths, use translation system
+    if (path.startsWith('/training/')) {
+      switch (path) {
+        case '/training/sessions':
+          return t.trainingSessions;
+        case '/training/programs':
+          return t.trainingPrograms;
+        case '/training/participants':
+          return t.participants;
+        case '/training/qr-codes':
+          return t.qrCodes;
+        case '/training/feedback':
+          return t.trainingFeedback;
+        case '/training':
+          return t.trainingManagement;
+        default:
+          return originalName;
+      }
+    }
+    // For non-training paths, return original name
+    return originalName;
+  };
 
   useEffect(() => {
     loadPages();
@@ -241,7 +271,7 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
     // Create menu items
     const allMenuItems: MenuItem[] = filteredPages.map(page => ({
       id: page.id,
-      name: page.page_name,
+      name: getTranslatedMenuName(page.page_name, page.page_path),
       path: page.page_path,
       icon: iconMap[page.icon_name || 'default'] || iconMap.default,
       category: getCategoryFromPath(page.page_path),
@@ -465,7 +495,7 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
               {open && items.length > 0 && (
                 <div className="px-3 py-1">
                   <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    {categoryLabels[category as keyof typeof categoryLabels] || category}
+                    {getCategoryLabels()[category as keyof ReturnType<typeof getCategoryLabels>] || category}
                   </h3>
                 </div>
               )}

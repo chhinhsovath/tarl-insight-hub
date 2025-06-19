@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -536,7 +536,9 @@ function TrainingParticipantsPageContent() {
 export default function TrainingParticipantsPage() {
   return (
     <TrainingLocaleProvider>
-      <TrainingParticipantsPageContent />
+      <Suspense fallback={<div>Loading...</div>}>
+        <TrainingParticipantsPageContent />
+      </Suspense>
     </TrainingLocaleProvider>
   );
 }
