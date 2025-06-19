@@ -8,16 +8,23 @@ interface TrainingLocaleProviderProps {
 }
 
 export function TrainingLocaleProvider({ children }: TrainingLocaleProviderProps) {
-  const [locale, setLocale] = useState<TrainingLocale>('en');
-  const [isHydrated, setIsHydrated] = useState(false);
-  
-  // Load locale from localStorage on mount
-  useEffect(() => {
-    setIsHydrated(true);
-    const savedLocale = localStorage.getItem('training-locale') as TrainingLocale;
-    if (savedLocale && (savedLocale === 'en' || savedLocale === 'km')) {
-      setLocale(savedLocale);
+  // Get initial locale from localStorage if available (client-side only)
+  const getInitialLocale = (): TrainingLocale => {
+    if (typeof window !== 'undefined') {
+      const savedLocale = localStorage.getItem('training-locale') as TrainingLocale;
+      if (savedLocale && (savedLocale === 'en' || savedLocale === 'km')) {
+        return savedLocale;
+      }
     }
+    return 'en';
+  };
+
+  const [locale, setLocale] = useState<TrainingLocale>(getInitialLocale);
+  const [mounted, setMounted] = useState(false);
+  
+  // Set mounted state after hydration
+  useEffect(() => {
+    setMounted(true);
   }, []);
   
   // Save locale to localStorage when it changes
@@ -28,11 +35,27 @@ export function TrainingLocaleProvider({ children }: TrainingLocaleProviderProps
     }
   };
   
-  // Always use English translations during SSR to prevent hydration mismatch
-  const t = isHydrated ? (trainingTranslations[locale] || enTranslations) : enTranslations;
+  // Use the current locale translations
+  const t = trainingTranslations[locale] || enTranslations;
+  
+  // During SSR and before hydration, we suppress any locale-dependent rendering
+  // by returning a loading state for components that use translations
+  if (!mounted) {
+    return (
+      <TrainingLocaleContext.Provider value={{
+        locale: 'en',
+        setLocale: () => {},
+        t: enTranslations
+      }}>
+        <div suppressHydrationWarning>
+          {children}
+        </div>
+      </TrainingLocaleContext.Provider>
+    );
+  }
   
   const value = {
-    locale: isHydrated ? locale : 'en' as TrainingLocale,
+    locale,
     setLocale: handleSetLocale,
     t
   };
