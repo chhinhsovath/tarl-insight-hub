@@ -482,7 +482,6 @@ function TrainingParticipantsPageContent() {
                                 <Badge 
                                   className={getRegistrationMethodBadge(participant.registration_method)} 
                                   variant="outline"
-                                  size="sm"
                                 >
                                   {participant.registration_method.replace('_', ' ')}
                                 </Badge>

@@ -174,7 +174,7 @@ function TrainingSessionsPageContent() {
       const result = await handleApiResponse(response);
       
       if (result) {
-        toast.success(result.message || t.sessionDeletedSuccess);
+        toast.success((result as any)?.message || t.sessionDeletedSuccess);
         fetchSessions(); // Refresh the list
         setDeleteDialog({ isOpen: false, sessionId: 0, sessionTitle: '', participantCount: 0 });
       }

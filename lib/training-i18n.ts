@@ -509,6 +509,28 @@ export interface TrainingTranslations {
   failedToAddLink: string;
   failedToDeleteMaterial: string;
   deleteMaterialConfirm: string;
+
+  // Missing translation keys for attendance page
+  bulkAttendance: string;
+  all: string;
+  participantsSelected: string;
+  clearSelection: string;
+  registeredParticipants: string;
+  deselectAll: string;
+  selectAll: string;
+  coordinator: string;
+  present: string;
+  featured: string;
+  date: string;
+  agenda: string;
+  notes: string;
+  pending: string;
+  late: string;
+  absent: string;
+  participantInformation: string;
+  essentialInformation: string;
+  contactRoleInformation: string;
+  organizationLocation: string;
 }
 
 // English translations
@@ -1016,7 +1038,29 @@ export const enTranslations: TrainingTranslations = {
   failedToUploadFile: 'Failed to upload file',
   failedToAddLink: 'Failed to add link',
   failedToDeleteMaterial: 'Failed to delete material',
-  deleteMaterialConfirm: 'Are you sure you want to delete this material?'
+  deleteMaterialConfirm: 'Are you sure you want to delete this material?',
+
+  // Missing translation keys for attendance page
+  bulkAttendance: 'Bulk Attendance',
+  all: 'All',
+  participantsSelected: 'participants selected',
+  clearSelection: 'Clear Selection',
+  registeredParticipants: 'Registered Participants',
+  deselectAll: 'Deselect All',
+  selectAll: 'Select All',
+  coordinator: 'Coordinator',
+  present: 'Present',
+  featured: 'Featured',
+  date: 'Date',
+  agenda: 'Agenda',
+  notes: 'Notes',
+  pending: 'Pending',
+  late: 'Late',
+  absent: 'Absent',
+  participantInformation: 'Participant Information',
+  essentialInformation: 'Essential Information',
+  contactRoleInformation: 'Contact & Role Information',
+  organizationLocation: 'Organization & Location'
 };
 
 // Khmer translations
@@ -1524,7 +1568,29 @@ export const kmTranslations: TrainingTranslations = {
   failedToUploadFile: 'បរាជ័យក្នុងការផ្ទុកឯកសារ',
   failedToAddLink: 'បរាជ័យក្នុងការបន្ថែមតំណ',
   failedToDeleteMaterial: 'បរាជ័យក្នុងការលុបសម្ភារៈ',
-  deleteMaterialConfirm: 'តើអ្នកពិតជាចង់លុបសម្ភារៈនេះមែនទេ?'
+  deleteMaterialConfirm: 'តើអ្នកពិតជាចង់លុបសម្ភារៈនេះមែនទេ?',
+
+  // Missing translation keys for attendance page
+  bulkAttendance: 'វត្តមានជាបណ្តុំ',
+  all: 'ទាំងអស់',
+  participantsSelected: 'អ្នកចូលរួមបានជ្រើសរើស',
+  clearSelection: 'លុបការជ្រើសរើស',
+  registeredParticipants: 'អ្នកចូលរួមដែលបានចុះឈ្មោះ',
+  deselectAll: 'មិនជ្រើសរើសទាំងអស់',
+  selectAll: 'ជ្រើសរើសទាំងអស់',
+  coordinator: 'អ្នកសម្របសម្រួល',
+  present: 'វត្តមាន',
+  featured: 'ផ្សេងៗ',
+  date: 'កាលបរិច្ឆេទ',
+  agenda: 'កម្មវិធី',
+  notes: 'ចំណាំ',
+  pending: 'កំពុងរង់ចាំ',
+  late: 'ចុះយឺត',
+  absent: 'អវត្តមាន',
+  participantInformation: 'ព័ត៌មានអ្នកចូលរួម',
+  essentialInformation: 'ព័ត៌មានសំខាន់',
+  contactRoleInformation: 'ព័ត៌មានទំនាក់ទំនង និងតួនាទី',
+  organizationLocation: 'ស្ថាប័ន និងទីតាំង'
 };
 
 // Translation map

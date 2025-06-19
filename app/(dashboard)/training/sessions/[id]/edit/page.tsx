@@ -285,7 +285,7 @@ function EditTrainingSessionPageContent() {
       const result = await handleApiResponse(response);
       
       if (result) {
-        toast.success(result.message || t.sessionDeletedSuccess || 'Training session deleted successfully');
+        toast.success((result as any)?.message || t.sessionDeletedSuccess || 'Training session deleted successfully');
         router.push('/training/sessions');
       }
     } catch (error) {

@@ -223,7 +223,7 @@ function SessionOverviewPageContent() {
                 <div className="flex items-center gap-4 mb-2">
                   <h1 className="text-4xl font-bold text-gray-900">{session.session_title}</h1>
                   <Badge className={getStatusBadge(session.session_status)} variant="secondary">
-                    {t[session.session_status] || session.session_status}
+                    {(t as any)[session.session_status] || session.session_status}
                   </Badge>
                 </div>
                 <p className="text-xl text-gray-600">{session.program_name}</p>
@@ -343,7 +343,7 @@ function SessionOverviewPageContent() {
                 <div className="flex items-center gap-1">
                   <Star className="h-3 w-3 text-yellow-500" />
                   <p className="text-xs text-yellow-600">
-                    {statistics.feedback.average_rating ? parseFloat(statistics.feedback.average_rating).toFixed(1) : '0.0'}
+                    {statistics.feedback.average_rating ? Number(statistics.feedback.average_rating).toFixed(1) : '0.0'}
                   </p>
                 </div>
               </div>
@@ -602,7 +602,7 @@ function SessionOverviewPageContent() {
                     <div className="flex items-center justify-center gap-2 mb-2">
                       <Star className="h-6 w-6 text-yellow-500" />
                       <p className="text-2xl font-bold">
-                        {statistics.feedback.average_rating ? parseFloat(statistics.feedback.average_rating).toFixed(1) : '0.0'}
+                        {statistics.feedback.average_rating ? Number(statistics.feedback.average_rating).toFixed(1) : '0.0'}
                       </p>
                     </div>
                     <p className="text-sm text-muted-foreground">{t.averageRating}</p>
