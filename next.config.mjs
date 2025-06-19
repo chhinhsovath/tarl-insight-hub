@@ -6,6 +6,16 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   
+  // Webpack configuration for better module resolution
+  webpack: (config, { isServer }) => {
+    // Ensure proper module resolution for @/ imports
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': new URL('.', import.meta.url).pathname,
+    }
+    return config
+  },
+  
   // Development settings
   eslint: {
     ignoreDuringBuilds: true,
