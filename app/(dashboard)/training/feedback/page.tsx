@@ -64,10 +64,11 @@ interface FeedbackStats {
 
 function TrainingFeedbackContent() {
   const { user } = useAuth();
-  const { t } = useTrainingTranslation();
+  const { t, locale } = useTrainingTranslation();
   const searchParams = useSearchParams();
   const [feedback, setFeedback] = useState<TrainingFeedback[]>([]);
   const [filteredFeedback, setFilteredFeedback] = useState<TrainingFeedback[]>([]);
+  const [mounted, setMounted] = useState(false);
   const [stats, setStats] = useState<FeedbackStats>({
     total_feedback: 0,
     positive_feedback: 0,
@@ -85,6 +86,7 @@ function TrainingFeedbackContent() {
   const [sessionFilter, setSessionFilter] = useState(searchParams.get('session') || 'all');
 
   useEffect(() => {
+    setMounted(true);
     fetchFeedback();
     fetchStats();
   }, []);
@@ -219,10 +221,19 @@ function TrainingFeedbackContent() {
     title: fb.session_title 
   })))];
 
+  // Prevent hydration mismatch by not rendering translated content until mounted
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
   if (!user) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">{t.pleaseLogIn} {t.trainingFeedback.toLowerCase()}.</p>
+        <p className="text-muted-foreground">Please log in to access training feedback.</p>
       </div>
     );
   }
