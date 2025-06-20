@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useState, useEffect } from "react";
 import { useMenu } from "@/lib/menu-context";
 import { useGlobalLanguage } from "@/lib/global-language-context";
+import { useGlobalTranslations } from "@/hooks/use-global-translations";
 import {
   LogOut,
   ChevronDown,
@@ -111,6 +112,7 @@ export function Sidebar({ open = false, setOpen = () => {} }: SidebarProps = {})
   const { logout } = useAuth();
   const { refreshTrigger } = useMenu();
   const { language } = useGlobalLanguage();
+  const t = useGlobalTranslations();
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['overview', 'management']));
   const [menu, setMenu] = useState<PagePermission[]>([]);
   const [menuLoading, setMenuLoading] = useState(true);
@@ -300,8 +302,8 @@ export function Sidebar({ open = false, setOpen = () => {} }: SidebarProps = {})
               />
             </div>
             <div className="hidden lg:block">
-              <h1 className="text-lg font-semibold text-gray-900 dark:text-white">TaRL Insight</h1>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Hub</p>
+              <h1 className="text-lg font-semibold text-gray-900 dark:text-white">{t.appTitle}</h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t.appSubtitle}</p>
             </div>
           </div>
           <button

@@ -29,7 +29,6 @@ import Link from 'next/link';
 import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 import { TrainingLocaleProvider } from '@/components/training-locale-provider';
 import { TrainingLoadingProvider } from '@/components/training-loading-provider';
-import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
 import { useTrainingTranslation } from '@/lib/training-i18n';
 import { PageLoader } from '@/components/page-loader';
 import { useAsyncOperation } from '@/hooks/use-async-operation';
@@ -280,7 +279,7 @@ function TrainingOverviewPageContent() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <TrainingLanguageSwitcher />
+          
           {/* <Badge className="bg-blue-100 text-blue-800" variant="secondary">
             {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
           </Badge> */}

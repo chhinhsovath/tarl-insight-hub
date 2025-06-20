@@ -32,10 +32,7 @@ import { useRouter } from 'next/navigation';
 import DeleteSessionDialog from '@/components/delete-session-dialog';
 // import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 import { TrainingLocaleProvider } from '@/components/training-locale-provider';
-// import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
-import { useTrainingTranslation } from '@/lib/training-i18n';
-import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
-
+// import { useTrainingTranslation } from '@/lib/training-i18n';
 interface TrainingSession {
   id: number;
   session_title: string;
@@ -265,8 +262,7 @@ function TrainingSessionsPageContent() {
       {/* Header */}
       <div className="space-y-4">
         {/* Navigation Row */}
-        
-        
+
         {/* Title and Actions Row */}
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -302,7 +298,7 @@ function TrainingSessionsPageContent() {
             )}
           </div>
           <div className="h-6 w-px bg-border" />
-          <div className="flex items-center gap-4"><TrainingLanguageSwitcher /></div>
+          <div className="flex items-center gap-4"></div>
         </div>
       </div>
 

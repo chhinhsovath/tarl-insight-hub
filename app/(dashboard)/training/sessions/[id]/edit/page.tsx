@@ -18,7 +18,6 @@ import { RichTextEditor } from '@/components/ui/rich-text-editor';
 import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 import { BackButton } from '@/components/ui/back-button';
 import { TrainingLocaleProvider } from '@/components/training-locale-provider';
-import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
 import { useTrainingTranslation } from '@/lib/training-i18n';
 
 interface TrainingProgram {
@@ -345,8 +344,7 @@ function EditTrainingSessionPageContent() {
       {/* Header */}
       <div className="space-y-4">
         {/* Navigation Row */}
-        
-        
+
         {/* Title and Actions Row */}
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -387,7 +385,7 @@ function EditTrainingSessionPageContent() {
             </Button>
           </div>
           <div className="h-6 w-px bg-border" />
-          <div className="flex items-center gap-4"><TrainingLanguageSwitcher /></div>
+          <div className="flex items-center gap-4"></div>
         </div>
       </div>
 

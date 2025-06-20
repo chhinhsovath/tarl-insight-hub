@@ -30,7 +30,6 @@ import { toast } from 'sonner';
 import { makeAuthenticatedRequest, handleApiResponse } from '@/lib/session-utils';
 import { PhotoActivitiesManager } from '@/components/training/photo-activities-manager';
 import { TrainingLocaleProvider } from '@/components/training-locale-provider';
-import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
 import { useTrainingTranslation } from '@/lib/training-i18n';
 import { ArrowLeft } from 'lucide-react';
 
@@ -266,7 +265,7 @@ function SessionOverviewPageContent() {
                 <ArrowLeft className="h-4 w-4" />
                 {t.back}
               </Button>
-              <TrainingLanguageSwitcher />
+              
             </div>
           </div>
         </div>

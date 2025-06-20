@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle2, School, User, Users, Shield, UserCheck, GraduationCap, Briefcase, BookOpen } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useGlobalTranslations } from "@/hooks/use-global-translations"
 import type React from "react"
 
 const demoUsers = [
@@ -132,6 +133,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [selectedUser, setSelectedUser] = useState("")
   const { login, error } = useAuth()
+  const t = useGlobalTranslations()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -173,7 +175,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="w-full max-w-6xl">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">TaRL Insight Hub</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">{t.appTitle}</h1>
           <p className="text-gray-600">Teaching at the Right Level - Data Management System</p>
         </div>
 

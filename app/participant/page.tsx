@@ -20,8 +20,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useParticipantTranslation } from '@/lib/participant-i18n';
-import { ParticipantLanguageSwitcher } from '@/components/participant-language-switcher';
-
 export default function ParticipantPortalLogin() {
   const { t } = useParticipantTranslation();
   const router = useRouter();
@@ -119,7 +117,7 @@ export default function ParticipantPortalLogin() {
           {t.accessTrainingHistory}
         </p>
         <div className="flex justify-center mt-6">
-          <ParticipantLanguageSwitcher />
+          
         </div>
       </div>
 

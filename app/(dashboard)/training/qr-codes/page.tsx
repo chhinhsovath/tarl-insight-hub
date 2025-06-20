@@ -29,8 +29,6 @@ import { toast } from 'sonner';
 import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 import { TrainingLocaleProvider } from '@/components/training-locale-provider';
 import { useTrainingTranslation } from '@/lib/training-i18n';
-import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
-
 interface QRCodeData {
   id: number;
   code_type: string;
@@ -340,8 +338,7 @@ function QRCodesPageContent() {
       {/* Header */}
       <div className="space-y-4">
         {/* Navigation Row */}
-        
-        
+
         {/* Title and Actions Row */}
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -393,7 +390,7 @@ function QRCodesPageContent() {
             )}
           </div>
           <div className="h-6 w-px bg-border" />
-          <div className="flex items-center gap-4"><TrainingLanguageSwitcher /></div>
+          <div className="flex items-center gap-4"></div>
         </div>
       </div>
 

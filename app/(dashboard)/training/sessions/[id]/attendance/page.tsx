@@ -25,8 +25,6 @@ import {
 import { toast } from "sonner";
 import { TrainingLocaleProvider } from '@/components/training-locale-provider';
 import { useTrainingTranslation } from '@/lib/training-i18n';
-import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
-
 interface Session {
   id: string;
   session_title: string;
@@ -246,7 +244,7 @@ function BulkAttendancePageContent() {
             
             {/* Right: Language switcher */}
             <div className="flex items-center gap-2">
-              <TrainingLanguageSwitcher />
+              
             </div>
           </div>
         </div>

@@ -1,5 +1,9 @@
 // Global translations interface
 export interface GlobalTranslations {
+  // App
+  appTitle: string;
+  appSubtitle: string;
+  
   // Navigation
   dashboard: string;
   schools: string;
@@ -73,6 +77,10 @@ export interface GlobalTranslations {
 
 // English translations
 export const enTranslations: GlobalTranslations = {
+  // App
+  appTitle: 'TaRL Insight Hub',
+  appSubtitle: 'Hub',
+  
   // Navigation
   dashboard: 'Dashboard',
   schools: 'Schools',
@@ -146,6 +154,10 @@ export const enTranslations: GlobalTranslations = {
 
 // Khmer translations
 export const khTranslations: GlobalTranslations = {
+  // App
+  appTitle: 'ប្រព័ន្ធព័ត៌មាន TaRL',
+  appSubtitle: 'មជ្ឈមណ្ឌល',
+  
   // Navigation
   dashboard: 'ផ្ទាំងបញ្ជា',
   schools: 'សាលារៀន',

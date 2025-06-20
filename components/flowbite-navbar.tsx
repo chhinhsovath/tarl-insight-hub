@@ -52,7 +52,7 @@ export function FlowbiteNavbar({ onMenuToggle }: FlowbiteNavbarProps) {
                 />
               </div>
               <span className="self-center text-xl font-semibold sm:text-2xl whitespace-nowrap dark:text-white">
-                TaRL Insight Hub
+                {t.appTitle}
               </span>
             </a>
           </div>
@@ -87,11 +87,11 @@ export function FlowbiteNavbar({ onMenuToggle }: FlowbiteNavbarProps) {
               {/* Language toggle */}
               <button
                 onClick={() => setLanguage(language === 'en' ? 'kh' : 'en')}
-                className="p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
+                className="flex items-center gap-1 px-3 py-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700 transition-colors"
                 title={`Switch to ${language === 'en' ? 'ខ្មែរ' : 'English'}`}
               >
                 <Globe className="w-5 h-5" />
-                <span className={`ml-1 text-xs ${language === 'kh' ? 'font-khmer' : ''}`}>
+                <span className={`text-sm font-medium ${language === 'kh' ? 'font-khmer' : ''}`}>
                   {language === 'en' ? 'EN' : 'ខ្មែរ'}
                 </span>
               </button>

@@ -24,8 +24,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useParticipantTranslation } from '@/lib/participant-i18n';
-import { ParticipantLanguageSwitcher } from '@/components/participant-language-switcher';
-
 interface ParticipantSession {
   id: string;
   name: string;
@@ -205,7 +203,7 @@ export default function ParticipantDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <ParticipantLanguageSwitcher />
+          
           <Button variant="outline" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" />
             {t.logout}

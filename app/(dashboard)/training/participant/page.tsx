@@ -21,7 +21,6 @@ import {
 import { useAuth } from '@/lib/auth-context';
 import { toast } from 'sonner';
 import { TrainingLocaleProvider } from '@/components/training-locale-provider';
-import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
 import { useTrainingTranslation } from '@/lib/training-i18n';
 
 interface TrainingSession {
@@ -170,7 +169,7 @@ function ParticipantPortalContent() {
           </div>
           
           <div className="flex items-center gap-4">
-            <TrainingLanguageSwitcher />
+            
           </div>
         </div>
       </div>

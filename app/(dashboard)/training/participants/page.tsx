@@ -27,8 +27,6 @@ import { toast } from 'sonner';
 import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 import { useTrainingTranslation } from '@/lib/training-i18n';
 import { TrainingLocaleProvider } from '@/components/training-locale-provider';
-import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
-
 interface TrainingParticipant {
   id: number;
   participant_name: string;
@@ -252,8 +250,7 @@ function TrainingParticipantsPageContent() {
       {/* Header */}
       <div className="space-y-4">
         {/* Navigation Row */}
-        
-        
+
         {/* Title and Actions Row */}
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -286,7 +283,7 @@ function TrainingParticipantsPageContent() {
             )}
           </div>
           <div className="h-6 w-px bg-border" />
-          <div className="flex items-center gap-4"><TrainingLanguageSwitcher /></div>
+          <div className="flex items-center gap-4"></div>
         </div>
       </div>
 

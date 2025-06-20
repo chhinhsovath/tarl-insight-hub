@@ -27,8 +27,6 @@ import {
 import { toast } from "sonner";
 import { useTrainingTranslation } from "@/lib/training-i18n";
 import { TrainingLocaleProvider } from "@/components/training-locale-provider";
-import { TrainingLanguageSwitcher } from "@/components/training-language-switcher";
-
 interface Session {
   id: string;
   session_title: string;
@@ -247,7 +245,7 @@ function QuickRegisterPageContent() {
                 <ArrowLeft className="h-4 w-4" />
                 {t.back}
               </Button>
-              <TrainingLanguageSwitcher />
+              
             </div>
           </div>
         </div>

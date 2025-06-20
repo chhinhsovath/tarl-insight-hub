@@ -33,8 +33,6 @@ import {
 import { toast } from 'sonner';
 import { TrainingLocaleProvider } from '@/components/training-locale-provider';
 import { useTrainingTranslation } from '@/lib/training-i18n';
-import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
-
 interface TrainingSession {
   id: number;
   session_title: string;
@@ -350,7 +348,7 @@ function AttendancePageContent() {
           <h1 className="text-3xl font-bold text-gray-900">{t.trainingAttendance}</h1>
           <p className="text-gray-600 mt-1">{t.markAttendanceDescription}</p>
           <div className="flex justify-center mt-4">
-            <TrainingLanguageSwitcher />
+            
           </div>
         </div>
 
