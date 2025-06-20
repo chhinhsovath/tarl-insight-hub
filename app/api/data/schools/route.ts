@@ -1,13 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPool } from "@/lib/database-config";
 
-const pool = new Pool({
-  user: process.env.PGUSER,
-  host: process.env.PGHOST,
-  database: process.env.PGDATABASE,
-  password: process.env.PGPASSWORD,
-  port: parseInt(process.env.PGPORT || '5432', 10),
-});
+const pool = getPool();
 
 
 export async function GET(request: Request) {
@@ -32,14 +26,14 @@ export async function GET(request: Request) {
       params.push(`%${searchTerm}%`);
     }
     if (filterZone) {
-      whereClauses.push(`"sclZoneName\" ILIKE $${paramIndex++}`);
+      whereClauses.push(`"sclZoneName" ILIKE $${paramIndex++}`);
       params.push(`%${filterZone}%`);
     }
     if (filterProvince) {
-      whereClauses.push(`"sclProvinceName\" ILIKE $${paramIndex++}`);
+      whereClauses.push(`"sclProvinceName" ILIKE $${paramIndex++}`);
       params.push(`%${filterProvince}%`);
     }
-    if (status !== null) {
+    if (status !== null && status !== undefined) {
       whereClauses.push(`"sclStatus" = $${paramIndex++}`);
       params.push(parseInt(status));
     }
