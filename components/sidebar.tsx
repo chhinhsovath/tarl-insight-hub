@@ -6,11 +6,9 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 import { useState, useEffect } from "react";
 import { useMenu } from "@/lib/menu-context";
-import { useTrainingTranslation } from "@/lib/training-i18n";
+import { useGlobalLanguage } from "@/lib/global-language-context";
 import {
-  ChevronLeft,
   LogOut,
-  BookOpen,
   ChevronDown,
   ChevronRight,
   Settings,
@@ -29,7 +27,6 @@ import {
   QrCode,
   MessageSquare,
   Database,
-  Menu,
   X,
 } from "lucide-react";
 
@@ -111,9 +108,9 @@ const categoryLabels: Record<string, string> = {
 
 export function Sidebar({ open = false, setOpen = () => {} }: SidebarProps = {}) {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const { refreshTrigger } = useMenu();
-  const { t, language } = useTrainingTranslation();
+  const { language } = useGlobalLanguage();
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['overview', 'management']));
   const [menu, setMenu] = useState<PagePermission[]>([]);
   const [menuLoading, setMenuLoading] = useState(true);
@@ -288,9 +285,9 @@ export function Sidebar({ open = false, setOpen = () => {} }: SidebarProps = {})
 
       {/* Sidebar */}
       <aside className={cn(
-        "w-64 h-screen bg-white border-r border-gray-200 dark:bg-gray-800 dark:border-gray-700 flex flex-col transition-all duration-300",
-        "lg:block",
-        open ? "block" : "hidden"
+        "fixed lg:relative z-50 w-64 h-screen bg-white border-r border-gray-200 dark:bg-gray-800 dark:border-gray-700 flex flex-col transition-transform duration-300",
+        "lg:translate-x-0",
+        open ? "translate-x-0" : "-translate-x-full"
       )}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">

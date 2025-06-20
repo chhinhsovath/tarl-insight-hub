@@ -27,9 +27,9 @@ POSTGRES_DATABASE=tarl_ptom
 POSTGRES_URL_NO_SSL=postgres://postgres:P%40ssw0rd@137.184.109.21:5432/tarl_ptom
 
 # App Configuration
-SESSION_SECRET=GENERATE_RANDOM_STRING_HERE
+SESSION_SECRET=0b5f8dc07a71da50b5b839a3357884d4
 NODE_ENV=production
-NEXT_PUBLIC_APP_URL=https://your-app-name.vercel.app
+NEXT_PUBLIC_APP_URL=https://tarl-insight-hub.vercel.app/
 
 # To generate SESSION_SECRET, run:
 # openssl rand -base64 32

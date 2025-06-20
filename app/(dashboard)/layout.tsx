@@ -18,12 +18,12 @@ export default function DashboardLayout({
     <AuthProvider>
       <GlobalLanguageProvider>
         <MenuProvider>
-          <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+          <div className="flex h-screen bg-gray-50 dark:bg-gray-900 relative">
             {/* Sidebar */}
             <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
             
             {/* Main Content Area */}
-            <div className="flex flex-col flex-1 overflow-hidden">
+            <div className="flex flex-col flex-1 overflow-hidden w-full lg:w-auto">
               {/* Top Navbar */}
               <FlowbiteNavbar onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
               
