@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { AuditLogger } from "@/lib/audit-logger"
+import { getPool } from "@/lib/database-config"
 
 interface Page {
   id: number
