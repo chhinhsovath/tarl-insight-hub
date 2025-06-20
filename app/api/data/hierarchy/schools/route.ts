@@ -41,9 +41,20 @@ export async function GET(request: NextRequest) {
       }
       
       const result = await client.query(`
-        SELECT *
+        SELECT 
+          "sclAutoID" as id,
+          "sclName" as name,
+          "sclCode" as code,
+          "sclStatus" as status,
+          "sclZoneName" as "zoneName",
+          "sclProvinceName" as "provinceName",
+          "sclDistrictName" as "districtName",
+          "total_students" as "totalStudents",
+          "total_teachers" as "totalTeachers",
+          "total_teachers_female" as "totalTeachersFemale",
+          "total_students_female" as "totalStudentsFemale"
         FROM tbl_tarl_schools
-        ORDER BY school_name
+        ORDER BY "sclName"
       `);
       
       return NextResponse.json(result.rows);
@@ -73,7 +84,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result.rows);
   } catch (error) {
     console.error('Error fetching accessible schools:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error details:', error.message);
+    console.error('Stack trace:', error.stack);
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error.message 
+    }, { status: 500 });
   } finally {
     client.release();
   }

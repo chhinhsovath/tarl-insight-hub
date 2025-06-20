@@ -1,13 +1,5 @@
-import { Pool } from "pg";
+import { getPool } from "@/lib/database-config";
 import { cookies } from "next/headers";
-
-const pool = new Pool({
-  user: process.env.PGUSER,
-  host: process.env.PGHOST,
-  database: process.env.PGDATABASE,
-  password: process.env.PGPASSWORD,
-  port: parseInt(process.env.PGPORT || '5432', 10),
-});
 
 export interface UserSession {
   user_id: number;
@@ -20,6 +12,7 @@ export async function validateTrainingAccess(
   requiredPage: string, 
   requiredAction: 'view' | 'create' | 'update' | 'delete' | 'export' = 'view'
 ): Promise<{ success: boolean; user?: UserSession; error?: string }> {
+  const pool = getPool();
   const client = await pool.connect();
   
   try {

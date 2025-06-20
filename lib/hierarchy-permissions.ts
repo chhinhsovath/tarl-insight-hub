@@ -34,6 +34,22 @@ export class HierarchyPermissionManager {
     const client = await pool.connect();
     
     try {
+      console.log('Getting user hierarchy for userId:', userId);
+      
+      // Check if required tables exist first
+      const tablesCheck = await client.query(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_name IN ('tbl_tarl_users', 'tbl_tarl_roles')
+      `);
+      
+      console.log('Available tables:', tablesCheck.rows.map(r => r.table_name));
+      
+      if (tablesCheck.rows.length === 0) {
+        console.log('No required tables found');
+        return null;
+      }
+      
       // Get user role and hierarchy info
       const userResult = await client.query(`
         SELECT 
@@ -43,6 +59,8 @@ export class HierarchyPermissionManager {
         LEFT JOIN tbl_tarl_roles r ON u.role = r.name
         WHERE u.id = $1
       `, [userId]);
+      
+      console.log('User query result:', userResult.rows);
 
       if (userResult.rows.length === 0) {
         return null;
