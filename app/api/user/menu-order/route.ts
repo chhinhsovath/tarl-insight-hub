@@ -40,7 +40,7 @@ export async function GET() {
         CREATE TABLE user_menu_order (
           id SERIAL PRIMARY KEY,
           user_id INTEGER REFERENCES tbl_tarl_users(id) ON DELETE CASCADE,
-          page_id INTEGER REFERENCES tbl_tarl_pages(id) ON DELETE CASCADE,
+          page_id INTEGER REFERENCES page_permissions(id) ON DELETE CASCADE,
           sort_order INTEGER NOT NULL,
           created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
           updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -88,23 +88,32 @@ export async function GET() {
     let pagesQuery;
     let queryParams;
 
+    // Check what columns exist in page_permissions table
+    const columnCheck = await client.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'page_permissions'
+    `);
+    
+    const columns = columnCheck.rows.map(row => row.column_name);
+    const hasSortOrder = columns.includes('sort_order');
+    
     if (usePersonalOrder) {
       // Get pages with user's custom sort order
       pagesQuery = `
         SELECT 
           pp.id,
-          pp.name as page_name,
-          pp.path as page_path,
-          pp.description as page_title,
-          COALESCE(umo.sort_order, 999) as user_sort_order,
+          pp.page_name,
+          pp.page_path,
+          pp.page_title,
+          COALESCE(umo.sort_order, ${hasSortOrder ? 'pp.sort_order,' : ''} 999) as user_sort_order,
           pp.created_at,
           pp.updated_at
-        FROM tbl_tarl_pages pp
-        JOIN tbl_tarl_role_permissions rpp ON pp.id = rpp.page_id
-        JOIN tbl_tarl_roles r ON rpp.role_id = r.id
+        FROM page_permissions pp
+        JOIN role_page_permissions rpp ON pp.id = rpp.page_id
         LEFT JOIN user_menu_order umo ON pp.id = umo.page_id AND umo.user_id = $1
-        WHERE r.name = $2 AND rpp.can_access = true
-        ORDER BY user_sort_order ASC, pp.name ASC
+        WHERE rpp.role = $2 AND rpp.is_allowed = true
+        ORDER BY user_sort_order ASC, pp.page_name ASC
       `;
       queryParams = [currentUser.id, currentUser.role_name];
     } else {
@@ -112,17 +121,16 @@ export async function GET() {
       pagesQuery = `
         SELECT 
           pp.id,
-          pp.name as page_name,
-          pp.path as page_path,
-          pp.description as page_title,
-          999 as user_sort_order,
+          pp.page_name,
+          pp.page_path,
+          pp.page_title,
+          ${hasSortOrder ? 'pp.sort_order' : '999'} as user_sort_order,
           pp.created_at,
           pp.updated_at
-        FROM tbl_tarl_pages pp
-        JOIN tbl_tarl_role_permissions rpp ON pp.id = rpp.page_id
-        JOIN tbl_tarl_roles r ON rpp.role_id = r.id
-        WHERE r.name = $1 AND rpp.can_access = true
-        ORDER BY pp.name ASC
+        FROM page_permissions pp
+        JOIN role_page_permissions rpp ON pp.id = rpp.page_id
+        WHERE rpp.role = $1 AND rpp.is_allowed = true
+        ORDER BY ${hasSortOrder ? 'pp.sort_order ASC,' : ''} pp.page_name ASC
       `;
       queryParams = [currentUser.role_name];
     }
