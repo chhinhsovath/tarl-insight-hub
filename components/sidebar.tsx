@@ -97,15 +97,7 @@ const getCategoryFromPath = (path: string): string => {
   return 'other';
 };
 
-const categoryLabels: Record<string, string> = {
-  overview: 'Overview',
-  management: 'Management',
-  data: 'Data Collection',
-  analytics: 'Analytics & Reports',
-  learning: 'Training & Learning',
-  admin: 'Administration',
-  other: 'Other'
-};
+// This will be defined inside the component to access translations
 
 export function Sidebar({ open = false, setOpen = () => {} }: SidebarProps = {}) {
   const pathname = usePathname();
@@ -119,7 +111,7 @@ export function Sidebar({ open = false, setOpen = () => {} }: SidebarProps = {})
 
   useEffect(() => {
     loadMenu();
-  }, [refreshTrigger]);
+  }, [refreshTrigger, language]); // Reload menu when language changes
 
   const loadMenu = async () => {
     try {
@@ -258,6 +250,17 @@ export function Sidebar({ open = false, setOpen = () => {} }: SidebarProps = {})
 
   const menuItems = parseMenuItems(menu || []);
   const groupedMenuItems = groupByCategory(menuItems);
+  
+  // Dynamic category labels based on language
+  const categoryLabels: Record<string, string> = {
+    overview: language === 'kh' ? 'ទិដ្ឋភាពទូទៅ' : 'Overview',
+    management: language === 'kh' ? 'ការគ្រប់គ្រង' : 'Management',
+    data: language === 'kh' ? 'ការប្រមូលទិន្នន័យ' : 'Data Collection',
+    analytics: language === 'kh' ? 'វិភាគ និងរបាយការណ៍' : 'Analytics & Reports',
+    learning: language === 'kh' ? 'ការបណ្តុះបណ្តាល និងការរៀនសូត្រ' : 'Training & Learning',
+    admin: language === 'kh' ? 'រដ្ឋបាល' : 'Administration',
+    other: language === 'kh' ? 'ផ្សេងៗ' : 'Other'
+  };
 
   const toggleCategory = (category: string) => {
     const newExpanded = new Set(expandedCategories);
@@ -321,12 +324,16 @@ export function Sidebar({ open = false, setOpen = () => {} }: SidebarProps = {})
             <div className="flex items-center justify-center py-8">
               <div className="text-center">
                 <div className="inline-block w-6 h-6 border-2 border-blue-600 rounded-full animate-spin border-t-transparent"></div>
-                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Loading menu...</p>
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  {language === 'kh' ? 'កំពុងផ្ទុកម៉ឺនុយ...' : 'Loading menu...'}
+                </p>
               </div>
             </div>
           ) : Object.keys(groupedMenuItems).length === 0 ? (
             <div className="flex items-center justify-center py-8">
-              <p className="text-xs text-gray-500 dark:text-gray-400">No menu items available</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {language === 'kh' ? 'មិនមានធាតុម៉ឺនុយ' : 'No menu items available'}
+              </p>
             </div>
           ) : (
             <ul className="space-y-2">
@@ -395,7 +402,7 @@ export function Sidebar({ open = false, setOpen = () => {} }: SidebarProps = {})
             className="flex items-center w-full px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
           >
             <LogOut className="w-5 h-5 mr-3 text-gray-400" />
-            <span>Sign out</span>
+            <span>{t.logout}</span>
           </button>
         </div>
       </aside>
