@@ -31,6 +31,13 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
       return;
     }
 
+    // If user role is in allowed roles (case-insensitive), grant permission
+    const roleAllowed = isAllowed(allowedRoles);
+    if (roleAllowed) {
+      setHasPermission(true);
+      return;
+    }
+
     try {
       const response = await fetch("/api/permissions", { cache: 'no-store' })
       const data = await response.json()
@@ -89,7 +96,10 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     )
   }
 
-  if (!isAllowed(allowedRoles) || !hasPermission) {
+  // Check if user has allowed role (case-insensitive)
+  const roleAllowed = isAllowed(allowedRoles);
+  
+  if (!roleAllowed || !hasPermission) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-gradient-to-br from-yellow-50 to-gray-100">
         <div className="text-center">
@@ -97,6 +107,10 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
           <p className="text-gray-600">You don't have permission to access this page.</p>
           <p className="text-sm text-gray-500 mt-2">Required roles: {allowedRoles.join(", ")}</p>
           <p className="text-sm text-gray-500">Your role: {user.role}</p>
+          <p className="text-sm text-gray-400 mt-1">
+            Role check: {roleAllowed ? 'PASS' : 'FAIL'} | 
+            Permission check: {hasPermission ? 'PASS' : 'FAIL'}
+          </p>
         </div>
       </div>
     )
