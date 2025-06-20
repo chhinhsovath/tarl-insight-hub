@@ -44,7 +44,9 @@ export function MenuOrderManager({ className }: MenuOrderManagerProps) {
       }
       
       const data = await response.json();
-      setPages(data);
+      // API returns { pages: [...] }, so extract the pages array
+      const pagesArray = Array.isArray(data) ? data : (data.pages || []);
+      setPages(pagesArray);
       setHasChanges(false);
     } catch (err) {
       setError('Failed to load pages');
@@ -55,7 +57,7 @@ export function MenuOrderManager({ className }: MenuOrderManagerProps) {
   };
 
   const handleDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
+    if (!result.destination || !Array.isArray(pages)) return;
 
     const items = Array.from(pages);
     const [reorderedItem] = items.splice(result.source.index, 1);
@@ -69,6 +71,10 @@ export function MenuOrderManager({ className }: MenuOrderManagerProps) {
     try {
       setSaving(true);
       setError(null);
+      
+      if (!Array.isArray(pages)) {
+        throw new Error('No pages to save');
+      }
       
       const pageOrders = pages.map((page, index) => ({
         id: page.id,
@@ -100,6 +106,8 @@ export function MenuOrderManager({ className }: MenuOrderManagerProps) {
   };
 
   const resetOrder = () => {
+    if (!Array.isArray(pages)) return;
+    
     // Reset to alphabetical order
     const sortedPages = [...pages].sort((a, b) => a.page_name.localeCompare(b.page_name));
     setPages(sortedPages);
@@ -183,7 +191,7 @@ export function MenuOrderManager({ className }: MenuOrderManagerProps) {
                   ref={provided.innerRef}
                   className="space-y-2"
                 >
-                  {pages.map((page, index) => (
+                  {Array.isArray(pages) ? pages.map((page, index) => (
                     <Draggable 
                       key={page.id} 
                       draggableId={page.id.toString()} 
@@ -223,7 +231,11 @@ export function MenuOrderManager({ className }: MenuOrderManagerProps) {
                         </div>
                       )}
                     </Draggable>
-                  ))}
+                  )) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No pages available for ordering
+                    </div>
+                  )}
                   {provided.placeholder}
                 </div>
               )}
