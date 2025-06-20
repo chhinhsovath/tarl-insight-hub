@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { useTrainingTranslation } from "@/lib/training-i18n";
+import { useGlobalLanguage } from "@/lib/global-language-context";
+import { useGlobalTranslations } from "@/hooks/use-global-translations";
 import { 
   Menu, 
   Search, 
@@ -22,8 +23,9 @@ interface FlowbiteNavbarProps {
 
 export function FlowbiteNavbar({ onMenuToggle }: FlowbiteNavbarProps) {
   const { user, logout } = useAuth();
-  const { language, setLanguage } = useTrainingTranslation();
+  const { language, setLanguage } = useGlobalLanguage();
   const { theme, setTheme } = useTheme();
+  const t = useGlobalTranslations();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -66,7 +68,7 @@ export function FlowbiteNavbar({ onMenuToggle }: FlowbiteNavbarProps) {
                 <input
                   type="text"
                   className="block w-full p-2 pl-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                  placeholder="Search..."
+                  placeholder={t.search + "..."}
                 />
               </div>
 
@@ -86,7 +88,7 @@ export function FlowbiteNavbar({ onMenuToggle }: FlowbiteNavbarProps) {
               <button
                 onClick={() => setLanguage(language === 'en' ? 'kh' : 'en')}
                 className="p-2 text-gray-500 rounded-lg hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-700"
-                title={`Switch to ${language === 'en' ? 'Khmer' : 'English'}`}
+                title={`Switch to ${language === 'en' ? 'ខ្មែរ' : 'English'}`}
               >
                 <Globe className="w-5 h-5" />
                 <span className={`ml-1 text-xs ${language === 'kh' ? 'font-khmer' : ''}`}>
@@ -152,7 +154,7 @@ export function FlowbiteNavbar({ onMenuToggle }: FlowbiteNavbarProps) {
                           className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600"
                         >
                           <Settings className="w-4 h-4 mr-3" />
-                          Settings
+                          {t.settings}
                         </a>
                       </li>
                       <li>
@@ -161,7 +163,7 @@ export function FlowbiteNavbar({ onMenuToggle }: FlowbiteNavbarProps) {
                           className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-600"
                         >
                           <LogOut className="w-4 h-4 mr-3" />
-                          Sign out
+                          {t.logout}
                         </button>
                       </li>
                     </ul>
