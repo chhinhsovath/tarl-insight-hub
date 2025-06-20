@@ -49,7 +49,7 @@ interface TrainingParticipant {
   location: string;
   program_name: string;
   confirmed_by_name?: string;
-  registration_method: string;
+  registration_method?: string;
   created_at: string;
 }
 
@@ -226,13 +226,13 @@ function TrainingParticipantsPageContent() {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const getRegistrationMethodBadge = (method: string) => {
+  const getRegistrationMethodBadge = (method: string | undefined) => {
     const colors: Record<string, string> = {
       'qr_code': 'bg-purple-100 text-purple-800',
       'manual': 'bg-orange-100 text-orange-800',
       'online': 'bg-green-100 text-green-800'
     };
-    return colors[method] || 'bg-gray-100 text-gray-800';
+    return colors[method || ''] || 'bg-gray-100 text-gray-800';
   };
 
   const canManageParticipants = ['admin', 'director', 'partner', 'coordinator', 'teacher'].includes(user.role);
@@ -483,7 +483,7 @@ function TrainingParticipantsPageContent() {
                                   className={getRegistrationMethodBadge(participant.registration_method)} 
                                   variant="outline"
                                 >
-                                  {participant.registration_method.replace('_', ' ')}
+                                  {participant.registration_method?.replace('_', ' ') || 'Unknown'}
                                 </Badge>
                               </div>
                               <div>{t.registered}: {formatDate(participant.created_at)}</div>
