@@ -1,13 +1,32 @@
 # Copy these environment variables to Vercel Dashboard
 # Settings → Environment Variables
+# Use your Digital Ocean PostgreSQL database for production
 
-NEXT_PUBLIC_SUPABASE_URL=https://xbsndhaswzuvkarvzjyq.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhic25kaGFzd3p1dmthcnZ6anlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkyNjc3MjgsImV4cCI6MjA2NDg0MzcyOH0.81UginSeGIP2mJsF4DOcH4cAR75larG69vDrrRNJZHQ
+# Digital Ocean PostgreSQL Database Configuration
+# Host: 137.184.109.21
+# Database: tarl_ptom
+# Username: postgres
+# Password: P@ssw0rd
+# Root Password: 6UYNIx4uWaVzkBy
+
 PGUSER=postgres
-PGHOST=db.xbsndhaswzuvkarvzjyq.supabase.co
-PGDATABASE=postgres
-PGPASSWORD=YOUR_SUPABASE_DATABASE_PASSWORD_HERE
+PGHOST=137.184.109.21
+PGDATABASE=tarl_ptom
+PGPASSWORD=P@ssw0rd
 PGPORT=5432
+
+# Additional PostgreSQL environment variables for compatibility
+DATABASE_URL=postgres://postgres:P%40ssw0rd@137.184.109.21:5432/tarl_ptom
+DATABASE_URL_UNPOOLED=postgres://postgres:P%40ssw0rd@137.184.109.21:5432/tarl_ptom
+POSTGRES_URL=postgres://postgres:P%40ssw0rd@137.184.109.21:5432/tarl_ptom
+POSTGRES_URL_NON_POOLING=postgres://postgres:P%40ssw0rd@137.184.109.21:5432/tarl_ptom
+POSTGRES_USER=postgres
+POSTGRES_HOST=137.184.109.21
+POSTGRES_PASSWORD=P@ssw0rd
+POSTGRES_DATABASE=tarl_ptom
+POSTGRES_URL_NO_SSL=postgres://postgres:P%40ssw0rd@137.184.109.21:5432/tarl_ptom
+
+# App Configuration
 SESSION_SECRET=GENERATE_RANDOM_STRING_HERE
 NODE_ENV=production
 NEXT_PUBLIC_APP_URL=https://your-app-name.vercel.app
@@ -15,7 +34,5 @@ NEXT_PUBLIC_APP_URL=https://your-app-name.vercel.app
 # To generate SESSION_SECRET, run:
 # openssl rand -base64 32
 
-# To get PGPASSWORD:
-# 1. Go to Supabase Dashboard
-# 2. Settings → Database
-# 3. Find your database password or reset it
+# Note: The @ symbol in password is URL-encoded as %40 in connection strings
+# Password P@ssw0rd becomes P%40ssw0rd in URLs
