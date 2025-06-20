@@ -71,8 +71,10 @@ function TrainingParticipantsPageContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sessionFilter, setSessionFilter] = useState(searchParams.get('session') || 'all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     fetchParticipants();
     fetchSessions();
   }, []);
@@ -195,7 +197,9 @@ function TrainingParticipantsPageContent() {
   if (!user) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">{t.pleaseLogIn} {t.manageParticipants.toLowerCase()}.</p>
+        <p className="text-muted-foreground" suppressHydrationWarning>
+          {mounted ? `${t.pleaseLogIn} ${t.manageParticipants.toLowerCase()}.` : 'Please log in to access participants.'}
+        </p>
       </div>
     );
   }
