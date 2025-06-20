@@ -129,10 +129,14 @@ export function Sidebar({ open = false, setOpen = () => {} }: SidebarProps = {})
       // First try to get user's personal menu order
       const userMenuResponse = await fetch(`/api/user/menu-order?t=${Date.now()}`);
       if (userMenuResponse.ok) {
-        const userData = await userMenuResponse.json();
-        if (userData.pages && userData.pages.length > 0) {
-          setMenu(userData.pages);
-          return;
+        try {
+          const userData = await userMenuResponse.json();
+          if (userData.pages && userData.pages.length > 0) {
+            setMenu(userData.pages);
+            return;
+          }
+        } catch (jsonError) {
+          console.warn('Failed to parse user menu response as JSON:', jsonError);
         }
       }
       
@@ -146,7 +150,13 @@ export function Sidebar({ open = false, setOpen = () => {} }: SidebarProps = {})
       });
       
       if (response.ok) {
-        const data = await response.json();
+        let data;
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          console.warn('Failed to parse menu permissions response as JSON:', jsonError);
+          return;
+        }
         
         // Convert hierarchical menu items to flat pages array
         const flattenMenuItems = (items: any[]): PagePermission[] => {
