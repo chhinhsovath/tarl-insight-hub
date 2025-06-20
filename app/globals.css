@@ -82,12 +82,63 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: 'Inter', 'Hanuman', sans-serif;
+  }
+  
+  /* Khmer text styling */
+  .khmer-text {
+    font-family: 'Hanuman', serif;
+    font-weight: 400;
+    line-height: 1.6;
+  }
+  
+  /* Auto-detect Khmer characters and apply Hanuman font */
+  :lang(km), [lang="km"] {
+    font-family: 'Hanuman', serif;
+  }
+  
+  /* Apply Hanuman font to elements containing Khmer Unicode characters */
+  *:has(text[unicode-range*="1780-17FF"]),
+  *[data-lang="khmer"],
+  .font-khmer {
+    font-family: 'Hanuman', serif;
+  }
+  
+  /* Auto-detect and style Khmer text */
+  *:lang(km),
+  [lang="km"],
+  [data-lang="km"] {
+    font-family: 'Hanuman', serif;
+    line-height: 1.7;
+  }
+  
+  /* Better line height for mixed content */
+  .font-khmer * {
+    line-height: 1.7;
   }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  
+  /* Khmer typography utilities */
+  .font-khmer {
+    font-family: 'Hanuman', serif;
+    line-height: 1.7;
+  }
+  
+  .khmer-text {
+    font-family: 'Hanuman', serif;
+    line-height: 1.7;
+    font-weight: 400;
+  }
+  
+  .khmer-heading {
+    font-family: 'Hanuman', serif;
+    line-height: 1.6;
+    font-weight: 600;
   }
 }
 

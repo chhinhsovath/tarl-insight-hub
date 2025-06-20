@@ -8,6 +8,8 @@ const config: Config = {
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
     "*.{js,ts,jsx,tsx,mdx}",
+    "./node_modules/flowbite/**/*.js",
+    "./node_modules/flowbite-react/lib/**/*.js",
   ],
   theme: {
     container: {
@@ -18,6 +20,11 @@ const config: Config = {
       },
     },
     extend: {
+      fontFamily: {
+        'sans': ['Inter', 'Hanuman', 'sans-serif'],
+        'khmer': ['Hanuman', 'serif'],
+        'hanuman': ['Hanuman', 'serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -82,7 +89,10 @@ const config: Config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    require("flowbite/plugin"),
+  ],
 }
 
 export default config

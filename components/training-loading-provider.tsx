@@ -22,9 +22,10 @@ export function TrainingLoadingProvider({ children }: TrainingLoadingProviderPro
   const [loadingMessage, setLoadingMessage] = useState('')
   const pathname = usePathname()
 
-  // Auto-loading on route change for training pages
+  // Only trigger loading for actual route changes within training section
   useEffect(() => {
-    if (pathname.startsWith('/training') || pathname.startsWith('/(dashboard)/training')) {
+    // Only trigger on training page routes, not on all dashboard pages
+    if (pathname.includes('/training/') || pathname === '/training') {
       setIsLoading(true)
       
       // Simulate loading time - this creates a better UX

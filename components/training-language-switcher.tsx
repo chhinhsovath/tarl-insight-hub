@@ -26,7 +26,9 @@ export function TrainingLanguageSwitcher() {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="flex items-center gap-2">
           <Globe className="h-4 w-4" />
-          {currentLanguage?.nativeName || 'English'}
+          <span className={locale === 'km' ? 'font-khmer' : ''}>
+            {currentLanguage?.nativeName || 'English'}
+          </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -37,7 +39,9 @@ export function TrainingLanguageSwitcher() {
             className={locale === language.code ? 'bg-accent' : ''}
           >
             <div className="flex flex-col">
-              <span className="font-medium">{language.nativeName}</span>
+              <span className={`font-medium ${language.code === 'km' ? 'font-khmer' : ''}`}>
+                {language.nativeName}
+              </span>
               <span className="text-xs text-muted-foreground">{language.name}</span>
             </div>
           </DropdownMenuItem>

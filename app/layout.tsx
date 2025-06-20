@@ -16,10 +16,21 @@ import {
 
 const inter = Inter({ subsets: ["latin"] })
 
+// Note: Hanuman font is loaded via Google Fonts in the head section below
+// This provides broader character set support for Khmer text
+
 export const metadata: Metadata = {
-  title: "គរុកោសល្យ និងវិក្រឹតការ",
-  description: "Details for គរុកោសល្យ និងវិក្រឹតការ",
-    generator: 'v0.dev'
+  title: "មជ្ឈមណ្ឌលអន្តរកម្ម TaRL Insight Hub",
+  description: "TaRL Insight Hub - Teaching at the Right Level Management System",
+  generator: 'v0.dev',
+  manifest: '/site.webmanifest',
+  icons: {
+    icon: [
+      { url: '/favicon.png', type: 'image/png', sizes: '60x60' },
+      { url: '/icon.png', type: 'image/png', sizes: '60x60' },
+    ],
+    apple: '/apple-icon.png',
+  },
 }
 
 function ResizeObserverSuppressor() {
@@ -43,6 +54,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link 
+          href="https://fonts.googleapis.com/css2?family=Hanuman:wght@100..900&display=swap" 
+          rel="stylesheet" 
+        />
+        <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="icon" href="/icon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/apple-icon.png" />
+        <link rel="manifest" href="/site.webmanifest" />
+      </head>
       <body className={inter.className} suppressHydrationWarning>
         <ErrorBoundary>
           <AuthProvider>

@@ -1,0 +1,26 @@
+{
+  "name": "មជ្ឈមណ្ឌលអន្តរកម្ម",
+  "short_name": "TaRL",
+  "description": "Teaching at the Right Level Management System",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "60x60",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "60x60",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "60x60",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#3b82f6",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/dashboard"
+}

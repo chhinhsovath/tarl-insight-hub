@@ -34,4 +34,10 @@ backup-local-database*.sh
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+next-env.d.ts# Backup files
+*.sql
+scripts/neon_backup_*.sql
+scripts/local_database_export*.sql
+
+# Large SQL files
+scripts/*.sql

@@ -45,7 +45,7 @@ export default function HomePage() {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <BookOpen className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-900">TaRL Insight Hub</h1>
+              <h1 className="text-2xl font-bold text-gray-900">មជ្ឈមណ្ឌលព័ត៌មាន TaRL</h1>
             </div>
             <Link href="/login">
               <Button>ចូលប្រព័ន្ធ</Button>
@@ -136,22 +136,22 @@ export default function HomePage() {
       <section className="py-20 bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">Making a Difference</h2>
-            <p className="text-lg text-blue-100">Real impact through data-driven education</p>
+            <h2 className="text-3xl font-bold mb-4">ការផ្លាស់ប្តូរដ៏មានសារៈសំខាន់</h2>
+            <p className="text-lg text-blue-100">ផលប៉ះពាល់ពិតប្រាកដតាមរយៈការអប់រំផ្អែកលើទិន្នន័យ</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div>
-              <div className="text-4xl font-bold mb-2">1,247</div>
-              <div className="text-blue-100">Schools Participating</div>
+              <div className="text-4xl font-bold mb-2">១,២៤៧</div>
+              <div className="text-blue-100">សាលាចូលរួម</div>
             </div>
             <div>
-              <div className="text-4xl font-bold mb-2">8,934</div>
-              <div className="text-blue-100">Teachers Trained</div>
+              <div className="text-4xl font-bold mb-2">៨,៩៣៤</div>
+              <div className="text-blue-100">គ្រូបង្រៀនបានបណ្តុះបណ្តាល</div>
             </div>
             <div>
-              <div className="text-4xl font-bold mb-2">156,789</div>
-              <div className="text-blue-100">Students Benefiting</div>
+              <div className="text-4xl font-bold mb-2">១៥៦,៧៨៩</div>
+              <div className="text-blue-100">សិស្សទទួលបានអត្ថប្រយោជន៍</div>
             </div>
           </div>
         </div>
@@ -160,13 +160,13 @@ export default function HomePage() {
       {/* CTA Section */}
       <section className="py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-6">Ready to Transform Education?</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-6">ត្រៀមខ្លួនដើម្បីបំលែងការអប់រំ?</h2>
           <p className="text-lg text-gray-600 mb-8">
-            Join thousands of educators using TaRL Insight Hub to improve student learning outcomes.
+            ចូលរួមជាមួយអ្នកអប់រំរាប់ពាន់នាក់ដែលកំពុងប្រើប្រាស់មជ្ឈមណ្ឌលព័ត៌មាន TaRL ដើម្បីកែលម្អលទ្ធផលការរៀនរបស់សិស្ស។
           </p>
           <Link href="/login">
             <Button size="lg" className="px-8">
-              Start Your Journey
+              ចាប់ផ្តើមដំណើររបស់អ្នក
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </Link>
@@ -180,34 +180,34 @@ export default function HomePage() {
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center mb-4">
                 <BookOpen className="h-8 w-8 text-blue-400 mr-3" />
-                <h3 className="text-xl font-bold">TaRL Insight Hub</h3>
+                <h3 className="text-xl font-bold">មជ្ឈមណ្ឌលព័ត៌មាន TaRL</h3>
               </div>
               <p className="text-gray-400 mb-4">
-                Empowering educators with data-driven insights to improve student learning outcomes through the TaRL
-                methodology.
+                ពង្រឹងសមត្ថភាពអ្នកអប់រំដោយព័ត៌មានគំនិតផ្អែកលើទិន្នន័យ ដើម្បីកែលម្អលទ្ធផលការរៀនរបស់សិស្ស 
+                តាមរយៈវិធីសាស្ត្រ TaRL។
               </p>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Features</h4>
+              <h4 className="font-semibold mb-4">មុខងារ</h4>
               <ul className="space-y-2 text-gray-400">
-                <li>School Management</li>
-                <li>Student Tracking</li>
-                <li>Analytics Dashboard</li>
-                <li>Observation Tools</li>
+                <li>ការគ្រប់គ្រងសាលា</li>
+                <li>តាមដានសិស្ស</li>
+                <li>ផ្ទាំងវិភាគ</li>
+                <li>ឧបករណ៍សង្កេត</li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Support</h4>
+              <h4 className="font-semibold mb-4">ជំនួយ</h4>
               <ul className="space-y-2 text-gray-400">
-                <li>Documentation</li>
-                <li>Training</li>
-                <li>Help Center</li>
-                <li>Contact Us</li>
+                <li>ឯកសារណែនាំ</li>
+                <li>ការបណ្តុះបណ្តាល</li>
+                <li>មជ្ឈមណ្ឌលជំនួយ</li>
+                <li>ទាក់ទងមកកាន់យើង</li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 TaRL Insight Hub. All rights reserved.</p>
+            <p>&copy; ២០២៤ មជ្ឈមណ្ឌលព័ត៌មាន TaRL។ រក្សាសិទ្ធិគ្រប់យ៉ាង។</p>
           </div>
         </div>
       </footer>

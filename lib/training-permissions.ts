@@ -127,6 +127,7 @@ export function getTrainingPageFromPath(path: string): string {
   if (path.includes('/training/programs')) return 'training-programs';
   if (path.includes('/training/participants')) return 'training-participants';
   if (path.includes('/training/qr-codes')) return 'training-qr-codes';
+  if (path.includes('/training/feedback')) return 'training-feedback';
   if (path.includes('/training/flow')) return 'training-sessions'; // Flow is part of sessions
   return 'training';
 }

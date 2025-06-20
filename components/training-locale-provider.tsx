@@ -62,7 +62,9 @@ export function TrainingLocaleProvider({ children }: TrainingLocaleProviderProps
   
   return (
     <TrainingLocaleContext.Provider value={value}>
-      {children}
+      <div className={locale === 'km' ? 'font-khmer' : ''} data-lang={locale}>
+        {children}
+      </div>
     </TrainingLocaleContext.Provider>
   );
 }

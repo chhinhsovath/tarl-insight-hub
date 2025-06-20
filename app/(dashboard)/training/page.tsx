@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 import { TrainingLocaleProvider } from '@/components/training-locale-provider';
+import { TrainingLoadingProvider } from '@/components/training-loading-provider';
 import { TrainingLanguageSwitcher } from '@/components/training-language-switcher';
 import { useTrainingTranslation } from '@/lib/training-i18n';
 import { PageLoader } from '@/components/page-loader';
@@ -769,9 +770,11 @@ function TrainingOverviewPageContent() {
 export default function TrainingOverviewPage() {
   return (
     <TrainingLocaleProvider>
-      <div className="p-6">
-        <TrainingOverviewPageContent />
-      </div>
+      <TrainingLoadingProvider>
+        <div className="p-6">
+          <TrainingOverviewPageContent />
+        </div>
+      </TrainingLoadingProvider>
     </TrainingLocaleProvider>
   );
 }
