@@ -1,16 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Pool } from "pg";
+import { getPool } from "@/lib/database-config";
 import { validateTrainingAccess } from "@/lib/training-permissions";
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 
-const pool = new Pool({
-  user: process.env.PGUSER || 'user',
-  host: process.env.PGHOST || 'localhost',
-  database: process.env.PGDATABASE || 'tarl_insight_hub',
-  password: process.env.PGPASSWORD || '',
-  port: parseInt(process.env.PGPORT || '5432', 10),
-});
+const pool = getPool();
 
 // POST - Upload training material file
 export async function POST(request: NextRequest) {

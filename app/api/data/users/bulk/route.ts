@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Pool } from "pg";
+import { getPool } from "@/lib/database-config";
 import bcrypt from "bcrypt";
 
 const pool = new Pool({

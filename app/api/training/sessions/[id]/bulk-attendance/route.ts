@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Pool } from "pg";
+import { getPool } from "@/lib/database-config";
 import { cookies } from "next/headers";
 
 const pool = new Pool({

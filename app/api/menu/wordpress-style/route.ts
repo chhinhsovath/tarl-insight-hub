@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { Pool } from "pg";
+import { getPool } from "@/lib/database-config";
 import { WordPressStyleMenuService } from "@/lib/wordpress-style-menu";
 
 const pool = new Pool({

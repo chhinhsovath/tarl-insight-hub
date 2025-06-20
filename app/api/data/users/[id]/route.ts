@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Pool } from "pg";
+import { getPool } from "@/lib/database-config";
 import { cookies } from "next/headers";
 import bcrypt from "bcrypt";
 
