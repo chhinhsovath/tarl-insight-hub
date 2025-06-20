@@ -2,13 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPool } from "@/lib/database-config";
 import { cookies } from "next/headers";
 
-const pool = new Pool({
-  user: process.env.PGUSER,
-  host: process.env.PGHOST,
-  database: process.env.PGDATABASE,
-  password: process.env.PGPASSWORD,
-  port: parseInt(process.env.PGPORT || '5432', 10),
-});
+const pool = getPool();
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
