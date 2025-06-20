@@ -40,7 +40,7 @@ export async function GET() {
         CREATE TABLE user_menu_order (
           id SERIAL PRIMARY KEY,
           user_id INTEGER REFERENCES tbl_tarl_users(id) ON DELETE CASCADE,
-          page_id INTEGER REFERENCES page_permissions(id) ON DELETE CASCADE,
+          page_id INTEGER REFERENCES tbl_tarl_pages(id) ON DELETE CASCADE,
           sort_order INTEGER NOT NULL,
           created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
           updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -88,38 +88,23 @@ export async function GET() {
     let pagesQuery;
     let queryParams;
 
-    // Check if hierarchical columns exist
-    const hierarchyCheck = await client.query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'page_permissions' 
-      AND column_name IN ('parent_page_id', 'is_parent_menu', 'menu_level')
-    `);
-    
-    const hasHierarchy = hierarchyCheck.rows.length >= 3;
-    const hierarchyColumns = hasHierarchy ? ', pp.parent_page_id, pp.is_parent_menu, pp.menu_level' : '';
-
     if (usePersonalOrder) {
       // Get pages with user's custom sort order
       pagesQuery = `
         SELECT 
           pp.id,
-          pp.page_name,
-          pp.page_name_kh,
-          pp.page_path,
-          pp.page_title,
-          pp.page_title_kh,
-          pp.icon_name,
-          pp.sort_order,
-          COALESCE(umo.sort_order, pp.sort_order, 999) as user_sort_order,
+          pp.name as page_name,
+          pp.path as page_path,
+          pp.description as page_title,
+          COALESCE(umo.sort_order, 999) as user_sort_order,
           pp.created_at,
           pp.updated_at
-          ${hierarchyColumns}
-        FROM page_permissions pp
-        JOIN role_page_permissions rpp ON pp.id = rpp.page_id
+        FROM tbl_tarl_pages pp
+        JOIN tbl_tarl_role_permissions rpp ON pp.id = rpp.page_id
+        JOIN tbl_tarl_roles r ON rpp.role_id = r.id
         LEFT JOIN user_menu_order umo ON pp.id = umo.page_id AND umo.user_id = $1
-        WHERE rpp.role = $2 AND rpp.is_allowed = true
-        ORDER BY ${hasHierarchy ? 'pp.parent_page_id NULLS FIRST, ' : ''}user_sort_order ASC, pp.page_name ASC
+        WHERE r.name = $2 AND rpp.can_access = true
+        ORDER BY user_sort_order ASC, pp.name ASC
       `;
       queryParams = [currentUser.id, currentUser.role_name];
     } else {
@@ -127,21 +112,17 @@ export async function GET() {
       pagesQuery = `
         SELECT 
           pp.id,
-          pp.page_name,
-          pp.page_name_kh,
-          pp.page_path,
-          pp.page_title,
-          pp.page_title_kh,
-          pp.icon_name,
-          pp.sort_order,
-          pp.sort_order as user_sort_order,
+          pp.name as page_name,
+          pp.path as page_path,
+          pp.description as page_title,
+          999 as user_sort_order,
           pp.created_at,
           pp.updated_at
-          ${hierarchyColumns}
-        FROM page_permissions pp
-        JOIN role_page_permissions rpp ON pp.id = rpp.page_id
-        WHERE rpp.role = $1 AND rpp.is_allowed = true
-        ORDER BY ${hasHierarchy ? 'pp.parent_page_id NULLS FIRST, ' : ''}pp.sort_order ASC, pp.page_name ASC
+        FROM tbl_tarl_pages pp
+        JOIN tbl_tarl_role_permissions rpp ON pp.id = rpp.page_id
+        JOIN tbl_tarl_roles r ON rpp.role_id = r.id
+        WHERE r.name = $1 AND rpp.can_access = true
+        ORDER BY pp.name ASC
       `;
       queryParams = [currentUser.role_name];
     }
