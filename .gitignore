@@ -18,9 +18,19 @@ yarn-error.log*
 
 # env files
 .env*
+!.env.example
+!.env.production.example
 
 # vercel
 .vercel
+
+# database backups
+database-backup-*/
+database-backup-*.tar.gz
+backup-local-database*.sh
+*.dump
+*.sql
+!scripts/*.sql
 
 # typescript
 *.tsbuildinfo
