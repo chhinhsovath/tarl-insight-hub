@@ -21,9 +21,10 @@ const config: Config = {
     },
     extend: {
       fontFamily: {
-        'sans': ['Inter', 'Hanuman', 'sans-serif'],
+        'sans': ['Hanuman', 'system-ui', '-apple-system', 'sans-serif'],
         'khmer': ['Hanuman', 'serif'],
         'hanuman': ['Hanuman', 'serif'],
+        'mono': ['ui-monospace', 'SFMono-Regular', 'Consolas', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",

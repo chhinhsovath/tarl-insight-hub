@@ -40,8 +40,19 @@ export function GlobalLanguageProvider({ children }: GlobalLanguageProviderProps
     setLanguageState(newLanguage);
     if (typeof window !== 'undefined') {
       localStorage.setItem('global-language', newLanguage);
+      // Apply language-specific styling to body
+      document.body.setAttribute('data-lang', newLanguage);
+      document.documentElement.setAttribute('lang', newLanguage === 'kh' ? 'km' : 'en');
     }
   };
+  
+  // Apply initial language attributes
+  useEffect(() => {
+    if (mounted && typeof window !== 'undefined') {
+      document.body.setAttribute('data-lang', language);
+      document.documentElement.setAttribute('lang', language === 'kh' ? 'km' : 'en');
+    }
+  }, [mounted, language]);
   
   // During SSR and before hydration, we use English as default
   if (!mounted) {

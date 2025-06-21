@@ -96,7 +96,77 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
-    font-family: 'Inter', 'Hanuman', sans-serif;
+    font-family: 'Hanuman', system-ui, -apple-system, sans-serif;
+    font-optical-sizing: auto;
+    font-variation-settings: "wdth" 100;
+  }
+  
+  /* Ensure consistent font rendering for all text elements */
+  * {
+    font-family: inherit;
+  }
+  
+  /* Optimize font rendering for both Latin and Khmer scripts */
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  
+  /* Enhanced text rendering for consistent appearance */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Hanuman', system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+  
+  p, span, div, button, input, textarea, label {
+    font-family: 'Hanuman', system-ui, sans-serif;
+    font-weight: 400;
+  }
+  
+  /* Ensure consistent line height for mixed content */
+  .text-content {
+    line-height: 1.6;
+  }
+  
+  /* Specific styling for Khmer text to ensure proper rendering */
+  .khmer, 
+  [lang="km"],
+  [data-lang="km"] {
+    font-family: 'Hanuman', serif;
+    font-weight: 400;
+    line-height: 1.7;
+  }
+  
+  /* Override any component-specific font families */
+  .font-sans {
+    font-family: 'Hanuman', system-ui, -apple-system, sans-serif !important;
+  }
+  
+  /* Ensure UI components use consistent font */
+  button, 
+  .btn,
+  input,
+  select,
+  textarea,
+  .form-control {
+    font-family: 'Hanuman', system-ui, sans-serif;
+  }
+  
+  /* Navigation and menu items */
+  nav,
+  .nav,
+  .menu,
+  .sidebar {
+    font-family: 'Hanuman', system-ui, sans-serif;
+  }
+  
+  /* Card and content areas */
+  .card,
+  .content,
+  .prose {
+    font-family: 'Hanuman', system-ui, sans-serif;
   }
   
   /* Khmer text styling */

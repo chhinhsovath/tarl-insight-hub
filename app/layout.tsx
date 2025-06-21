@@ -1,6 +1,5 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/lib/auth-context"
 import { ErrorBoundary } from "@/components/error-boundary"
@@ -14,10 +13,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
-const inter = Inter({ subsets: ["latin"] })
-
 // Note: Hanuman font is loaded via Google Fonts in the head section below
-// This provides broader character set support for Khmer text
+// This provides broader character set support for both English and Khmer text
 
 export const metadata: Metadata = {
   title: "មជ្ឈមណ្ឌលអន្តរកម្ម TaRL Insight Hub",
@@ -58,7 +55,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link 
-          href="https://fonts.googleapis.com/css2?family=Hanuman:wght@100..900&display=swap" 
+          href="https://fonts.googleapis.com/css2?family=Hanuman:wght@100;300;400;500;600;700;900&display=swap" 
           rel="stylesheet" 
         />
         <link rel="icon" href="/favicon.png" type="image/png" />
@@ -66,7 +63,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-icon.png" />
         <link rel="manifest" href="/site.webmanifest" />
       </head>
-      <body className={inter.className} suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <ErrorBoundary>
           <AuthProvider>
             {children}
