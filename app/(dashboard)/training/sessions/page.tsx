@@ -32,7 +32,7 @@ import { useRouter } from 'next/navigation';
 import DeleteSessionDialog from '@/components/delete-session-dialog';
 // import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 import { TrainingLocaleProvider } from '@/components/training-locale-provider';
-// import { useTrainingTranslation } from '@/lib/training-i18n';
+import { useTrainingTranslation } from '@/lib/training-i18n';
 interface TrainingSession {
   id: number;
   session_title: string;
