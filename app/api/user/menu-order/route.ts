@@ -97,6 +97,8 @@ export async function GET() {
     
     const columns = columnCheck.rows.map(row => row.column_name);
     const hasSortOrder = columns.includes('sort_order');
+    const hasKhmerFields = columns.includes('page_name_kh') && columns.includes('page_title_kh');
+    const khmerColumns = hasKhmerFields ? ', pp.page_name_kh, pp.page_title_kh' : '';
     
     if (usePersonalOrder) {
       // Get pages with user's custom sort order
@@ -109,6 +111,7 @@ export async function GET() {
           COALESCE(umo.sort_order, ${hasSortOrder ? 'pp.sort_order,' : ''} 999) as user_sort_order,
           pp.created_at,
           pp.updated_at
+          ${khmerColumns}
         FROM page_permissions pp
         JOIN role_page_permissions rpp ON pp.id = rpp.page_id
         LEFT JOIN user_menu_order umo ON pp.id = umo.page_id AND umo.user_id = $1
@@ -127,6 +130,7 @@ export async function GET() {
           ${hasSortOrder ? 'pp.sort_order' : '999'} as user_sort_order,
           pp.created_at,
           pp.updated_at
+          ${khmerColumns}
         FROM page_permissions pp
         JOIN role_page_permissions rpp ON pp.id = rpp.page_id
         WHERE rpp.role = $1 AND rpp.is_allowed = true
