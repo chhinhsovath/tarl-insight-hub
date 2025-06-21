@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { useMenu } from "@/lib/menu-context";
-import { useTrainingTranslation } from "@/lib/training-i18n";
+import { useGlobalLanguage } from "@/lib/global-language-context";
 import {
   ChevronLeft,
   LogOut,
@@ -105,59 +105,67 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { refreshTrigger } = useMenu();
-  const { t } = useTrainingTranslation();
+  const { language } = useGlobalLanguage();
   const [pages, setPages] = useState<PagePermission[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   // Function to get translated category labels
-  const getCategoryLabels = () => ({
-    overview: "Overview",
-    management: "Management", 
-    data: "Data Collection",
-    analytics: "Analytics & Reports",
-    learning: t.trainingManagement || "Learning",
-    admin: "Administration",
-    other: "Other"
-  });
+  const getCategoryLabels = () => {
+    const isKhmer = language === 'kh';
+    return {
+      overview: isKhmer ? "ទិដ្ឋភាពទូទៅ" : "Overview",
+      management: isKhmer ? "ការគ្រប់គ្រង" : "Management", 
+      data: isKhmer ? "ការប្រមូលទិន្នន័យ" : "Data Collection",
+      analytics: isKhmer ? "ការវិភាគ & របាយការណ៍" : "Analytics & Reports",
+      learning: isKhmer ? "ការបណ្តុះបណ្តាល" : "Training",
+      admin: isKhmer ? "ការគ្រប់គ្រងប្រព័ន្ធ" : "Administration",
+      other: isKhmer ? "ផ្សេងៗ" : "Other"
+    };
+  };
 
   // Function to get translated menu item names
   const getTranslatedMenuName = (page: PagePermission) => {
-    // Check if we should use Khmer - based on training translation locale
-    const isKhmerLocale = t.locale === 'km';
+    // Check if we should use Khmer - based on global language context
+    const isKhmer = language === 'kh';
     
-    // If Khmer locale and Khmer translation exists, use it
-    if (isKhmerLocale && page.page_name_kh) {
+    // If Khmer is selected and Khmer translation exists in database, use it
+    if (isKhmer && page.page_name_kh) {
       return page.page_name_kh;
     }
     
-    // For training-related paths, use training translation system
-    if (page.page_path.startsWith('/training/')) {
-      switch (page.page_path) {
-        case '/training/sessions':
-          return t.trainingSessions;
-        case '/training/programs':
-          return t.trainingPrograms;
-        case '/training/participants':
-          return t.participants;
-        case '/training/qr-codes':
-          return t.qrCodes;
-        case '/training/feedback':
-          return t.trainingFeedback;
-        case '/training':
-          return t.trainingManagement;
-        default:
-          return page.page_name;
+    // Fallback manual translations for common menu items when database doesn't have Khmer
+    if (isKhmer) {
+      const khmerTranslations: Record<string, string> = {
+        'Dashboard': 'ផ្ទាំងគ្រប់គ្រង',
+        'Schools': 'សាលារៀន',
+        'Users': 'អ្នកប្រើប្រាស់',
+        'Students': 'សិស្ស',
+        'Training': 'ការបណ្តុះបណ្តាល',
+        'Training Programs': 'កម្មវិធីបណ្តុះបណ្តាល',
+        'Training Sessions': 'វគ្គបណ្តុះបណ្តាល',
+        'Participants': 'អ្នកចូលរួម',
+        'QR Codes': 'លេខកូដ QR',
+        'Training Feedback': 'មតិយោបល់បណ្តុះបណ្តាល',
+        'Settings': 'ការកំណត់',
+        'Analytics': 'ការវិភាគ',
+        'Reports': 'របាយការណ៍',
+        'Observations': 'ការសង្កេត',
+        'Data Collection': 'ការប្រមូលទិន្នន័យ'
+      };
+      
+      if (khmerTranslations[page.page_name]) {
+        return khmerTranslations[page.page_name];
       }
     }
     
-    // For non-training paths, return original name
+    // Return original English name as fallback
     return page.page_name;
   };
 
   useEffect(() => {
     loadPages();
-  }, [refreshTrigger]);
+  }, [refreshTrigger, language]);
 
   // Auto-expand parent menus that contain the current page
   useEffect(() => {
@@ -280,7 +288,7 @@ export function DynamicSidebarNav({ open, setOpen }: SidebarNavProps) {
     // Convert to menu items
     const filteredPages = pages;
     
-    // Create menu items
+    // Create menu items with language-aware names
     const allMenuItems: MenuItem[] = filteredPages.map(page => ({
       id: page.id,
       name: getTranslatedMenuName(page),
