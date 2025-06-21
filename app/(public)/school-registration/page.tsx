@@ -28,17 +28,20 @@ import {
   WaterDrop,
   ArrowLeft
 } from "lucide-react";
-import { DemographicDropdowns } from "@/components/demographic-dropdowns";
+import { KhmerDemographicDropdowns } from "@/components/khmer-demographic-dropdowns";
+import { useSchoolRegistrationTranslation } from "@/lib/school-registration-i18n";
 
 interface School {
   sclAutoID: number;
-  sclCode: string;
+  sclCode?: string;
   sclName: string;
-  sclZoneName: string;
+  sclZoneName?: string;
   sclProvinceName: string;
   sclDistrictName: string;
-  sclCommuneName: string;
-  sclVillageName: string;
+  sclCommuneName?: string;
+  sclVillageName?: string;
+  sclCluster?: string;
+  sclZone?: string;
   sclStatus: number;
 }
 
@@ -50,6 +53,23 @@ interface SchoolDetails {
   totalClasses: string;
   totalStudents: string;
   totalTeachers: string;
+  
+  // School Details
+  schoolCode: string;
+  schoolCluster: string;
+  schoolZone: string;
+  
+  // Demographic Areas
+  provinceId: string;
+  districtId: string;
+  communeId: string;
+  villageId: string;
+  provinceName: string;
+  districtName: string;
+  communeName: string;
+  villageName: string;
+  detailedAddress: string;
+  postalCode: string;
   
   // Infrastructure
   buildingCondition: string;
@@ -84,6 +104,10 @@ interface SchoolDetails {
 }
 
 export default function PublicSchoolRegistrationPage() {
+  // Use only Khmer translations
+  const { t } = useSchoolRegistrationTranslation();
+  const isKhmer = true; // Always Khmer
+  
   // School Search States
   const [searchTerm, setSearchTerm] = useState("");
   const [schools, setSchools] = useState<School[]>([]);
@@ -99,6 +123,19 @@ export default function PublicSchoolRegistrationPage() {
     totalClasses: "",
     totalStudents: "",
     totalTeachers: "",
+    schoolCode: "",
+    schoolCluster: "",
+    schoolZone: "",
+    provinceId: "",
+    districtId: "",
+    communeId: "",
+    villageId: "",
+    provinceName: "",
+    districtName: "",
+    communeName: "",
+    villageName: "",
+    detailedAddress: "",
+    postalCode: "",
     buildingCondition: "",
     classroomCount: "",
     toiletCount: "",
@@ -128,43 +165,54 @@ export default function PublicSchoolRegistrationPage() {
   const [locationLoading, setLocationLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  // Load schools on component mount
+  // Search schools when search term changes (with debounce)
   useEffect(() => {
-    loadSchools();
-  }, []);
+    const timeoutId = setTimeout(() => {
+      if (searchTerm.trim().length >= 2) {
+        loadSchools(searchTerm);
+      } else {
+        setSchools([]);
+        setFilteredSchools([]);
+      }
+    }, 500); // 500ms debounce
 
-  // Filter schools based on search term
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  // Update filtered schools when schools data changes
   useEffect(() => {
-    if (!searchTerm.trim()) {
-      setFilteredSchools([]);
+    setFilteredSchools(schools.slice(0, 10)); // Show up to 10 results
+  }, [schools]);
+
+  const loadSchools = async (searchQuery: string = "") => {
+    if (!searchQuery.trim()) {
+      setSchools([]);
       return;
     }
-
-    const filtered = schools.filter(school => 
-      school.sclName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      school.sclCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      school.sclProvinceName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      school.sclDistrictName?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
     
-    setFilteredSchools(filtered.slice(0, 10)); // Limit to 10 results
-  }, [searchTerm, schools]);
-
-  const loadSchools = async () => {
     try {
       setLoadingSchools(true);
-      const response = await fetch('/api/data/schools?limit=1000', {
+      console.log("Searching for schools with query:", searchQuery);
+      
+      const response = await fetch(`/api/public/schools?search=${encodeURIComponent(searchQuery)}&limit=20`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
       });
       
+      console.log("Response status:", response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log("Received schools data:", data);
         setSchools(Array.isArray(data) ? data : []);
+      } else {
+        const errorData = await response.text();
+        console.error("API error:", response.status, errorData);
+        toast.error(t.failedToSearchSchools);
       }
     } catch (error) {
-      console.error("Error loading schools:", error);
-      toast.error("Failed to load schools list");
+      console.error("Error searching schools:", error);
+      toast.error(t.failedToSearchSchools);
     } finally {
       setLoadingSchools(false);
     }
@@ -174,6 +222,14 @@ export default function PublicSchoolRegistrationPage() {
     setSelectedSchool(school);
     setSearchTerm(school.sclName);
     setFilteredSchools([]);
+    
+    // Pre-populate form data with existing school information
+    setFormData(prev => ({
+      ...prev,
+      schoolCode: school.sclCode || "",
+      schoolCluster: school.sclCluster || "",
+      schoolZone: school.sclZone || ""
+    }));
   };
 
   const handleInputChange = (field: keyof SchoolDetails, value: string) => {
@@ -183,9 +239,10 @@ export default function PublicSchoolRegistrationPage() {
     }));
   };
 
+
   const getCurrentLocation = useCallback(() => {
     if (!navigator.geolocation) {
-      toast.error("Your device doesn't support GPS location");
+      toast.error(`${t.yourDevice} ${t.doesntSupportGPS}`);
       return;
     }
 
@@ -200,11 +257,11 @@ export default function PublicSchoolRegistrationPage() {
           longitude: longitude.toString()
         }));
         setLocationLoading(false);
-        toast.success("GPS location captured successfully");
+        toast.success(t.locationCapturedSuccess);
       },
       (error) => {
         setLocationLoading(false);
-        toast.error("Could not get GPS location");
+        toast.error(t.couldNotGetLocation);
       },
       {
         enableHighAccuracy: true,
@@ -212,30 +269,30 @@ export default function PublicSchoolRegistrationPage() {
         maximumAge: 0
       }
     );
-  }, []);
+  }, [t]);
 
   const validateForm = () => {
     if (!selectedSchool) {
-      toast.error("Please select a school");
+      toast.error(t.pleaseSelectSchool);
       return false;
     }
 
     const required = [
-      { field: formData.directorName, name: "Director Name" },
-      { field: formData.directorPhone, name: "Director Phone" },
-      { field: formData.schoolType, name: "School Type" },
-      { field: formData.schoolLevel, name: "School Level" }
+      { field: formData.directorName, name: t.fullName },
+      { field: formData.directorPhone, name: t.phoneNumber },
+      { field: formData.schoolType, name: t.schoolType },
+      { field: formData.schoolLevel, name: t.schoolLevel }
     ];
 
     for (const item of required) {
       if (!item.field?.trim()) {
-        toast.error(`Please enter ${item.name}`);
+        toast.error(`${t.pleaseEnter} ${item.name}`);
         return false;
       }
     }
 
     if (formData.directorEmail && !/\S+@\S+\.\S+/.test(formData.directorEmail)) {
-      toast.error("Invalid email format");
+      toast.error(t.invalidEmailFormat);
       return false;
     }
 
@@ -265,13 +322,13 @@ export default function PublicSchoolRegistrationPage() {
 
       if (response.ok) {
         setSubmitted(true);
-        toast.success("Registration submitted successfully");
+        toast.success(t.registrationSubmitted);
       } else {
-        toast.error(result.error || "Registration failed");
+        toast.error(result.error || t.registrationFailed);
       }
     } catch (error) {
       console.error("Registration error:", error);
-      toast.error("Network error occurred");
+      toast.error(t.networkError);
     } finally {
       setLoading(false);
     }
@@ -285,23 +342,23 @@ export default function PublicSchoolRegistrationPage() {
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
-            <CardTitle className="text-green-600 text-2xl">
-              Registration Successful
+            <CardTitle className={`text-green-600 text-2xl ${isKhmer ? 'font-hanuman' : ''}`}>
+              {t.registrationSuccessful}
             </CardTitle>
-            <CardDescription className="text-lg">
-              Your school registration request has been submitted successfully
+            <CardDescription className={`text-lg ${isKhmer ? 'font-hanuman' : ''}`}>
+              {t.registrationSubmitted}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-green-800 font-medium mb-2">
-                What happens next?
+              <p className={`text-green-800 font-medium mb-2 ${isKhmer ? 'font-hanuman' : ''}`}>
+                {t.whatHappensNext}
               </p>
-              <ul className="text-sm text-green-700 space-y-1 text-left">
-                <li>• Your registration is now pending approval</li>
-                <li>• System administrators will review your submission</li>
-                <li>• You will receive confirmation once approved</li>
-                <li>• Access credentials will be provided via email/phone</li>
+              <ul className={`text-sm text-green-700 space-y-1 text-left ${isKhmer ? 'font-hanuman' : ''}`}>
+                <li>{t.registrationPending}</li>
+                <li>{t.adminReview}</li>
+                <li>{t.receiveConfirmation}</li>
+                <li>{t.accessCredentials}</li>
               </ul>
             </div>
             
@@ -309,17 +366,17 @@ export default function PublicSchoolRegistrationPage() {
               <Button 
                 onClick={() => window.location.href = "/"} 
                 variant="outline"
-                className="flex items-center gap-2"
+                className={`flex items-center gap-2 ${isKhmer ? 'font-hanuman' : ''}`}
               >
                 <ArrowLeft className="w-4 h-4" />
-                Back to Home
+                {t.backToHome}
               </Button>
               <Button 
                 onClick={() => window.location.reload()} 
-                className="flex items-center gap-2"
+                className={`flex items-center gap-2 ${isKhmer ? 'font-hanuman' : ''}`}
               >
                 <School className="w-4 h-4" />
-                Register Another School
+                {t.registerAnother}
               </Button>
             </div>
           </CardContent>
@@ -337,15 +394,15 @@ export default function PublicSchoolRegistrationPage() {
             <div className="mx-auto w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-6">
               <School className="w-10 h-10 text-blue-600" />
             </div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-3">
-              School Registration
+            <h1 className={`text-4xl font-bold text-gray-900 mb-3 ${isKhmer ? 'font-hanuman' : ''}`}>
+              {t.schoolRegistration}
             </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Complete comprehensive information about your school to join the TaRL Insight Hub system
+            <p className={`text-xl text-gray-600 max-w-2xl mx-auto ${isKhmer ? 'font-hanuman' : ''}`}>
+              {t.pageSubtitle}
             </p>
-            <div className="mt-4 inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm">
+            <div className={`mt-4 inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm ${isKhmer ? 'font-hanuman' : ''}`}>
               <Users className="w-4 h-4" />
-              For School Directors and Administrators
+              {t.forDirectorsNote}
             </div>
           </div>
 
@@ -353,24 +410,35 @@ export default function PublicSchoolRegistrationPage() {
             {/* School Search & Selection */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-xl">
+                <CardTitle className={`flex items-center gap-2 text-xl ${isKhmer ? 'font-hanuman' : ''}`}>
                   <Search className="h-6 w-6" />
-                  Find Your School
+                  {t.findYourSchool}
                 </CardTitle>
-                <CardDescription>
-                  Search for your school from our database of registered schools
+                <CardDescription className={isKhmer ? 'font-hanuman' : ''}>
+                  {t.searchDescription}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <Input
-                    placeholder="Search by school name, code, or location..."
+                    placeholder={t.searchPlaceholder}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 text-lg py-3"
+                    className={`pl-10 pr-10 text-lg py-3 ${isKhmer ? 'font-hanuman' : ''}`}
                   />
+                  {loadingSchools && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                    </div>
+                  )}
                 </div>
+                
+                {searchTerm.length > 0 && searchTerm.length < 2 && (
+                  <p className={`text-sm text-gray-500 mt-1 ${isKhmer ? 'font-hanuman' : ''}`}>
+                    {t.searchMinChars}
+                  </p>
+                )}
 
                 {/* Search Results */}
                 {filteredSchools.length > 0 && (
@@ -383,16 +451,19 @@ export default function PublicSchoolRegistrationPage() {
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900 text-lg">{school.sclName}</h4>
-                            <p className="text-gray-600 mt-1">
-                              <span className="font-medium">Code:</span> {school.sclCode}
-                            </p>
-                            <p className="text-sm text-gray-500 mt-1">
-                              📍 {school.sclVillageName}, {school.sclCommuneName}, {school.sclDistrictName}, {school.sclProvinceName}
+                            <h4 className={`font-semibold text-gray-900 text-lg ${isKhmer ? 'font-hanuman' : ''}`}>{school.sclName}</h4>
+                            {school.sclCode && (
+                              <p className={`text-gray-600 mt-1 ${isKhmer ? 'font-hanuman' : ''}`}>
+                                <span className="font-medium">{t.schoolCode}:</span> {school.sclCode}
+                              </p>
+                            )}
+                            <p className={`text-sm text-gray-500 mt-1 ${isKhmer ? 'font-hanuman' : ''}`}>
+                              📍 {[school.sclCluster, school.sclCommuneName, school.sclDistrictName, school.sclProvinceName].filter(Boolean).join(', ')}
+                              {school.sclZoneName && <span className="block text-xs">{t.zone}: {school.sclZoneName}</span>}
                             </p>
                           </div>
-                          <Badge variant={school.sclStatus === 1 ? "default" : "secondary"}>
-                            {school.sclStatus === 1 ? "Active" : "Inactive"}
+                          <Badge variant={school.sclStatus === 1 ? "default" : "secondary"} className={isKhmer ? 'font-hanuman' : ''}>
+                            {school.sclStatus === 1 ? t.active : t.inactive}
                           </Badge>
                         </div>
                       </div>
@@ -408,12 +479,15 @@ export default function PublicSchoolRegistrationPage() {
                         <Building className="w-6 h-6 text-blue-600" />
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-bold text-blue-900 text-xl">{selectedSchool.sclName}</h4>
-                        <p className="text-blue-700 mt-1">
-                          <span className="font-medium">School Code:</span> {selectedSchool.sclCode}
-                        </p>
-                        <p className="text-blue-600 text-sm mt-1">
-                          📍 {selectedSchool.sclVillageName}, {selectedSchool.sclCommuneName}, {selectedSchool.sclDistrictName}, {selectedSchool.sclProvinceName}
+                        <h4 className={`font-bold text-blue-900 text-xl ${isKhmer ? 'font-hanuman' : ''}`}>{selectedSchool.sclName}</h4>
+                        {selectedSchool.sclCode && (
+                          <p className={`text-blue-700 mt-1 ${isKhmer ? 'font-hanuman' : ''}`}>
+                            <span className="font-medium">{t.schoolCode}:</span> {selectedSchool.sclCode}
+                          </p>
+                        )}
+                        <p className={`text-blue-600 text-sm mt-1 ${isKhmer ? 'font-hanuman' : ''}`}>
+                          📍 {[selectedSchool.sclCluster, selectedSchool.sclCommuneName, selectedSchool.sclDistrictName, selectedSchool.sclProvinceName].filter(Boolean).join(', ')}
+                          {selectedSchool.sclZoneName && <span className="block text-xs mt-1">{t.zone}: {selectedSchool.sclZoneName}</span>}
                         </p>
                       </div>
                       <Button
@@ -424,18 +498,19 @@ export default function PublicSchoolRegistrationPage() {
                           setSelectedSchool(null);
                           setSearchTerm("");
                         }}
+                        className={isKhmer ? 'font-hanuman' : ''}
                       >
-                        Change School
+                        {t.changeSchool}
                       </Button>
                     </div>
                   </div>
                 )}
 
                 {searchTerm && filteredSchools.length === 0 && !loadingSchools && (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className={`text-center py-8 text-gray-500 ${isKhmer ? 'font-hanuman' : ''}`}>
                     <School className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                    <p>No schools found matching "{searchTerm}"</p>
-                    <p className="text-sm mt-1">Try searching with different keywords or contact support</p>
+                    <p>{t.noSchoolsFound} "{searchTerm}"</p>
+                    <p className="text-sm mt-1">{t.tryDifferentKeywords}</p>
                   </div>
                 )}
               </CardContent>
@@ -446,100 +521,215 @@ export default function PublicSchoolRegistrationPage() {
                 {/* Basic School Information */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-xl">
+                    <CardTitle className={`flex items-center gap-2 text-xl ${isKhmer ? 'font-hanuman' : ''}`}>
                       <School className="h-6 w-6" />
-                      Basic School Information
+                      {t.basicSchoolInfo}
                     </CardTitle>
-                    <CardDescription>
-                      Provide essential details about your school
+                    <CardDescription className={isKhmer ? 'font-hanuman' : ''}>
+                      {t.basicInfoDescription}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <Label htmlFor="schoolType" className="text-base font-medium">
-                          School Type *
+                        <Label htmlFor="schoolType" className={`text-base font-medium ${isKhmer ? 'font-hanuman' : ''}`}>
+                          {t.schoolType} {t.required}
                         </Label>
                         <Select value={formData.schoolType} onValueChange={(value) => handleInputChange("schoolType", value)}>
                           <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Select school type" />
+                            <SelectValue placeholder={t.schoolType} className={isKhmer ? 'font-hanuman' : ''} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="public">Public School</SelectItem>
-                            <SelectItem value="private">Private School</SelectItem>
-                            <SelectItem value="community">Community School</SelectItem>
+                            <SelectItem value="public" className={isKhmer ? 'font-hanuman' : ''}>{t.publicSchool}</SelectItem>
+                            <SelectItem value="private" className={isKhmer ? 'font-hanuman' : ''}>{t.privateSchool}</SelectItem>
+                            <SelectItem value="community" className={isKhmer ? 'font-hanuman' : ''}>{t.communitySchool}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
-                        <Label htmlFor="schoolLevel" className="text-base font-medium">
-                          School Level *
+                        <Label htmlFor="schoolLevel" className={`text-base font-medium ${isKhmer ? 'font-hanuman' : ''}`}>
+                          {t.schoolLevel} {t.required}
                         </Label>
                         <Select value={formData.schoolLevel} onValueChange={(value) => handleInputChange("schoolLevel", value)}>
                           <SelectTrigger className="mt-1">
-                            <SelectValue placeholder="Select school level" />
+                            <SelectValue placeholder={t.schoolLevel} className={isKhmer ? 'font-hanuman' : ''} />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="primary">Primary School</SelectItem>
-                            <SelectItem value="secondary">Secondary School</SelectItem>
-                            <SelectItem value="high">High School</SelectItem>
-                            <SelectItem value="mixed">Mixed Levels</SelectItem>
+                            <SelectItem value="primary" className={isKhmer ? 'font-hanuman' : ''}>{t.primarySchool}</SelectItem>
+                            <SelectItem value="secondary" className={isKhmer ? 'font-hanuman' : ''}>{t.secondarySchool}</SelectItem>
+                            <SelectItem value="high" className={isKhmer ? 'font-hanuman' : ''}>{t.highSchool}</SelectItem>
+                            <SelectItem value="mixed" className={isKhmer ? 'font-hanuman' : ''}>{t.mixedLevels}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
                       <div>
-                        <Label htmlFor="establishedYear" className="text-base font-medium">
-                          Established Year
+                        <Label htmlFor="establishedYear" className={`text-base font-medium ${isKhmer ? 'font-hanuman' : ''}`}>
+                          {t.establishedYear}
                         </Label>
                         <Input
                           id="establishedYear"
                           type="number"
                           value={formData.establishedYear}
                           onChange={(e) => handleInputChange("establishedYear", e.target.value)}
-                          placeholder="Year school was established"
-                          className="mt-1"
+                          placeholder={t.establishedYear}
+                          className={`mt-1 ${isKhmer ? 'font-hanuman' : ''}`}
                         />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <Label htmlFor="totalClasses" className="text-base font-medium">
-                          Total Classes
+                        <Label htmlFor="totalClasses" className={`text-base font-medium ${isKhmer ? 'font-hanuman' : ''}`}>
+                          {t.totalClasses}
                         </Label>
                         <Input
                           id="totalClasses"
                           type="number"
                           value={formData.totalClasses}
                           onChange={(e) => handleInputChange("totalClasses", e.target.value)}
-                          placeholder="Number of classes"
-                          className="mt-1"
+                          placeholder={t.totalClasses}
+                          className={`mt-1 ${isKhmer ? 'font-hanuman' : ''}`}
                         />
                       </div>
                       <div>
-                        <Label htmlFor="totalStudents" className="text-base font-medium">
-                          Total Students
+                        <Label htmlFor="totalStudents" className={`text-base font-medium ${isKhmer ? 'font-hanuman' : ''}`}>
+                          {t.totalStudents}
                         </Label>
                         <Input
                           id="totalStudents"
                           type="number"
                           value={formData.totalStudents}
                           onChange={(e) => handleInputChange("totalStudents", e.target.value)}
-                          placeholder="Number of students"
-                          className="mt-1"
+                          placeholder={t.totalStudents}
+                          className={`mt-1 ${isKhmer ? 'font-hanuman' : ''}`}
                         />
                       </div>
                       <div>
-                        <Label htmlFor="totalTeachers" className="text-base font-medium">
-                          Total Teachers
+                        <Label htmlFor="totalTeachers" className={`text-base font-medium ${isKhmer ? 'font-hanuman' : ''}`}>
+                          {t.totalTeachers}
                         </Label>
                         <Input
                           id="totalTeachers"
                           type="number"
                           value={formData.totalTeachers}
                           onChange={(e) => handleInputChange("totalTeachers", e.target.value)}
-                          placeholder="Number of teachers"
-                          className="mt-1"
+                          placeholder={t.totalTeachers}
+                          className={`mt-1 ${isKhmer ? 'font-hanuman' : ''}`}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* School Details Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className={`flex items-center gap-2 text-xl ${isKhmer ? 'font-hanuman' : ''}`}>
+                      <School className="h-6 w-6" />
+                      {t.newSchoolCode}
+                    </CardTitle>
+                    <CardDescription className={isKhmer ? 'font-hanuman' : ''}>
+                      Update or add school administrative details
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="schoolCode" className={`text-base font-medium ${isKhmer ? 'font-hanuman' : ''}`}>
+                          {t.newSchoolCode} {t.optional}
+                        </Label>
+                        <Input
+                          id="schoolCode"
+                          value={formData.schoolCode}
+                          onChange={(e) => handleInputChange("schoolCode", e.target.value)}
+                          placeholder={t.newSchoolCode}
+                          className={`mt-1 ${isKhmer ? 'font-hanuman' : ''}`}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="schoolCluster" className={`text-base font-medium ${isKhmer ? 'font-hanuman' : ''}`}>
+                          {t.newSchoolCluster} {t.optional}
+                        </Label>
+                        <Input
+                          id="schoolCluster"
+                          value={formData.schoolCluster}
+                          onChange={(e) => handleInputChange("schoolCluster", e.target.value)}
+                          placeholder={t.newSchoolCluster}
+                          className={`mt-1 ${isKhmer ? 'font-hanuman' : ''}`}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="schoolZone" className={`text-base font-medium ${isKhmer ? 'font-hanuman' : ''}`}>
+                          {t.newSchoolZone} {t.optional}
+                        </Label>
+                        <Input
+                          id="schoolZone"
+                          value={formData.schoolZone}
+                          onChange={(e) => handleInputChange("schoolZone", e.target.value)}
+                          placeholder={t.newSchoolZone}
+                          className={`mt-1 ${isKhmer ? 'font-hanuman' : ''}`}
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Demographic Areas Section */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className={`flex items-center gap-2 text-xl ${isKhmer ? 'font-hanuman' : ''}`}>
+                      <MapPin className="h-6 w-6" />
+                      {t.province} → {t.district} → {t.commune} → {t.village}
+                    </CardTitle>
+                    <CardDescription className={isKhmer ? 'font-hanuman' : ''}>
+                      Select the administrative location hierarchy for your school
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <KhmerDemographicDropdowns
+                      selectedProvince={formData.provinceId}
+                      selectedDistrict={formData.districtId}
+                      selectedCommune={formData.communeId}
+                      selectedVillage={formData.villageId}
+                      onProvinceChange={(provinceId) => {
+                        handleInputChange('provinceId', provinceId);
+                      }}
+                      onDistrictChange={(districtId) => {
+                        handleInputChange('districtId', districtId);
+                      }}
+                      onCommuneChange={(communeId) => {
+                        handleInputChange('communeId', communeId);
+                      }}
+                      onVillageChange={(villageId) => {
+                        handleInputChange('villageId', villageId);
+                      }}
+                      required={false}
+                    />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="detailedAddress" className={`text-base font-medium ${isKhmer ? 'font-hanuman' : ''}`}>
+                          {t.detailedAddress} {t.optional}
+                        </Label>
+                        <Textarea
+                          id="detailedAddress"
+                          value={formData.detailedAddress}
+                          onChange={(e) => handleInputChange("detailedAddress", e.target.value)}
+                          placeholder={t.detailedAddress}
+                          className={`mt-1 ${isKhmer ? 'font-hanuman' : ''}`}
+                          rows={3}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="postalCode" className={`text-base font-medium ${isKhmer ? 'font-hanuman' : ''}`}>
+                          {t.postalCode} {t.optional}
+                        </Label>
+                        <Input
+                          id="postalCode"
+                          value={formData.postalCode}
+                          onChange={(e) => handleInputChange("postalCode", e.target.value)}
+                          placeholder={t.postalCode}
+                          className={`mt-1 ${isKhmer ? 'font-hanuman' : ''}`}
                         />
                       </div>
                     </div>
@@ -549,12 +739,12 @@ export default function PublicSchoolRegistrationPage() {
                 {/* Infrastructure Information */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-xl">
+                    <CardTitle className={`flex items-center gap-2 text-xl ${isKhmer ? 'font-hanuman' : ''}`}>
                       <Building className="h-6 w-6" />
-                      School Infrastructure
+                      {t.schoolInfrastructure}
                     </CardTitle>
-                    <CardDescription>
-                      Tell us about your school's facilities and infrastructure
+                    <CardDescription className={isKhmer ? 'font-hanuman' : ''}>
+                      {t.infrastructureDescription}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -660,12 +850,12 @@ export default function PublicSchoolRegistrationPage() {
                 {/* Director Information */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-xl">
+                    <CardTitle className={`flex items-center gap-2 text-xl ${isKhmer ? 'font-hanuman' : ''}`}>
                       <User className="h-6 w-6" />
-                      Director Information
+                      {t.directorInfo}
                     </CardTitle>
-                    <CardDescription>
-                      Your personal information as the school director
+                    <CardDescription className={isKhmer ? 'font-hanuman' : ''}>
+                      {t.directorInfoDescription}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -918,30 +1108,29 @@ export default function PublicSchoolRegistrationPage() {
                   <CardContent className="pt-6">
                     <div className="text-center space-y-4">
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <p className="text-blue-800 font-medium mb-2">
-                          Ready to submit your registration?
+                        <p className={`text-blue-800 font-medium mb-2 ${isKhmer ? 'font-hanuman' : ''}`}>
+                          {t.readyToSubmit}
                         </p>
-                        <p className="text-sm text-blue-700">
-                          Please review all information carefully before submitting. 
-                          Once submitted, your registration will be reviewed by our team.
+                        <p className={`text-sm text-blue-700 ${isKhmer ? 'font-hanuman' : ''}`}>
+                          {t.reviewCarefully}
                         </p>
                       </div>
                       
                       <Button
                         type="submit"
                         disabled={loading}
-                        className="w-full md:w-auto px-12 py-4 text-lg font-semibold"
+                        className={`w-full md:w-auto px-12 py-4 text-lg font-semibold ${isKhmer ? 'font-hanuman' : ''}`}
                         size="lg"
                       >
                         {loading ? (
                           <>
                             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                            Submitting Registration...
+                            {t.submittingRegistration}
                           </>
                         ) : (
                           <>
                             <CheckCircle className="w-5 h-5 mr-2" />
-                            Submit School Registration
+                            {t.submitRegistration}
                           </>
                         )}
                       </Button>

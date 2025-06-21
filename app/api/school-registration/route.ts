@@ -31,6 +31,24 @@ async function handleEnhancedRegistration(client: any, request: NextRequest, bod
       total_students INTEGER,
       total_teachers INTEGER,
       
+      -- School Details
+      school_code VARCHAR(50),
+      school_cluster VARCHAR(100),
+      school_zone VARCHAR(100),
+      school_zone_name VARCHAR(100),
+      
+      -- Demographic Areas
+      province_id INTEGER,
+      district_id INTEGER,
+      commune_id INTEGER,
+      village_id INTEGER,
+      province_name VARCHAR(100),
+      district_name VARCHAR(100),
+      commune_name VARCHAR(100),
+      village_name VARCHAR(100),
+      detailed_address TEXT,
+      postal_code VARCHAR(20),
+      
       -- Infrastructure
       building_condition VARCHAR(50),
       classroom_count INTEGER,
@@ -74,21 +92,87 @@ async function handleEnhancedRegistration(client: any, request: NextRequest, bod
   await client.query('BEGIN');
 
   try {
+    // Fetch demographic names if IDs are provided
+    let demographicData = {
+      provinceName: null,
+      districtName: null, 
+      communeName: null,
+      villageName: null
+    };
+
+    // If we have a village ID, we can get all demographic info from tbl_tarl_demographics
+    if (schoolData.villageId) {
+      try {
+        const demographicResult = await client.query(`
+          SELECT 
+            pro_code, pro_name,
+            dis_code, dis_name,
+            com_code, com_name,
+            vil_code, vil_name
+          FROM tbl_tarl_demographics 
+          WHERE id = $1
+        `, [parseInt(schoolData.villageId)]);
+
+        if (demographicResult.rows.length > 0) {
+          const demo = demographicResult.rows[0];
+          demographicData.provinceName = demo.pro_name;
+          demographicData.districtName = demo.dis_name;
+          demographicData.communeName = demo.com_name;
+          demographicData.villageName = demo.vil_name;
+        }
+      } catch (error) {
+        console.error('Error fetching demographic data:', error);
+      }
+    } else {
+      // Fallback: get names individually if IDs are provided
+      try {
+        const queries = [];
+        if (schoolData.provinceId) {
+          queries.push(client.query('SELECT DISTINCT pro_name FROM tbl_tarl_demographics WHERE pro_code = $1', [parseInt(schoolData.provinceId)]));
+        }
+        if (schoolData.districtId) {
+          queries.push(client.query('SELECT DISTINCT dis_name FROM tbl_tarl_demographics WHERE dis_code = $1', [parseInt(schoolData.districtId)]));
+        }
+        if (schoolData.communeId) {
+          queries.push(client.query('SELECT DISTINCT com_name FROM tbl_tarl_demographics WHERE com_code = $1', [parseInt(schoolData.communeId)]));
+        }
+
+        const results = await Promise.all(queries);
+        
+        if (schoolData.provinceId && results[0]?.rows.length > 0) {
+          demographicData.provinceName = results[0].rows[0].pro_name;
+        }
+        if (schoolData.districtId && results[1]?.rows.length > 0) {
+          demographicData.districtName = results[1].rows[0].dis_name;
+        }
+        if (schoolData.communeId && results[2]?.rows.length > 0) {
+          demographicData.communeName = results[2].rows[0].com_name;
+        }
+      } catch (error) {
+        console.error('Error fetching demographic names:', error);
+      }
+    }
+
     // Insert comprehensive school registration data
     const insertResult = await client.query(`
       INSERT INTO tbl_tarl_school_registrations (
         school_id, registered_by, school_type, school_level, established_year,
-        total_classes, total_students, total_teachers, building_condition,
-        classroom_count, toilet_count, library_available, computer_lab_available,
-        internet_available, electricity_available, water_source_available,
+        total_classes, total_students, total_teachers, 
+        school_code, school_cluster, school_zone,
+        province_id, district_id, commune_id, village_id,
+        province_name, district_name, commune_name, village_name,
+        detailed_address, postal_code,
+        building_condition, classroom_count, toilet_count, 
+        library_available, computer_lab_available, internet_available, 
+        electricity_available, water_source_available,
         director_name, director_gender, director_age, director_phone,
         director_email, director_education, director_experience,
         school_phone, school_email, latitude, longitude,
         challenges, achievements, support_needed, notes,
         registration_date, status
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
-        $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31,
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
+        $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41,
         NOW(), 'pending'
       )
       RETURNING id
@@ -99,6 +183,14 @@ async function handleEnhancedRegistration(client: any, request: NextRequest, bod
       schoolData.totalClasses ? parseInt(schoolData.totalClasses) : null,
       schoolData.totalStudents ? parseInt(schoolData.totalStudents) : null,
       schoolData.totalTeachers ? parseInt(schoolData.totalTeachers) : null,
+      schoolData.schoolCode || null, schoolData.schoolCluster || null, schoolData.schoolZone || null,
+      schoolData.provinceId ? parseInt(schoolData.provinceId) : null,
+      schoolData.districtId ? parseInt(schoolData.districtId) : null,
+      schoolData.communeId ? parseInt(schoolData.communeId) : null,
+      schoolData.villageId ? parseInt(schoolData.villageId) : null,
+      demographicData.provinceName, demographicData.districtName, 
+      demographicData.communeName, demographicData.villageName,
+      schoolData.detailedAddress || null, schoolData.postalCode || null,
       schoolData.buildingCondition || null,
       schoolData.classroomCount ? parseInt(schoolData.classroomCount) : null,
       schoolData.toiletCount ? parseInt(schoolData.toiletCount) : null,
@@ -328,7 +420,7 @@ export async function POST(request: NextRequest) {
     // Log the registration activity
     const auditLogger = getAuditLogger(pool);
     await auditLogger.logActivity({
-      userId: null, // No user ID for public registration
+      userId: undefined, // No user ID for public registration
       username: directorName,
       userRole: 'public',
       actionType: 'CREATE',
