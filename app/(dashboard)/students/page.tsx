@@ -70,7 +70,7 @@ interface School {
 
 export default function StudentsPage() {
   const { language } = useGlobalLanguage();
-  const { } = useAuth();
+  const { user } = useAuth();
   const isKhmer = language === 'kh';
   
   const [students, setStudents] = useState<Student[]>([]);
@@ -82,6 +82,11 @@ export default function StudentsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  
+  // Add stats state
+  const [totalStudents, setTotalStudents] = useState(0);
+  const [totalActiveStudents, setTotalActiveStudents] = useState(0);
+  const [totalSchools, setTotalSchools] = useState(0);
   
   // Filters
   const [statusFilter, setStatusFilter] = useState('all');
@@ -114,10 +119,14 @@ export default function StudentsPage() {
   const [selectedVillage, setSelectedVillage] = useState('');
 
   useEffect(() => {
-    loadStudents();
-    loadClasses();
-    loadSchools();
-  }, [statusFilter, classFilter, schoolFilter, searchTerm, currentPage]);
+    if (user) {
+      console.log("User authenticated, loading data for:", user.username, user.role);
+      loadStudents();
+      loadClasses();
+      loadSchools();
+      loadStats();
+    }
+  }, [user, statusFilter, classFilter, schoolFilter, searchTerm, currentPage]);
 
   const loadStudents = async () => {
     try {
@@ -136,13 +145,20 @@ export default function StudentsPage() {
         params.set('schoolId', schoolFilter);
       }
 
-      const response = await fetch(`/api/students?${params}`);
+      const response = await fetch(`/api/students?${params}`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
       const result = await response.json();
+      console.log("Students API response:", response.status, result);
 
       if (response.ok) {
         setStudents(result.data || []);
         setTotalPages(result.pagination?.totalPages || 1);
+        console.log("Students loaded:", result.data?.length, "Total pages:", result.pagination?.totalPages);
       } else {
+        console.error("Students API failed:", result);
         toast.error(result.error || (isKhmer ? "មិនអាចទាញយកទិន្នន័យបានទេ" : "Failed to load data"));
       }
     } catch (error) {
@@ -170,10 +186,44 @@ export default function StudentsPage() {
       const response = await fetch('/api/data/schools');
       const result = await response.json();
       if (response.ok) {
-        setSchools(Array.isArray(result.data) ? result.data : []);
+        // Schools API returns array directly, not wrapped in data
+        setSchools(Array.isArray(result) ? result : []);
       }
     } catch (error) {
       console.error("Error loading schools:", error);
+    }
+  };
+
+  const loadStats = async () => {
+    try {
+      console.log("Loading stats from dashboard API...");
+      // Get overall student stats from dashboard API
+      const response = await fetch('/api/dashboard/stats', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const result = await response.json();
+      console.log("Stats API response:", response.status, result);
+      
+      if (response.ok && result.success) {
+        console.log("Setting stats:", result.stats);
+        setTotalStudents(result.stats.totalStudents || 0);
+        setTotalActiveStudents(result.stats.totalStudents || 0); // Assuming all are active
+        setTotalSchools(result.stats.totalSchools || 0);
+      } else {
+        console.error("Stats API failed:", result);
+        // Set to 0 if API fails
+        setTotalStudents(0);
+        setTotalActiveStudents(0);
+        setTotalSchools(0);
+      }
+    } catch (error) {
+      console.error("Error loading stats:", error);
+      // Set to 0 if API fails
+      setTotalStudents(0);
+      setTotalActiveStudents(0);
+      setTotalSchools(0);
     }
   };
 
@@ -397,6 +447,18 @@ export default function StudentsPage() {
     return age;
   };
 
+  // Show loading state if user is not authenticated
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="inline-block w-8 h-8 border-4 border-blue-600 rounded-full animate-spin border-t-transparent"></div>
+          <p className="mt-2 text-gray-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="mb-6">
@@ -426,7 +488,7 @@ export default function StudentsPage() {
                 <p className="text-sm font-medium text-gray-600">
                   {isKhmer ? "សិស្សសរុប" : "Total Students"}
                 </p>
-                <p className="text-2xl font-bold">{students.length}</p>
+                <p className="text-2xl font-bold">{totalStudents.toLocaleString()}</p>
               </div>
             </div>
           </CardContent>
@@ -440,7 +502,7 @@ export default function StudentsPage() {
                   {isKhmer ? "កំពុងសិក្សា" : "Active Students"}
                 </p>
                 <p className="text-2xl font-bold">
-                  {students.filter(s => s.status === 'active').length}
+                  {totalActiveStudents.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -455,7 +517,7 @@ export default function StudentsPage() {
                   {isKhmer ? "សាលា" : "Schools"}
                 </p>
                 <p className="text-2xl font-bold">
-                  {new Set(students.map(s => s.school_name)).size}
+                  {totalSchools.toLocaleString()}
                 </p>
               </div>
             </div>

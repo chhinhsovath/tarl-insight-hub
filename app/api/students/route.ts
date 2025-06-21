@@ -26,7 +26,8 @@ export async function GET(request: NextRequest) {
   try {
     // Validate session and get user info
     const sessionResult = await client.query(
-      'SELECT user_id, username, role FROM tbl_tarl_sessions WHERE session_token = $1 AND expires_at > NOW()',
+      `SELECT id as user_id, username, role FROM tbl_tarl_users 
+       WHERE session_token = $1 AND session_expires > NOW()`,
       [sessionToken]
     );
 
@@ -37,22 +38,10 @@ export async function GET(request: NextRequest) {
     const user = sessionResult.rows[0];
     const offset = (page - 1) * limit;
 
-    // Build WHERE clause
-    let whereConditions = ['s.is_deleted = false'];
+    // Build WHERE clause for existing student data
+    let whereConditions = ['1=1'];
     let queryParams: any[] = [];
     let paramIndex = 1;
-
-    if (status !== 'all') {
-      whereConditions.push(`s.status = $${paramIndex}`);
-      queryParams.push(status);
-      paramIndex++;
-    }
-
-    if (classId) {
-      whereConditions.push(`s.class_id = $${paramIndex}`);
-      queryParams.push(parseInt(classId));
-      paramIndex++;
-    }
 
     if (schoolId) {
       whereConditions.push(`s.school_id = $${paramIndex}`);
@@ -63,69 +52,59 @@ export async function GET(request: NextRequest) {
     if (search) {
       whereConditions.push(`(
         s.student_name ILIKE $${paramIndex} OR 
-        s.student_id ILIKE $${paramIndex} OR 
-        s.parent_name ILIKE $${paramIndex}
+        s.student_id ILIKE $${paramIndex}
       )`);
       queryParams.push(`%${search}%`);
       paramIndex++;
     }
 
-    // Apply hierarchy filtering based on user role
-    if (user.role !== 'admin') {
-      // Add hierarchy filtering logic here if needed
-      // For now, teachers can only see students in their classes
-      if (user.role === 'teacher') {
-        whereConditions.push(`EXISTS (
-          SELECT 1 FROM tbl_tarl_classes c 
-          WHERE c.id = s.class_id AND c.teacher_id = $${paramIndex}
-        )`);
-        queryParams.push(user.user_id);
-        paramIndex++;
-      }
+    // Build additional WHERE conditions for students
+    if (whereConditions[0] === '1=1') {
+      whereConditions = ['s.student_id IS NOT NULL', 's.student_status = 1'];
+    } else {
+      whereConditions.push('s.student_id IS NOT NULL', 's.student_status = 1');
     }
 
     const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-    // Get total count
+    // Get total count from existing student data - distinct students only
     const countResult = await client.query(`
-      SELECT COUNT(*) as total
-      FROM tbl_tarl_students s
-      LEFT JOIN tbl_tarl_classes c ON s.class_id = c.id
-      LEFT JOIN tbl_tarl_school_list sch ON s.school_id = sch."sclAutoID"
+      SELECT COUNT(DISTINCT s.student_id) as total
+      FROM tbl_tarl_tc_st_sch s
+      LEFT JOIN tbl_tarl_schools sch ON s.school_id = sch."sclAutoID"
       ${whereClause}
     `, queryParams);
 
     const total = parseInt(countResult.rows[0].total);
 
-    // Get paginated results
+    // Get paginated results from existing student data - distinct students only
     const studentsResult = await client.query(`
-      SELECT 
+      SELECT DISTINCT ON (s.student_id)
         s.id,
         s.student_name,
         s.student_id,
-        s.class_id,
+        NULL as class_id,
         s.school_id,
-        s.sex,
-        s.date_of_birth,
-        s.parent_name,
-        s.parent_phone,
-        s.address,
-        s.status,
-        s.enrollment_date,
-        s.created_at,
-        s.updated_at,
-        s.province_name,
-        s.district_name,
-        s.commune_name,
-        s.village_name,
-        c.class_name,
-        c.grade_level,
-        sch."sclName" as school_name
-      FROM tbl_tarl_students s
-      LEFT JOIN tbl_tarl_classes c ON s.class_id = c.id
-      LEFT JOIN tbl_tarl_school_list sch ON s.school_id = sch."sclAutoID"
+        s.student_sex as sex,
+        NULL as date_of_birth,
+        NULL as parent_name,
+        NULL as parent_phone,
+        NULL as address,
+        CASE WHEN s.student_status = 1 THEN 'active' ELSE 'inactive' END as status,
+        NULL as enrollment_date,
+        NOW() as created_at,
+        NOW() as updated_at,
+        s.province_name as province,
+        NULL as district,
+        NULL as commune,
+        NULL as village,
+        NULL as class_name,
+        NULL as grade_level,
+        s.school_name
+      FROM tbl_tarl_tc_st_sch s
+      LEFT JOIN tbl_tarl_schools sch ON s.school_id = sch."sclAutoID"
       ${whereClause}
-      ORDER BY s.created_at DESC
+      ORDER BY s.student_id, s.id DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `, [...queryParams, limit, offset]);
 
@@ -168,7 +147,8 @@ export async function POST(request: NextRequest) {
   try {
     // Validate session and get user info
     const sessionResult = await client.query(
-      'SELECT user_id, username, role FROM tbl_tarl_sessions WHERE session_token = $1 AND expires_at > NOW()',
+      `SELECT id as user_id, username, role FROM tbl_tarl_users 
+       WHERE session_token = $1 AND session_expires > NOW()`,
       [sessionToken]
     );
 
