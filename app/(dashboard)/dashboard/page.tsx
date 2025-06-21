@@ -19,7 +19,11 @@ interface DashboardStats {
   totalSchools: number;
   totalStudents: number;
   totalUsers: number;
+  totalTeachers: number;
+  totalClasses: number;
   activeTraining: number;
+  upcomingTraining: number;
+  totalTranscripts: number;
 }
 
 interface StatCardProps {
@@ -73,7 +77,11 @@ export default function DashboardPage() {
     totalSchools: 0,
     totalStudents: 0,
     totalUsers: 0,
+    totalTeachers: 0,
+    totalClasses: 0,
     activeTraining: 0,
+    upcomingTraining: 0,
+    totalTranscripts: 0,
   });
   const [loading, setLoading] = useState(true);
   const { showLoading, hideLoading } = useGlobalLoading();
@@ -87,19 +95,28 @@ export default function DashboardPage() {
   const loadDashboardData = async (): Promise<void> => {
     try {
       showLoading("Loading dashboard...");
-      const [schools, users] = await Promise.all([
-        DatabaseService.getSchools().catch(() => []),
-        fetch('/api/data/users').then(res => res.json()).catch(() => []),
-      ]);
+      
+      const response = await fetch('/api/dashboard/stats', {
+        method: 'GET',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+      });
 
-      const schoolsArray = Array.isArray(schools) ? schools : [];
-      const usersArray = Array.isArray(users) ? users : [];
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard stats');
+      }
+
+      const data = await response.json();
       
       setStats({
-        totalSchools: schoolsArray.length,
-        totalStudents: schoolsArray.reduce((sum, school) => sum + (school.total_students || 0), 0),
-        totalUsers: usersArray.length,
-        activeTraining: 6,
+        totalSchools: data.stats.totalSchools,
+        totalStudents: data.stats.totalStudents,
+        totalUsers: data.stats.totalUsers,
+        totalTeachers: data.stats.totalTeachers,
+        totalClasses: data.stats.totalClasses,
+        activeTraining: data.stats.activeTraining,
+        upcomingTraining: data.stats.upcomingTraining,
+        totalTranscripts: data.stats.totalTranscripts,
       });
     } catch (error) {
       console.error("Error loading dashboard data:", error);
@@ -188,8 +205,6 @@ export default function DashboardPage() {
               value={stats.totalSchools}
               icon={Building}
               color="bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400"
-              change="12%"
-              changeType="increase"
             />
             
             <StatCard
@@ -197,28 +212,57 @@ export default function DashboardPage() {
               value={stats.totalStudents}
               icon={Users}
               color="bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400"
-              change="8%"
-              changeType="increase"
             />
             
             <StatCard
-              title={t?.activeUsers || "Active Users"}
-              value={stats.totalUsers}
+              title={user?.role === 'admin' ? (t?.activeUsers || "Active Users") : (t?.totalTeachers || "Total Teachers")}
+              value={user?.role === 'admin' ? stats.totalUsers : stats.totalTeachers}
               icon={GraduationCap}
               color="bg-purple-100 text-purple-600 dark:bg-purple-900/50 dark:text-purple-400"
-              change="3%"
-              changeType="increase"
             />
             
             <StatCard
-              title={t?.trainingSessions || "Training Sessions"}
-              value={stats.activeTraining}
-              icon={Activity}
+              title={user?.role === 'teacher' ? (t?.totalClasses || "Total Classes") : (t?.trainingSessions || "Training Sessions")}
+              value={user?.role === 'teacher' ? stats.totalClasses : stats.activeTraining}
+              icon={user?.role === 'teacher' ? BookOpen : Activity}
               color="bg-orange-100 text-orange-600 dark:bg-orange-900/50 dark:text-orange-400"
-              change="15%"
-              changeType="increase"
             />
           </div>
+
+          {/* Secondary Stats Row for Admin/Director */}
+          {(user?.role === 'admin' || user?.role === 'director') && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard
+                title={t?.totalClasses || "Total Classes"}
+                value={stats.totalClasses}
+                icon={BookOpen}
+                color="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-400"
+              />
+              
+              <StatCard
+                title={t?.totalTranscripts || "Total Transcripts"}
+                value={stats.totalTranscripts}
+                icon={FileText}
+                color="bg-pink-100 text-pink-600 dark:bg-pink-900/50 dark:text-pink-400"
+              />
+              
+              <StatCard
+                title={t?.upcomingTraining || "Upcoming Training"}
+                value={stats.upcomingTraining}
+                icon={Activity}
+                color="bg-yellow-100 text-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-400"
+              />
+              
+              {user?.role === 'admin' && (
+                <StatCard
+                  title={t?.totalTeachers || "Total Teachers"}
+                  value={stats.totalTeachers}
+                  icon={GraduationCap}
+                  color="bg-cyan-100 text-cyan-600 dark:bg-cyan-900/50 dark:text-cyan-400"
+                />
+              )}
+            </div>
+          )}
 
           {/* Quick Actions Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
