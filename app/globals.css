@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Universal Loading Animations */
+@keyframes sweep {
+  0% {
+    transform: translateX(-100%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(200%) rotate(45deg);
+  }
+}
+
+.animate-sweep {
+  animation: sweep 2s ease-in-out infinite;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

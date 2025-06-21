@@ -33,6 +33,7 @@ import DeleteSessionDialog from '@/components/delete-session-dialog';
 // import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 import { TrainingLocaleProvider } from '@/components/training-locale-provider';
 import { useTrainingTranslation } from '@/lib/training-i18n';
+import { UniversalLoading } from '@/components/universal-loading';
 interface TrainingSession {
   id: number;
   session_title: string;
@@ -191,14 +192,7 @@ function TrainingSessionsPageContent() {
 
   // Show loading while checking auth
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-muted-foreground">{t.loading}</p>
-        </div>
-      </div>
-    );
+    return <UniversalLoading isLoading={true} message={t.loadingSessions} />;
   }
 
   // Show login prompt if no user
@@ -401,9 +395,7 @@ function TrainingSessionsPageContent() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">{t.loadingSessions}</p>
-            </div>
+            <UniversalLoading isLoading={true} overlay={false} size="sm" />
           ) : filteredSessions.length === 0 ? (
             <div className="text-center py-8">
               <CalendarDays className="h-12 w-12 mx-auto text-muted-foreground mb-4" />

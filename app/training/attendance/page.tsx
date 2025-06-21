@@ -33,6 +33,7 @@ import {
 import { toast } from 'sonner';
 import { TrainingLocaleProvider } from '@/components/training-locale-provider';
 import { useTrainingTranslation } from '@/lib/training-i18n';
+import { UniversalLoading } from '@/components/universal-loading';
 interface TrainingSession {
   id: number;
   session_title: string;
@@ -313,14 +314,7 @@ function AttendancePageContent() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <UniversalLoading isLoading={true} message="Loading attendance system..." />;
   }
 
   if (!session) {
@@ -804,15 +798,7 @@ function AttendancePageContent() {
 }
 
 function AttendanceLoading() {
-  const { t } = useTrainingTranslation();
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="text-center">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-        <p className="text-gray-600">Loading...</p>
-      </div>
-    </div>
-  );
+  return <UniversalLoading isLoading={true} message="Loading attendance system..." />;
 }
 
 export default function AttendancePage() {
