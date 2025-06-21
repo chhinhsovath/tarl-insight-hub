@@ -26,6 +26,7 @@ async function setupSchoolRegistrationPermissions() {
       const updateResult = await client.query(`
         UPDATE page_permissions SET
           page_title = 'School Registration',
+          page_path = '/school-registration',
           category = 'Management',
           icon_name = 'School',
           sort_order = 120,
