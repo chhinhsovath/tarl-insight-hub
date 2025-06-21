@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from '@/components/ui/textarea';
 import { RefreshCw, Trash2, RotateCcw, AlertTriangle, Clock, Database } from 'lucide-react';
 import { format, differenceInDays } from 'date-fns';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 
 interface DeletedRecord {
   id: number;

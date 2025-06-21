@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { DatabaseService } from "@/lib/database"
+import { DemographicDropdowns } from "@/components/demographic-dropdowns"
 import type { School } from "@/lib/types"
 
 export interface SchoolFormProps {
@@ -32,6 +33,12 @@ export function SchoolForm({ onSuccess, onCancel, school, initialData, hideExtra
     totalStudentsFemale: school?.totalStudentsFemale || initialData?.totalStudentsFemale || 0,
     ...initialData,
   }))
+
+  // Demographic selection states
+  const [selectedProvince, setSelectedProvince] = useState("")
+  const [selectedDistrict, setSelectedDistrict] = useState("")
+  const [selectedCommune, setSelectedCommune] = useState("")
+  const [selectedVillage, setSelectedVillage] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -103,23 +110,27 @@ export function SchoolForm({ onSuccess, onCancel, school, initialData, hideExtra
         />
       </div>
 
-      <div>
-        <Label htmlFor="provinceName" className="block font-semibold mb-2">Province</Label>
-        <Input 
-          id="provinceName" 
-          className="w-full rounded-lg border px-4 py-3" 
-          value={formData.provinceName || ""} 
-          onChange={e => handleChange("provinceName", e.target.value)} 
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="districtName" className="block font-semibold mb-2">District</Label>
-        <Input 
-          id="districtName" 
-          className="w-full rounded-lg border px-4 py-3" 
-          value={formData.districtName || ""} 
-          onChange={e => handleChange("districtName", e.target.value)} 
+      {/* Demographics Section */}
+      <div className="md:col-span-2 border rounded-lg p-4 bg-gray-50">
+        <Label className="text-base font-semibold mb-4 block">Location Information</Label>
+        <DemographicDropdowns
+          selectedProvince={selectedProvince}
+          selectedDistrict={selectedDistrict}
+          selectedCommune={selectedCommune}
+          selectedVillage={selectedVillage}
+          onProvinceChange={(value) => {
+            setSelectedProvince(value)
+            // Update form data with the province name when it changes
+            // Note: In a complete implementation, you'd fetch the province name by ID
+            handleChange("provinceName", value)
+          }}
+          onDistrictChange={(value) => {
+            setSelectedDistrict(value)
+            // Update form data with the district name when it changes
+            handleChange("districtName", value)
+          }}
+          onCommuneChange={setSelectedCommune}
+          onVillageChange={setSelectedVillage}
         />
       </div>
 

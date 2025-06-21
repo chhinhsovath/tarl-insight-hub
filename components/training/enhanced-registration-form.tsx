@@ -20,6 +20,7 @@ import {
   Info
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { DemographicDropdowns } from '@/components/demographic-dropdowns';
 
 interface EnhancedRegistrationFormProps {
   sessionId: string;
@@ -64,6 +65,12 @@ export function EnhancedRegistrationForm({ sessionId, onSubmit, initialData }: E
     ...initialData
   });
   
+  // Demographic selection states
+  const [selectedProvince, setSelectedProvince] = useState('');
+  const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [selectedCommune, setSelectedCommune] = useState('');
+  const [selectedVillage, setSelectedVillage] = useState('');
+  
   const [isChecking, setIsChecking] = useState(false);
   const [participantHistory, setParticipantHistory] = useState<ParticipantHistory | null>(null);
   const [emailChecked, setEmailChecked] = useState(false);
@@ -81,7 +88,7 @@ export function EnhancedRegistrationForm({ sessionId, onSubmit, initialData }: E
         
         if (data.isReturning && data.participant) {
           // Pre-fill form with existing data
-          setFormData(prev => ({
+          setFormData((prev: any) => ({
             ...prev,
             participant_name: data.participant.fullName || prev.participant_name,
             participant_phone: data.participant.phone || prev.participant_phone,
@@ -110,7 +117,7 @@ export function EnhancedRegistrationForm({ sessionId, onSubmit, initialData }: E
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev: any) => ({
       ...prev,
       [field]: value
     }));
@@ -134,7 +141,12 @@ export function EnhancedRegistrationForm({ sessionId, onSubmit, initialData }: E
       ...formData,
       session_id: parseInt(sessionId),
       is_returning: participantHistory?.isReturning || false,
-      master_participant_id: participantHistory?.participant?.id
+      master_participant_id: participantHistory?.participant?.id,
+      // Include demographic IDs for new database schema
+      province_id: selectedProvince,
+      district_id: selectedDistrict,
+      commune_id: selectedCommune,
+      village_id: selectedVillage
     });
   };
 
@@ -265,29 +277,29 @@ export function EnhancedRegistrationForm({ sessionId, onSubmit, initialData }: E
       </div>
 
       {/* Location Fields */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="district" className="flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
-            District
-          </Label>
-          <Input
-            id="district"
-            value={formData.district}
-            onChange={(e) => handleInputChange('district', e.target.value)}
-            placeholder="Enter your district"
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="province">Province</Label>
-          <Input
-            id="province"
-            value={formData.province}
-            onChange={(e) => handleInputChange('province', e.target.value)}
-            placeholder="Enter your province"
-          />
-        </div>
+      <div className="space-y-4">
+        <Label className="flex items-center gap-2 text-base font-medium">
+          <MapPin className="h-4 w-4" />
+          Location Information
+        </Label>
+        <DemographicDropdowns
+          selectedProvince={selectedProvince}
+          selectedDistrict={selectedDistrict}
+          selectedCommune={selectedCommune}
+          selectedVillage={selectedVillage}
+          onProvinceChange={(value) => {
+            setSelectedProvince(value);
+            // Update form data for backward compatibility
+            handleInputChange('province', value);
+          }}
+          onDistrictChange={(value) => {
+            setSelectedDistrict(value);
+            // Update form data for backward compatibility
+            handleInputChange('district', value);
+          }}
+          onCommuneChange={setSelectedCommune}
+          onVillageChange={setSelectedVillage}
+        />
       </div>
 
       {/* Recent Training History for Returning Participants */}

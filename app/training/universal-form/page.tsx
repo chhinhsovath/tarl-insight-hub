@@ -28,6 +28,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { DemographicDropdowns } from '@/components/demographic-dropdowns';
 
 interface TrainingSession {
   id: number;
@@ -92,6 +93,12 @@ function UniversalTrainingFormPageContent() {
     district: '',
     province: ''
   });
+  
+  // Demographic selection states
+  const [selectedProvince, setSelectedProvince] = useState('');
+  const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [selectedCommune, setSelectedCommune] = useState('');
+  const [selectedVillage, setSelectedVillage] = useState('');
 
   useEffect(() => {
     if (sessionId) {
@@ -188,7 +195,12 @@ function UniversalTrainingFormPageContent() {
         ...formData,
         qr_id: qrId,
         master_participant_id: selectedParticipant?.id,
-        action: action
+        action: action,
+        // Include demographic IDs for new database schema
+        province_id: selectedProvince,
+        district_id: selectedDistrict,
+        commune_id: selectedCommune,
+        village_id: selectedVillage
       };
 
       const response = await fetch(endpoint, {
@@ -239,10 +251,15 @@ function UniversalTrainingFormPageContent() {
     setSearchTerm('');
     setSearchResults([]);
     setActiveMode('new');
+    // Reset demographic selections
+    setSelectedProvince('');
+    setSelectedDistrict('');
+    setSelectedCommune('');
+    setSelectedVillage('');
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
   };
 
   if (loading) {
@@ -490,25 +507,30 @@ function UniversalTrainingFormPageContent() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="district">District</Label>
-                  <Input
-                    id="district"
-                    value={formData.district}
-                    onChange={(e) => handleInputChange('district', e.target.value)}
-                    placeholder="Enter district"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="province">Province</Label>
-                  <Input
-                    id="province"
-                    value={formData.province}
-                    onChange={(e) => handleInputChange('province', e.target.value)}
-                    placeholder="Enter province"
-                  />
-                </div>
+              {/* Location Fields with Demographic Dropdowns */}
+              <div className="space-y-4">
+                <Label className="flex items-center gap-2 text-base font-medium">
+                  <MapPin className="h-4 w-4" />
+                  Location Information
+                </Label>
+                <DemographicDropdowns
+                  selectedProvince={selectedProvince}
+                  selectedDistrict={selectedDistrict}
+                  selectedCommune={selectedCommune}
+                  selectedVillage={selectedVillage}
+                  onProvinceChange={(value) => {
+                    setSelectedProvince(value);
+                    // Update form data for backward compatibility
+                    handleInputChange('province', value);
+                  }}
+                  onDistrictChange={(value) => {
+                    setSelectedDistrict(value);
+                    // Update form data for backward compatibility
+                    handleInputChange('district', value);
+                  }}
+                  onCommuneChange={setSelectedCommune}
+                  onVillageChange={setSelectedVillage}
+                />
               </div>
             </div>
 

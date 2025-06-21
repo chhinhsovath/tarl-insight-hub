@@ -1,5 +1,4 @@
-import { User, School } from "@/lib/types";
-import { HierarchyPermissionManager } from "./hierarchy-permissions";
+import { School } from "@/lib/types";
 
 // This file is used to provide an API for database operations.
 // It should be used by client-side components to interact with the database.
@@ -564,7 +563,7 @@ export class DatabaseService {
   // =====================================================
   // PERMISSIONS & ROLES
   // =====================================================
-  static async getRoles(): Promise<Role[]> {
+  static async getRoles(): Promise<any[]> {
     try {
       const response = await fetch("/api/data/roles");
       if (!response.ok) {
@@ -577,7 +576,7 @@ export class DatabaseService {
     }
   }
 
-  static async getPages(): Promise<Page[]> {
+  static async getPages(): Promise<any[]> {
     try {
       const response = await fetch("/api/data/pages");
       if (!response.ok) {
@@ -590,7 +589,7 @@ export class DatabaseService {
     }
   }
 
-  static async getPermissionMatrix(): Promise<PermissionMatrix[]> {
+  static async getPermissionMatrix(): Promise<any[]> {
     try {
       const response = await fetch("/api/data/permissions/matrix");
       if (!response.ok) {
@@ -603,7 +602,7 @@ export class DatabaseService {
     }
   }
 
-  static async updateRolePermissions(data: BulkPermissionUpdate): Promise<boolean> {
+  static async updateRolePermissions(data: any): Promise<boolean> {
     try {
       const response = await fetch("/api/data/permissions", {
         method: "PUT",
@@ -910,6 +909,251 @@ export class DatabaseService {
       return await response.json();
     } catch (error) {
       console.error("Error saving student transcript:", error);
+      return null;
+    }
+  }
+
+  // =====================================================
+  // TRANSCRIPTS MANAGEMENT
+  // =====================================================
+
+  /**
+   * Get transcripts with filters and pagination
+   */
+  static async getTranscripts(filters: {
+    studentId?: string;
+    classId?: string;
+    academicYear?: string;
+    subject?: string;
+    assessmentPeriod?: string;
+    limit?: number;
+    offset?: number;
+  } = {}) {
+    try {
+      const query = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          query.append(key, value.toString());
+        }
+      });
+
+      const response = await fetch(`/api/transcripts?${query.toString()}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching transcripts:", error);
+      return { transcripts: [], pagination: { total: 0, limit: 50, offset: 0, totalPages: 0, currentPage: 1 } };
+    }
+  }
+
+  /**
+   * Create a new transcript entry
+   */
+  static async createTranscript(transcriptData: {
+    student_id: number;
+    class_id?: number;
+    academic_year: string;
+    subject: string;
+    assessment_period: string;
+    assessment_month?: string;
+    score?: number;
+    grade?: string;
+    remarks?: string;
+    teacher_id?: number;
+    is_final?: boolean;
+  }) {
+    try {
+      const response = await fetch("/api/transcripts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(transcriptData),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error creating transcript:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Update a transcript entry
+   */
+  static async updateTranscript(transcriptId: number, updates: {
+    score?: number;
+    grade?: string;
+    remarks?: string;
+    teacher_id?: number;
+    is_final?: boolean;
+  }) {
+    try {
+      const response = await fetch(`/api/transcripts/${transcriptId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error updating transcript:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Delete a transcript entry
+   */
+  static async deleteTranscript(transcriptId: number) {
+    try {
+      const response = await fetch(`/api/transcripts/${transcriptId}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error deleting transcript:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Get transcript statistics
+   */
+  static async getTranscriptStats(filters: {
+    academicYear?: string;
+    classId?: string;
+    schoolId?: string;
+  } = {}) {
+    try {
+      const query = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== '') {
+          query.append(key, value.toString());
+        }
+      });
+
+      const response = await fetch(`/api/transcripts/stats?${query.toString()}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching transcript statistics:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Bulk create transcripts
+   */
+  static async bulkCreateTranscripts(transcripts: any[]) {
+    try {
+      const response = await fetch("/api/transcripts/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcripts }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error bulk creating transcripts:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Bulk update transcripts
+   */
+  static async bulkUpdateTranscripts(transcriptIds: number[], updates: any) {
+    try {
+      const response = await fetch("/api/transcripts/bulk", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript_ids: transcriptIds, updates }),
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error bulk updating transcripts:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Generate and download transcript reports
+   */
+  static async downloadTranscriptReport(reportType: 'student' | 'class' | 'subject' | 'period', filters: {
+    studentId?: string;
+    classId?: string;
+    subject?: string;
+    academicYear?: string;
+    assessmentPeriod?: string;
+  } = {}) {
+    try {
+      const query = new URLSearchParams({
+        type: reportType,
+        format: 'csv',
+        ...filters
+      });
+
+      const response = await fetch(`/api/transcripts/reports?${query.toString()}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `${reportType}-report-${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error downloading transcript report:", error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
+  /**
+   * Get transcript report data (JSON format)
+   */
+  static async getTranscriptReportData(reportType: 'student' | 'class' | 'subject' | 'period', filters: {
+    studentId?: string;
+    classId?: string;
+    subject?: string;
+    academicYear?: string;
+    assessmentPeriod?: string;
+  } = {}) {
+    try {
+      const query = new URLSearchParams({
+        type: reportType,
+        format: 'json',
+        ...filters
+      });
+
+      const response = await fetch(`/api/transcripts/reports?${query.toString()}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching transcript report data:", error);
       return null;
     }
   }
