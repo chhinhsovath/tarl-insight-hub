@@ -7,6 +7,7 @@ import { FlowbiteNavbar } from "@/components/flowbite-navbar"
 import { AuthProvider } from "@/lib/auth-context"
 import { MenuProvider } from "@/lib/menu-context"
 import { GlobalLanguageProvider } from "@/lib/global-language-context"
+import { NavigationLoading } from "@/components/navigation-loading"
 export default function DashboardLayout({
   children,
 }: {
@@ -29,6 +30,7 @@ export default function DashboardLayout({
               
               {/* Page Content */}
               <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+                <NavigationLoading />
                 {children}
               </main>
             </div>

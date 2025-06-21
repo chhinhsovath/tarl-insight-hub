@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { useAuth } from "@/lib/auth-context"
 import { StatsCard } from "@/components/stats-card"
+import { useGlobalLoading } from "@/lib/global-loading-context"
 
 export default function UsersPage() {
   const router = useRouter()
@@ -20,6 +21,7 @@ export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const { showLoading, hideLoading } = useGlobalLoading()
   
   const isAdmin = isAllowed(['admin'])
   
@@ -34,6 +36,7 @@ export default function UsersPage() {
   const loadUsers = async () => {
     setLoading(true)
     try {
+      showLoading("Loading users...")
       console.log("Loading users with search:", search) // Debug log
       const data = await DatabaseService.getUsers({ search })
       console.log("Received users data:", data) // Debug log
@@ -56,6 +59,7 @@ export default function UsersPage() {
       })
     } finally {
       setLoading(false)
+      hideLoading()
     }
   }
 

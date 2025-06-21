@@ -32,6 +32,7 @@ import { TrainingLoadingProvider } from '@/components/training-loading-provider'
 import { useTrainingTranslation } from '@/lib/training-i18n';
 import { PageLoader } from '@/components/page-loader';
 import { useAsyncOperation } from '@/hooks/use-async-operation';
+import { useGlobalLoading } from '@/lib/global-loading-context';
 
 interface TrainingSession {
   id: number;
@@ -115,12 +116,14 @@ function TrainingOverviewPageContent() {
     ongoingSessions: 0
   });
   const [loading, setLoading] = useState(true);
+  const { showLoading, hideLoading } = useGlobalLoading();
 
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
+    showLoading("Loading training overview...");
     await execute(async () => {
       // Fetch sessions, programs, and feedback in parallel
       const [sessionsResponse, programsResponse, feedbackResponse] = await Promise.all([
@@ -204,6 +207,7 @@ function TrainingOverviewPageContent() {
       loadingMessage: 'Loading training overview...',
       minLoadingTime: 500
     });
+    hideLoading();
   };
 
   if (!user) {

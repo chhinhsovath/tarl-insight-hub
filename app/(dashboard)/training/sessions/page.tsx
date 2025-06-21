@@ -33,7 +33,7 @@ import DeleteSessionDialog from '@/components/delete-session-dialog';
 // import { TrainingBreadcrumb } from '@/components/training-breadcrumb';
 import { TrainingLocaleProvider } from '@/components/training-locale-provider';
 import { useTrainingTranslation } from '@/lib/training-i18n';
-import { UniversalLoading } from '@/components/universal-loading';
+import { useGlobalLoading } from '@/lib/global-loading-context';
 interface TrainingSession {
   id: number;
   session_title: string;
@@ -64,6 +64,7 @@ function TrainingSessionsPageContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [trainerFilter, setTrainerFilter] = useState('all');
+  const { showLoading, hideLoading } = useGlobalLoading();
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean;
     sessionId: number;
@@ -92,6 +93,7 @@ function TrainingSessionsPageContent() {
 
   const fetchSessions = async () => {
     try {
+      showLoading("Loading training sessions...");
       const response = await makeAuthenticatedRequest('/api/training/sessions');
       const data = await handleApiResponse<TrainingSession[]>(response);
       
@@ -107,6 +109,7 @@ function TrainingSessionsPageContent() {
       }
     } finally {
       setLoading(false);
+      hideLoading();
     }
   };
 
@@ -190,10 +193,10 @@ function TrainingSessionsPageContent() {
     setDeleteDialog({ isOpen: false, sessionId: 0, sessionTitle: '', participantCount: 0 });
   };
 
-  // Show loading while checking auth
-  if (loading) {
-    return <UniversalLoading isLoading={true} message={t.loadingSessions} />;
-  }
+  // Show loading while checking auth - now handled by global loading
+  // if (loading) {
+  //   return <UniversalLoading isLoading={true} message={t.loadingSessions} />;
+  // }
 
   // Show login prompt if no user
   if (!user) {
@@ -394,9 +397,7 @@ function TrainingSessionsPageContent() {
           <CardTitle>{t.trainingSessions} ({filteredSessions.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <UniversalLoading isLoading={true} overlay={false} size="sm" />
-          ) : filteredSessions.length === 0 ? (
+          {filteredSessions.length === 0 ? (
             <div className="text-center py-8">
               <CalendarDays className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <p className="text-muted-foreground">

@@ -2,8 +2,11 @@ import type React from "react"
 import type { Metadata } from "next"
 import "./globals.css"
 import { AuthProvider } from "@/lib/auth-context"
+import { GlobalLoadingProvider } from "@/lib/global-loading-context"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { Toaster } from "@/components/ui/toaster"
+import { GlobalLoadingOverlay } from "@/components/global-loading-overlay"
+import { UniversalLoadingStyles } from "@/components/universal-loading"
 import {
   Dialog,
   DialogContent,
@@ -44,6 +47,7 @@ function ResizeObserverSuppressor() {
   return null
 }
 
+
 export default function RootLayout({
   children,
 }: {
@@ -66,9 +70,13 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <ErrorBoundary>
           <AuthProvider>
-            {children}
-            <Toaster />
-            <ResizeObserverSuppressor />
+            <GlobalLoadingProvider>
+              {children}
+              <GlobalLoadingOverlay />
+              <UniversalLoadingStyles />
+              <Toaster />
+              <ResizeObserverSuppressor />
+            </GlobalLoadingProvider>
           </AuthProvider>
         </ErrorBoundary>
       </body>

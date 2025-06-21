@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { DatabaseService } from "@/lib/database";
+import { useGlobalLoading } from "@/lib/global-loading-context";
+import { useGlobalLanguage } from "@/lib/global-language-context";
 import { 
   Users, 
   Building, 
@@ -66,6 +68,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon: Icon, color, ch
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { language, t } = useGlobalLanguage();
   const [stats, setStats] = useState<DashboardStats>({
     totalSchools: 0,
     totalStudents: 0,
@@ -73,6 +76,7 @@ export default function DashboardPage() {
     activeTraining: 0,
   });
   const [loading, setLoading] = useState(true);
+  const { showLoading, hideLoading } = useGlobalLoading();
 
   useEffect(() => {
     if (user) {
@@ -82,6 +86,7 @@ export default function DashboardPage() {
 
   const loadDashboardData = async (): Promise<void> => {
     try {
+      showLoading("Loading dashboard...");
       const [schools, users] = await Promise.all([
         DatabaseService.getSchools().catch(() => []),
         fetch('/api/data/users').then(res => res.json()).catch(() => []),
@@ -100,42 +105,48 @@ export default function DashboardPage() {
       console.error("Error loading dashboard data:", error);
     } finally {
       setLoading(false);
+      hideLoading();
     }
   };
 
   const getWelcomeMessage = (): string => {
-    if (!user) return "Welcome!";
-    const timeOfDay = new Date().getHours() < 12 ? "morning" : new Date().getHours() < 18 ? "afternoon" : "evening";
+    if (!user) return t?.welcome || "Welcome!";
+    const hour = new Date().getHours();
+    const timeOfDay = hour < 12 ? 
+      (t?.goodMorning || "Good morning") : 
+      hour < 18 ? 
+        (t?.goodAfternoon || "Good afternoon") : 
+        (t?.goodEvening || "Good evening");
     const firstName = user.full_name ? user.full_name.split(" ")[0] : user.username;
-    return `Good ${timeOfDay}, ${firstName}!`;
+    return `${timeOfDay}, ${firstName}!`;
   };
 
-  const recentActivities: ActivityItem[] = [
+  const getRecentActivities = (): ActivityItem[] => [
     {
       id: 1,
-      title: "New school registered",
-      time: "2 hours ago",
+      title: t?.newSchoolRegistered || "New school registered",
+      time: `2 ${t?.hoursAgo || "hours ago"}`,
       icon: Building,
       colorClass: "bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400",
     },
     {
       id: 2,
-      title: "Training session completed",
-      time: "4 hours ago",
+      title: t?.trainingSessionCompleted || "Training session completed",
+      time: `4 ${t?.hoursAgo || "hours ago"}`,
       icon: BookOpen,
       colorClass: "bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400",
     },
     {
       id: 3,
-      title: "New user created",
-      time: "1 day ago",
+      title: t?.newUserCreated || "New user created",
+      time: `1 ${t?.dayAgo || "day ago"}`,
       icon: Users,
       colorClass: "bg-purple-100 text-purple-600 dark:bg-purple-900/50 dark:text-purple-400",
     },
     {
       id: 4,
-      title: "Report generated",
-      time: "2 days ago",
+      title: t?.reportGenerated || "Report generated",
+      time: `2 ${t?.daysAgo || "days ago"}`,
       icon: FileText,
       colorClass: "bg-orange-100 text-orange-600 dark:bg-orange-900/50 dark:text-orange-400",
     },
@@ -160,7 +171,7 @@ export default function DashboardPage() {
           {getWelcomeMessage()}
         </h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Welcome to your TaRL Insight Hub dashboard
+          {t?.welcomeToDashboard || "Welcome to your TaRL Insight Hub dashboard"}
         </p>
       </div>
 
@@ -173,7 +184,7 @@ export default function DashboardPage() {
           {/* Stats Cards Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
-              title="Total Schools"
+              title={t?.totalSchools || "Total Schools"}
               value={stats.totalSchools}
               icon={Building}
               color="bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400"
@@ -182,7 +193,7 @@ export default function DashboardPage() {
             />
             
             <StatCard
-              title="Total Students"
+              title={t?.totalStudents || "Total Students"}
               value={stats.totalStudents}
               icon={Users}
               color="bg-green-100 text-green-600 dark:bg-green-900/50 dark:text-green-400"
@@ -191,7 +202,7 @@ export default function DashboardPage() {
             />
             
             <StatCard
-              title="Active Users"
+              title={t?.activeUsers || "Active Users"}
               value={stats.totalUsers}
               icon={GraduationCap}
               color="bg-purple-100 text-purple-600 dark:bg-purple-900/50 dark:text-purple-400"
@@ -200,7 +211,7 @@ export default function DashboardPage() {
             />
             
             <StatCard
-              title="Training Sessions"
+              title={t?.trainingSessions || "Training Sessions"}
               value={stats.activeTraining}
               icon={Activity}
               color="bg-orange-100 text-orange-600 dark:bg-orange-900/50 dark:text-orange-400"
@@ -218,8 +229,8 @@ export default function DashboardPage() {
                   <div className="mx-auto w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center dark:bg-blue-900/50">
                     <Building className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Schools</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Manage schools</p>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">{t?.schools || "Schools"}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t?.manageSchools || "Manage schools"}</p>
                 </div>
               </div>
             </a>
@@ -230,8 +241,8 @@ export default function DashboardPage() {
                   <div className="mx-auto w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center dark:bg-green-900/50">
                     <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
                   </div>
-                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Users</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Manage users</p>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">{t?.users || "Users"}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t?.manageUsers || "Manage users"}</p>
                 </div>
               </div>
             </a>
@@ -242,8 +253,8 @@ export default function DashboardPage() {
                   <div className="mx-auto w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center dark:bg-purple-900/50">
                     <BookOpen className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Training</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Training sessions</p>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">{t?.training || "Training"}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t?.trainingSessions || "Training sessions"}</p>
                 </div>
               </div>
             </a>
@@ -254,8 +265,8 @@ export default function DashboardPage() {
                   <div className="mx-auto w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center dark:bg-orange-900/50">
                     <BarChart3 className="w-6 h-6 text-orange-600 dark:text-orange-400" />
                   </div>
-                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Reports</h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">View analytics</p>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">{t?.reports || "Reports"}</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{t?.viewAnalytics || "View analytics"}</p>
                 </div>
               </div>
             </a>
@@ -263,11 +274,11 @@ export default function DashboardPage() {
 
           {/* Chart Area */}
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">System Overview</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{t?.systemOverview || "System Overview"}</h3>
             <div className="h-32 flex items-center justify-center bg-gray-50 dark:bg-gray-700 rounded-lg">
               <div className="text-center">
                 <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-500 dark:text-gray-400">Chart visualization area</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{t?.chartVisualizationArea || "Chart visualization area"}</p>
               </div>
             </div>
           </div>
@@ -278,10 +289,10 @@ export default function DashboardPage() {
           <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow border border-gray-200 dark:border-gray-700 h-full">
             <div className="flex items-center mb-4">
               <Activity className="w-5 h-5 text-blue-600 mr-2" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{t?.recentActivity || "Recent Activity"}</h3>
             </div>
             <div className="space-y-3">
-              {recentActivities.map((activity) => {
+              {getRecentActivities().map((activity) => {
                 const Icon = activity.icon;
                 return (
                   <div key={activity.id} className="flex items-start space-x-3">

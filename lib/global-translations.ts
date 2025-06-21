@@ -48,6 +48,29 @@ export interface GlobalTranslations {
   error: string;
   success: string;
   confirmation: string;
+  
+  // Dashboard
+  goodMorning: string;
+  goodAfternoon: string;
+  goodEvening: string;
+  welcomeToDashboard: string;
+  totalSchools: string;
+  totalStudents: string;
+  activeUsers: string;
+  trainingSessions: string;
+  recentActivity: string;
+  systemOverview: string;
+  chartVisualizationArea: string;
+  manageSchools: string;
+  manageUsers: string;
+  viewAnalytics: string;
+  newSchoolRegistered: string;
+  trainingSessionCompleted: string;
+  newUserCreated: string;
+  reportGenerated: string;
+  hoursAgo: string;
+  dayAgo: string;
+  daysAgo: string;
   warning: string;
   welcome: string;
   logout: string;
@@ -132,6 +155,29 @@ export const enTranslations: GlobalTranslations = {
   profile: 'Profile',
   notifications: 'Notifications',
   
+  // Dashboard
+  goodMorning: 'Good morning',
+  goodAfternoon: 'Good afternoon',
+  goodEvening: 'Good evening',
+  welcomeToDashboard: 'Welcome to your TaRL Insight Hub dashboard',
+  totalSchools: 'Total Schools',
+  totalStudents: 'Total Students',
+  activeUsers: 'Active Users',
+  trainingSessions: 'Training Sessions',
+  recentActivity: 'Recent Activity',
+  systemOverview: 'System Overview',
+  chartVisualizationArea: 'Chart visualization area',
+  manageSchools: 'Manage schools',
+  manageUsers: 'Manage users',
+  viewAnalytics: 'View analytics',
+  newSchoolRegistered: 'New school registered',
+  trainingSessionCompleted: 'Training session completed',
+  newUserCreated: 'New user created',
+  reportGenerated: 'Report generated',
+  hoursAgo: 'hours ago',
+  dayAgo: 'day ago',
+  daysAgo: 'days ago',
+  
   // Page titles
   schoolManagement: 'School Management',
   studentManagement: 'Student Management',
@@ -208,6 +254,29 @@ export const khTranslations: GlobalTranslations = {
   login: 'ចូល',
   profile: 'ប្រវត្តិរូប',
   notifications: 'ការជូនដំណឹង',
+  
+  // Dashboard
+  goodMorning: 'អរុណសួស្តី',
+  goodAfternoon: 'រសៀលសួស្តី',
+  goodEvening: 'ល្ងាចសួស្តី',
+  welcomeToDashboard: 'សូមស្វាគមន៍មកកាន់ផ្ទាំងគ្រប់គ្រង TaRL Insight Hub របស់អ្នក',
+  totalSchools: 'សាលារៀនសរុប',
+  totalStudents: 'សិស្សានុសិស្សសរុប',
+  activeUsers: 'អ្នកប្រើប្រាស់សកម្ម',
+  trainingSessions: 'វគ្គបណ្តុះបណ្តាល',
+  recentActivity: 'សកម្មភាពថ្មីៗ',
+  systemOverview: 'ទិដ្ឋភាពទូទៅនៃប្រព័ន្ធ',
+  chartVisualizationArea: 'តំបន់បង្ហាញក្រាផ',
+  manageSchools: 'គ្រប់គ្រងសាលារៀន',
+  manageUsers: 'គ្រប់គ្រងអ្នកប្រើប្រាស់',
+  viewAnalytics: 'មើលការវិភាគ',
+  newSchoolRegistered: 'បានចុះឈ្មោះសាលារៀនថ្មី',
+  trainingSessionCompleted: 'បានបញ្ចប់វគ្គបណ្តុះបណ្តាល',
+  newUserCreated: 'បានបង្កើតអ្នកប្រើប្រាស់ថ្មី',
+  reportGenerated: 'បានបង្កើតរបាយការណ៍',
+  hoursAgo: 'ម៉ោងមុន',
+  dayAgo: 'ថ្ងៃមុន',
+  daysAgo: 'ថ្ងៃមុន',
   
   // Page titles
   schoolManagement: 'ការគ្រប់គ្រងសាលារៀន',

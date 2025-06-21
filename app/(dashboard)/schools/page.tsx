@@ -7,6 +7,7 @@ import { FlowbiteButton } from "@/components/ui/flowbite-button";
 import { StatCard } from "@/components/ui/stat-card";
 import { DatabaseService } from "@/lib/database";
 import { School } from "@/lib/types";
+import { useGlobalLoading } from "@/lib/global-loading-context";
 import { 
   Building, 
   MapPin, 
@@ -20,13 +21,14 @@ import {
 
 export default function SchoolsPage() {
   const [schools, setSchools] = useState<School[]>([]);
-  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     total: 0,
     provinces: 0,
     avgStudents: 0,
     totalStudents: 0,
   });
+  
+  const { showLoading, hideLoading } = useGlobalLoading();
 
   useEffect(() => {
     loadSchools();
@@ -34,6 +36,7 @@ export default function SchoolsPage() {
 
   const loadSchools = async () => {
     try {
+      showLoading("Loading schools...");
       const data = await DatabaseService.getSchools();
       const schoolsArray = Array.isArray(data) ? data : [];
       setSchools(schoolsArray);
@@ -52,7 +55,7 @@ export default function SchoolsPage() {
       console.error("Error loading schools:", error);
       setSchools([]); // Fallback to empty array
     } finally {
-      setLoading(false);
+      hideLoading();
     }
   };
 
@@ -145,16 +148,6 @@ export default function SchoolsPage() {
     </div>
   );
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="inline-block w-8 h-8 border-4 border-blue-600 rounded-full animate-spin border-t-transparent"></div>
-          <p className="mt-2 text-gray-500 dark:text-gray-400">Loading schools...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
