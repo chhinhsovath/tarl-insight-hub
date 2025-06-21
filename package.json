@@ -13,7 +13,9 @@
     "db:migrate": "drizzle-kit migrate",
     "migrate:to-neon": "node scripts/complete-migration.js",
     "backup:neon": "node scripts/backup-neon-before-migration.js",
-    "migrate:local-to-neon": "node scripts/migrate-local-to-neon.js"
+    "migrate:local-to-neon": "node scripts/migrate-local-to-neon.js",
+    "claude:context": "./scripts/copy-context.sh",
+    "claude:summary": "node scripts/claude-context-summary.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.54.0",
