@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPool } from "@/lib/database-config";
 import { validateTrainingAccess } from "@/lib/training-permissions";
+import { getAuditLogger, getClientIP, getUserDataFromSession } from "@/lib/audit-logger";
 
 const pool = getPool();
+const auditLogger = getAuditLogger(pool);
 
 // GET - Fetch training sessions
 export async function GET(request: NextRequest) {
@@ -46,7 +48,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN tbl_tarl_training_flow tf_before ON ts.id = tf_before.session_id AND tf_before.flow_stage = 'before'
       LEFT JOIN tbl_tarl_training_flow tf_during ON ts.id = tf_during.session_id AND tf_during.flow_stage = 'during'
       LEFT JOIN tbl_tarl_training_flow tf_after ON ts.id = tf_after.session_id AND tf_after.flow_stage = 'after'
-      WHERE ts.is_active = true
+      WHERE (ts.is_deleted = false OR ts.is_deleted IS NULL)
     `;
 
     const params = [];
@@ -91,6 +93,18 @@ export async function GET(request: NextRequest) {
     `;
 
     const result = await client.query(query, params);
+    
+    // Log read access
+    await auditLogger.logActivity({
+      userId: user.user_id,
+      username: user.username,
+      userRole: user.role,
+      actionType: 'READ',
+      tableName: 'tbl_tarl_training_sessions',
+      changesSummary: `Retrieved ${result.rows.length} training sessions`,
+      ipAddress: getClientIP(request),
+      userAgent: request.headers.get('user-agent') || undefined
+    });
     
     return NextResponse.json(result.rows);
   } catch (error) {
@@ -141,6 +155,13 @@ export async function POST(request: NextRequest) {
 
     await client.query('BEGIN');
 
+    // Set session variables for database triggers
+    await auditLogger.setSessionVariables(
+      user.user_id,
+      user.username,
+      user.role
+    );
+
     // Create the training session
     const insertResult = await client.query(`
       INSERT INTO tbl_tarl_training_sessions (
@@ -190,6 +211,20 @@ export async function POST(request: NextRequest) {
 
     await client.query('COMMIT');
 
+    // Log creation activity
+    await auditLogger.logActivity({
+      userId: user.user_id,
+      username: user.username,
+      userRole: user.role,
+      actionType: 'CREATE',
+      tableName: 'tbl_tarl_training_sessions',
+      recordId: newSession.id,
+      newData: newSession,
+      changesSummary: `Created training session "${newSession.session_title}"`,
+      ipAddress: getClientIP(request),
+      userAgent: request.headers.get('user-agent') || undefined
+    });
+
     return NextResponse.json({
       success: true,
       session: newSession,
@@ -224,6 +259,18 @@ export async function PUT(request: NextRequest) {
   const client = await pool.connect();
 
   try {
+    // Get original data for audit trail
+    const originalResult = await client.query(`
+      SELECT * FROM tbl_tarl_training_sessions 
+      WHERE id = $1 AND (is_deleted = false OR is_deleted IS NULL)
+    `, [parseInt(sessionId)]);
+
+    if (originalResult.rows.length === 0) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+
+    const originalData = originalResult.rows[0];
+
     const body = await request.json();
     const {
       session_title,
@@ -245,6 +292,13 @@ export async function PUT(request: NextRequest) {
       max_participants, trainer_id, coordinator_id, registration_deadline, session_status
     });
 
+    // Set session variables for database triggers
+    await auditLogger.setSessionVariables(
+      user.user_id,
+      user.username,
+      user.role
+    );
+
     const updateResult = await client.query(`
       UPDATE tbl_tarl_training_sessions SET
         session_title = $1,
@@ -260,7 +314,7 @@ export async function PUT(request: NextRequest) {
         agenda = $11,
         notes = $12,
         updated_at = NOW()
-      WHERE id = $13 AND is_active = true
+      WHERE id = $13 AND (is_deleted = false OR is_deleted IS NULL)
       RETURNING id, session_title, session_date, session_time, location, session_status, registration_deadline
     `, [
       session_title,
@@ -282,9 +336,26 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Training session not found' }, { status: 404 });
     }
 
+    const updatedSession = updateResult.rows[0];
+
+    // Log update activity with old and new data
+    await auditLogger.logActivity({
+      userId: user.user_id,
+      username: user.username,
+      userRole: user.role,
+      actionType: 'UPDATE',
+      tableName: 'tbl_tarl_training_sessions',
+      recordId: parseInt(sessionId),
+      oldData: originalData,
+      newData: updatedSession,
+      changesSummary: `Updated training session "${updatedSession.session_title}"`,
+      ipAddress: getClientIP(request),
+      userAgent: request.headers.get('user-agent') || undefined
+    });
+
     return NextResponse.json({
       success: true,
-      session: updateResult.rows[0],
+      session: updatedSession,
       message: 'Training session updated successfully'
     });
 
@@ -296,7 +367,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE - Delete training session
+// DELETE - Soft delete training session
 export async function DELETE(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const sessionId = searchParams.get('id');
@@ -313,20 +384,25 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: authResult.error }, { status: 401 });
   }
 
+  const user = authResult.user!;
   const client = await pool.connect();
 
   try {
+    // Get session details and delete reason from request body
+    const body = await request.json().catch(() => ({}));
+    const deleteReason = body.reason || 'No reason provided';
+
     await client.query('BEGIN');
 
     // Check if session exists and get details
     const sessionCheck = await client.query(`
-      SELECT id, session_title, session_status FROM tbl_tarl_training_sessions 
-      WHERE id = $1 AND is_active = true
+      SELECT * FROM tbl_tarl_training_sessions 
+      WHERE id = $1 AND (is_deleted = false OR is_deleted IS NULL)
     `, [parseInt(sessionId)]);
 
     if (sessionCheck.rows.length === 0) {
       await client.query('ROLLBACK');
-      return NextResponse.json({ error: 'Training session not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Training session not found or already deleted' }, { status: 404 });
     }
 
     const session = sessionCheck.rows[0];
@@ -334,7 +410,7 @@ export async function DELETE(request: NextRequest) {
     // Check if session has participants
     const participantsCheck = await client.query(`
       SELECT COUNT(*) as participant_count FROM tbl_tarl_training_participants 
-      WHERE session_id = $1
+      WHERE session_id = $1 AND (is_deleted = false OR is_deleted IS NULL)
     `, [parseInt(sessionId)]);
 
     const participantCount = parseInt(participantsCheck.rows[0].participant_count);
@@ -342,49 +418,62 @@ export async function DELETE(request: NextRequest) {
     if (participantCount > 0 && !forceDelete) {
       await client.query('ROLLBACK');
       return NextResponse.json({ 
-        error: 'Cannot delete session with registered participants. Please remove participants first.',
+        error: 'Cannot delete session with registered participants. Use force=true to soft delete participants as well.',
         participantCount: participantCount,
         canForceDelete: true
       }, { status: 400 });
     }
 
-    // If force delete is requested, first remove all participants
+    // If force delete is requested, soft delete all participants first
     if (forceDelete && participantCount > 0) {
       await client.query(`
-        DELETE FROM tbl_tarl_training_participants WHERE session_id = $1
-      `, [parseInt(sessionId)]);
-      console.log(`Force deleted ${participantCount} participants for session ${sessionId}`);
+        UPDATE tbl_tarl_training_participants 
+        SET is_deleted = true, deleted_at = NOW(), deleted_by = $1
+        WHERE session_id = $2 AND (is_deleted = false OR is_deleted IS NULL)
+      `, [user.user_id, parseInt(sessionId)]);
+      console.log(`Soft deleted ${participantCount} participants for session ${sessionId}`);
     }
 
-    // Soft delete the session (set is_active = false)
-    await client.query(`
-      UPDATE tbl_tarl_training_sessions 
-      SET is_active = false, updated_at = NOW()
-      WHERE id = $1
-    `, [parseInt(sessionId)]);
+    // Use audit logger soft delete function for the session
+    const success = await auditLogger.softDelete({
+      tableName: 'tbl_tarl_training_sessions',
+      recordId: parseInt(sessionId),
+      userId: user.user_id,
+      username: user.username,
+      deleteReason
+    });
 
-    // Also clean up related training flow entries
-    await client.query(`
-      DELETE FROM tbl_tarl_training_flow WHERE session_id = $1
-    `, [parseInt(sessionId)]);
+    if (!success) {
+      await client.query('ROLLBACK');
+      return NextResponse.json({ error: 'Failed to delete session' }, { status: 500 });
+    }
 
-    // Clean up any QR codes for this session
+    // Soft delete related training flow entries
+    await client.query(`
+      UPDATE tbl_tarl_training_flow 
+      SET is_deleted = true, deleted_at = NOW(), deleted_by = $1
+      WHERE session_id = $2 AND (is_deleted = false OR is_deleted IS NULL)
+    `, [user.user_id, parseInt(sessionId)]);
+
+    // Soft delete any QR codes for this session
     await client.query(`
       UPDATE tbl_tarl_qr_codes 
-      SET is_active = false, updated_at = NOW()
-      WHERE session_id = $1
-    `, [parseInt(sessionId)]);
+      SET is_deleted = true, deleted_at = NOW(), deleted_by = $1
+      WHERE session_id = $2 AND (is_deleted = false OR is_deleted IS NULL)
+    `, [user.user_id, parseInt(sessionId)]);
 
     await client.query('COMMIT');
 
-    let message = `Training session "${session.session_title}" deleted successfully`;
+    let message = `Training session "${session.session_title}" soft deleted successfully`;
     if (forceDelete && participantCount > 0) {
-      message += ` (${participantCount} participant registrations were also removed)`;
+      message += ` (${participantCount} participant registrations were also soft deleted)`;
     }
 
     return NextResponse.json({
       success: true,
-      message: message
+      message: message,
+      sessionId: parseInt(sessionId),
+      canBeRestored: true
     });
 
   } catch (error) {

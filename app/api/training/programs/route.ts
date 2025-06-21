@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPool } from "@/lib/database-config";
 import { validateTrainingAccess, getActionFromMethod } from "@/lib/training-permissions";
+import { getAuditLogger, getClientIP, getUserDataFromSession } from "@/lib/audit-logger";
 
 const pool = getPool();
+const auditLogger = getAuditLogger(pool);
 
 // GET - Fetch training programs
 export async function GET(request: NextRequest) {
@@ -35,7 +37,7 @@ export async function GET(request: NextRequest) {
         LEFT JOIN tbl_tarl_training_sessions ts ON tp.id = ts.program_id AND ts.is_active = true
         LEFT JOIN tbl_tarl_training_participants tpt ON ts.id = tpt.session_id
         LEFT JOIN tbl_tarl_training_materials tm ON tp.id = tm.program_id AND tm.is_active = true
-        WHERE tp.id = $1 AND tp.is_active = true
+        WHERE tp.id = $1 AND (tp.is_deleted = false OR tp.is_deleted IS NULL)
         GROUP BY tp.id, creator.full_name
       `;
 
@@ -79,12 +81,24 @@ export async function GET(request: NextRequest) {
       LEFT JOIN tbl_tarl_training_sessions ts ON tp.id = ts.program_id AND ts.is_active = true
       LEFT JOIN tbl_tarl_training_participants tpt ON ts.id = tpt.session_id
       LEFT JOIN tbl_tarl_training_materials tm ON tp.id = tm.program_id AND tm.is_active = true
-      WHERE tp.is_active = true
+      WHERE (tp.is_deleted = false OR tp.is_deleted IS NULL)
       GROUP BY tp.id, creator.full_name
       ORDER BY tp.created_at DESC
     `;
 
     const result = await client.query(query);
+    
+    // Log read access
+    await auditLogger.logActivity({
+      userId: user.user_id,
+      username: user.username,
+      userRole: user.role,
+      actionType: 'READ',
+      tableName: 'tbl_tarl_training_programs',
+      changesSummary: `Retrieved ${result.rows.length} training programs`,
+      ipAddress: getClientIP(request),
+      userAgent: request.headers.get('user-agent') || undefined
+    });
     
     // For detailed view, also fetch materials for each program
     if (includeDetails && result.rows.length > 0) {
@@ -144,6 +158,13 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Set session variables for database triggers
+    await auditLogger.setSessionVariables(
+      user.user_id,
+      user.username,
+      user.role
+    );
+
     // Create the training program
     const result = await client.query(`
       INSERT INTO tbl_tarl_training_programs (
@@ -159,6 +180,20 @@ export async function POST(request: NextRequest) {
     ]);
 
     const newProgram = result.rows[0];
+
+    // Log creation activity
+    await auditLogger.logActivity({
+      userId: user.user_id,
+      username: user.username,
+      userRole: user.role,
+      actionType: 'CREATE',
+      tableName: 'tbl_tarl_training_programs',
+      recordId: newProgram.id,
+      newData: newProgram,
+      changesSummary: `Created training program "${newProgram.program_name}"`,
+      ipAddress: getClientIP(request),
+      userAgent: request.headers.get('user-agent') || undefined
+    });
 
     return NextResponse.json({
       success: true,
@@ -222,6 +257,25 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { program_name, description, program_type, duration_hours } = body;
 
+    // Get original data for audit trail
+    const originalResult = await client.query(`
+      SELECT * FROM tbl_tarl_training_programs 
+      WHERE id = $1 AND (is_deleted = false OR is_deleted IS NULL)
+    `, [parseInt(programId)]);
+
+    if (originalResult.rows.length === 0) {
+      return NextResponse.json({ error: 'Program not found' }, { status: 404 });
+    }
+
+    const originalData = originalResult.rows[0];
+
+    // Set session variables for database triggers
+    await auditLogger.setSessionVariables(
+      user.user_id,
+      user.username,
+      user.role
+    );
+
     const updateResult = await client.query(`
       UPDATE tbl_tarl_training_programs SET
         program_name = COALESCE($1, program_name),
@@ -229,7 +283,7 @@ export async function PUT(request: NextRequest) {
         program_type = COALESCE($3, program_type),
         duration_hours = COALESCE($4, duration_hours),
         updated_at = NOW()
-      WHERE id = $5 AND is_active = true
+      WHERE id = $5 AND (is_deleted = false OR is_deleted IS NULL)
       RETURNING id, program_name, description, program_type, duration_hours, updated_at
     `, [
       program_name, description, program_type, duration_hours, parseInt(programId)
@@ -239,9 +293,26 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Training program not found' }, { status: 404 });
     }
 
+    const updatedProgram = updateResult.rows[0];
+
+    // Log update activity with old and new data
+    await auditLogger.logActivity({
+      userId: user.user_id,
+      username: user.username,
+      userRole: user.role,
+      actionType: 'UPDATE',
+      tableName: 'tbl_tarl_training_programs',
+      recordId: parseInt(programId),
+      oldData: originalData,
+      newData: updatedProgram,
+      changesSummary: `Updated training program "${updatedProgram.program_name}"`,
+      ipAddress: getClientIP(request),
+      userAgent: request.headers.get('user-agent') || undefined
+    });
+
     return NextResponse.json({
       success: true,
-      program: updateResult.rows[0],
+      program: updatedProgram,
       message: 'Training program updated successfully'
     });
 
@@ -275,12 +346,27 @@ export async function DELETE(request: NextRequest) {
   const client = await pool.connect();
 
   try {
+    // Get program details and delete reason from request body
+    const body = await request.json().catch(() => ({}));
+    const deleteReason = body.reason || 'No reason provided';
+
+    // Check if program exists and is not already deleted
+    const programCheck = await client.query(`
+      SELECT * FROM tbl_tarl_training_programs 
+      WHERE id = $1 AND (is_deleted = false OR is_deleted IS NULL)
+    `, [parseInt(programId)]);
+
+    if (programCheck.rows.length === 0) {
+      return NextResponse.json({ error: 'Program not found or already deleted' }, { status: 404 });
+    }
+
+    const program = programCheck.rows[0];
 
     // Check if program has active sessions
     const sessionCheck = await client.query(`
       SELECT COUNT(*) as session_count 
       FROM tbl_tarl_training_sessions 
-      WHERE program_id = $1 AND is_active = true AND session_status IN ('scheduled', 'ongoing')
+      WHERE program_id = $1 AND (is_deleted = false OR is_deleted IS NULL) AND session_status IN ('scheduled', 'ongoing')
     `, [parseInt(programId)]);
 
     if (parseInt(sessionCheck.rows[0].session_count) > 0) {
@@ -289,21 +375,24 @@ export async function DELETE(request: NextRequest) {
       }, { status: 409 });
     }
 
-    // Soft delete the program
-    const deleteResult = await client.query(`
-      UPDATE tbl_tarl_training_programs 
-      SET is_active = false, updated_at = NOW()
-      WHERE id = $1 AND is_active = true
-      RETURNING id, program_name
-    `, [parseInt(programId)]);
+    // Use audit logger soft delete function
+    const success = await auditLogger.softDelete({
+      tableName: 'tbl_tarl_training_programs',
+      recordId: parseInt(programId),
+      userId: user.user_id,
+      username: user.username,
+      deleteReason
+    });
 
-    if (deleteResult.rows.length === 0) {
-      return NextResponse.json({ error: 'Training program not found' }, { status: 404 });
+    if (!success) {
+      return NextResponse.json({ error: 'Failed to delete program' }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      message: `Training program "${deleteResult.rows[0].program_name}" deleted successfully`
+      message: `Training program "${program.program_name}" soft deleted successfully`,
+      programId: parseInt(programId),
+      canBeRestored: true
     });
 
   } catch (error) {

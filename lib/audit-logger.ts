@@ -1,183 +1,302 @@
-import { Pool } from "pg";
-
-const pool = new Pool({
-  user: process.env.PGUSER,
-  host: process.env.PGHOST,
-  database: process.env.PGDATABASE,
-  password: process.env.PGPASSWORD,
-  port: parseInt(process.env.PGPORT || '5432', 10),
-});
+import { Pool } from 'pg';
 
 interface AuditLogEntry {
-  action_type: string;
-  entity_type: string;
-  entity_id?: number;
-  role_name?: string;
-  page_name?: string;
-  page_path?: string;
-  previous_value?: string;
-  new_value?: string;
-  changed_by_user_id: number;
-  changed_by_username?: string;
-  changed_by_role?: string;
-  description: string;
-  metadata?: any;
+  userId?: number;
+  username?: string;
+  userRole?: string;
+  actionType: 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'RESTORE';
+  tableName?: string;
+  recordId?: number;
+  oldData?: any;
+  newData?: any;
+  changesSummary?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  sessionToken?: string;
+  isSoftDelete?: boolean;
+}
+
+interface SoftDeleteOptions {
+  tableName: string;
+  recordId: number;
+  userId: number;
+  username: string;
+  deleteReason?: string;
+}
+
+interface RestoreOptions {
+  tableName: string;
+  recordId: number;
+  userId: number;
+  username: string;
 }
 
 export class AuditLogger {
-  static async log(entry: AuditLogEntry): Promise<void> {
-    const client = await pool.connect();
-    
-    try {
-      // Check if audit table exists
-      const tableCheck = await client.query(`
-        SELECT table_name 
-        FROM information_schema.tables 
-        WHERE table_name = 'permission_audit_log'
-      `);
+  private pool: Pool;
 
-      if (tableCheck.rows.length === 0) {
-        // Audit table doesn't exist, skip logging
-        console.warn('Audit table does not exist. Skipping audit log entry.');
-        return;
+  constructor(pool: Pool) {
+    this.pool = pool;
+  }
+
+  /**
+   * Log user activity to the audit system
+   */
+  async logActivity(entry: AuditLogEntry): Promise<void> {
+    try {
+      const query = `
+        INSERT INTO tbl_tarl_user_activities (
+          user_id, username, user_role, action_type, table_name, record_id,
+          old_data, new_data, changes_summary, ip_address, user_agent, 
+          session_token, is_soft_delete
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      `;
+
+      await this.pool.query(query, [
+        entry.userId,
+        entry.username,
+        entry.userRole,
+        entry.actionType,
+        entry.tableName,
+        entry.recordId,
+        entry.oldData ? JSON.stringify(entry.oldData) : null,
+        entry.newData ? JSON.stringify(entry.newData) : null,
+        entry.changesSummary,
+        entry.ipAddress,
+        entry.userAgent,
+        entry.sessionToken,
+        entry.isSoftDelete || false
+      ]);
+    } catch (error) {
+      console.error('Failed to log audit activity:', error);
+      // Don't throw error to avoid breaking main functionality
+    }
+  }
+
+  /**
+   * Set session variables for database triggers
+   */
+  async setSessionVariables(userId: number, username: string, userRole?: string): Promise<void> {
+    try {
+      await this.pool.query(`SET app.current_user_id = $1`, [userId.toString()]);
+      await this.pool.query(`SET app.current_username = $1`, [username]);
+      if (userRole) {
+        await this.pool.query(`SET app.current_user_role = $1`, [userRole]);
+      }
+    } catch (error) {
+      console.error('Failed to set session variables:', error);
+    }
+  }
+
+  /**
+   * Perform soft delete using database function
+   */
+  async softDelete(options: SoftDeleteOptions): Promise<boolean> {
+    try {
+      const result = await this.pool.query(
+        `SELECT soft_delete_record($1, $2, $3, $4, $5) as success`,
+        [options.tableName, options.recordId, options.userId, options.username, options.deleteReason]
+      );
+
+      const success = result.rows[0]?.success || false;
+
+      // Log the soft delete activity
+      if (success) {
+        await this.logActivity({
+          userId: options.userId,
+          username: options.username,
+          actionType: 'DELETE',
+          tableName: options.tableName,
+          recordId: options.recordId,
+          changesSummary: `Soft deleted ${options.tableName} record with ID ${options.recordId}${options.deleteReason ? `: ${options.deleteReason}` : ''}`,
+          isSoftDelete: true
+        });
       }
 
-      await client.query(`
-        INSERT INTO permission_audit_log (
-          action_type, entity_type, entity_id, role_name, page_name, page_path,
-          previous_value, new_value, changed_by_user_id, changed_by_username, 
-          changed_by_role, description, metadata
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-      `, [
-        entry.action_type,
-        entry.entity_type,
-        entry.entity_id || null,
-        entry.role_name || null,
-        entry.page_name || null,
-        entry.page_path || null,
-        entry.previous_value || null,
-        entry.new_value || null,
-        entry.changed_by_user_id,
-        entry.changed_by_username || null,
-        entry.changed_by_role || null,
-        entry.description,
-        entry.metadata ? JSON.stringify(entry.metadata) : null
-      ]);
-
+      return success;
     } catch (error) {
-      console.error('Error logging audit entry:', error);
-      // Don't throw error to avoid breaking main functionality
-    } finally {
-      client.release();
+      console.error('Failed to soft delete record:', error);
+      return false;
     }
   }
 
-  static async logPermissionChange(
-    action: 'granted' | 'revoked',
-    roleName: string,
-    pageName: string,
-    pagePath: string,
-    changedByUserId: number,
-    changedByUsername?: string,
-    changedByRole?: string
-  ): Promise<void> {
-    await this.log({
-      action_type: `permission_${action}`,
-      entity_type: 'permission',
-      role_name: roleName,
-      page_name: pageName,
-      page_path: pagePath,
-      previous_value: action === 'granted' ? 'false' : 'true',
-      new_value: action === 'granted' ? 'true' : 'false',
-      changed_by_user_id: changedByUserId,
-      changed_by_username: changedByUsername,
-      changed_by_role: changedByRole,
-      description: `${action === 'granted' ? 'Granted' : 'Revoked'} "${roleName}" role access to "${pageName}" page`,
-      metadata: { page_path: pagePath, action }
-    });
+  /**
+   * Restore soft-deleted record using database function
+   */
+  async restoreRecord(options: RestoreOptions): Promise<boolean> {
+    try {
+      const result = await this.pool.query(
+        `SELECT restore_deleted_record($1, $2, $3, $4) as success`,
+        [options.tableName, options.recordId, options.userId, options.username]
+      );
+
+      return result.rows[0]?.success || false;
+    } catch (error) {
+      console.error('Failed to restore record:', error);
+      return false;
+    }
   }
 
-  static async logRoleChange(
-    action: 'created' | 'updated' | 'deleted',
-    roleId: number,
-    roleName: string,
-    changedByUserId: number,
-    previousName?: string,
-    changedByUsername?: string,
-    changedByRole?: string
-  ): Promise<void> {
-    let description = '';
-    let previousValue = null;
-    let newValue = null;
+  /**
+   * Get recent user activities
+   */
+  async getRecentActivities(limit: number = 50, userId?: number): Promise<any[]> {
+    try {
+      let query = `
+        SELECT * FROM v_recent_user_activities
+      `;
+      const params: any[] = [];
 
-    switch (action) {
-      case 'created':
-        description = `Created new role "${roleName}"`;
-        newValue = roleName;
+      if (userId) {
+        query += ` WHERE user_id = $1`;
+        params.push(userId);
+      }
+
+      query += ` ORDER BY created_at DESC LIMIT $${params.length + 1}`;
+      params.push(limit);
+
+      const result = await this.pool.query(query, params);
+      return result.rows;
+    } catch (error) {
+      console.error('Failed to get recent activities:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get restorable records
+   */
+  async getRestorableRecords(tableName?: string): Promise<any[]> {
+    try {
+      let query = `SELECT * FROM v_restorable_records`;
+      const params: any[] = [];
+
+      if (tableName) {
+        query += ` WHERE table_name = $1`;
+        params.push(tableName);
+      }
+
+      query += ` ORDER BY deleted_at DESC`;
+
+      const result = await this.pool.query(query, params);
+      return result.rows;
+    } catch (error) {
+      console.error('Failed to get restorable records:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get training audit summary
+   */
+  async getTrainingAuditSummary(days: number = 30): Promise<any[]> {
+    try {
+      const query = `
+        SELECT * FROM v_training_audit_summary
+        WHERE activity_date >= CURRENT_DATE - INTERVAL '${days} days'
+        ORDER BY activity_date DESC, table_name, action_type
+      `;
+
+      const result = await this.pool.query(query);
+      return result.rows;
+    } catch (error) {
+      console.error('Failed to get training audit summary:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Cleanup old deleted records (admin function)
+   */
+  async cleanupOldDeletedRecords(olderThanDays: number = 365): Promise<number> {
+    try {
+      const result = await this.pool.query(
+        `SELECT cleanup_old_deleted_records($1) as cleanup_count`,
+        [olderThanDays]
+      );
+
+      return result.rows[0]?.cleanup_count || 0;
+    } catch (error) {
+      console.error('Failed to cleanup old deleted records:', error);
+      return 0;
+    }
+  }
+
+  /**
+   * Helper to create audit entry for CRUD operations
+   */
+  createAuditEntry(
+    actionType: AuditLogEntry['actionType'],
+    tableName: string,
+    recordId: number,
+    userData: { userId?: number; username?: string; userRole?: string },
+    oldData?: any,
+    newData?: any,
+    request?: { ip?: string; userAgent?: string; sessionToken?: string }
+  ): AuditLogEntry {
+    let changesSummary = '';
+    
+    switch (actionType) {
+      case 'CREATE':
+        changesSummary = `Created new ${tableName} record with ID ${recordId}`;
         break;
-      case 'updated':
-        description = `Updated role "${previousName}" to "${roleName}"`;
-        previousValue = previousName;
-        newValue = roleName;
+      case 'UPDATE':
+        changesSummary = `Updated ${tableName} record with ID ${recordId}`;
         break;
-      case 'deleted':
-        description = `Deleted role "${roleName}"`;
-        previousValue = roleName;
+      case 'DELETE':
+        changesSummary = `Deleted ${tableName} record with ID ${recordId}`;
         break;
+      case 'READ':
+        changesSummary = `Accessed ${tableName} record with ID ${recordId}`;
+        break;
+      default:
+        changesSummary = `${actionType} operation on ${tableName} record with ID ${recordId}`;
     }
 
-    await this.log({
-      action_type: `role_${action}`,
-      entity_type: 'role',
-      entity_id: roleId,
-      role_name: roleName,
-      previous_value: previousValue,
-      new_value: newValue,
-      changed_by_user_id: changedByUserId,
-      changed_by_username: changedByUsername,
-      changed_by_role: changedByRole,
-      description,
-      metadata: { role_id: roleId, action }
-    });
+    return {
+      userId: userData.userId,
+      username: userData.username,
+      userRole: userData.userRole,
+      actionType,
+      tableName,
+      recordId,
+      oldData,
+      newData,
+      changesSummary,
+      ipAddress: request?.ip,
+      userAgent: request?.userAgent,
+      sessionToken: request?.sessionToken,
+      isSoftDelete: actionType === 'DELETE'
+    };
   }
+}
 
-  static async logPageChange(
-    action: 'created' | 'updated' | 'deleted',
-    pageId: number,
-    pageName: string,
-    pagePath: string,
-    changedByUserId: number,
-    changedByUsername?: string,
-    changedByRole?: string
-  ): Promise<void> {
-    await this.log({
-      action_type: `page_${action}`,
-      entity_type: 'page',
-      entity_id: pageId,
-      page_name: pageName,
-      page_path: pagePath,
-      changed_by_user_id: changedByUserId,
-      changed_by_username: changedByUsername,
-      changed_by_role: changedByRole,
-      description: `${action.charAt(0).toUpperCase() + action.slice(1)} page "${pageName}" (${pagePath})`,
-      metadata: { page_id: pageId, page_path: pagePath, action }
-    });
-  }
+// Helper function to get client IP from request
+export function getClientIP(request: any): string | undefined {
+  return request.ip || 
+         request.connection?.remoteAddress || 
+         request.socket?.remoteAddress ||
+         (request.headers && (
+           request.headers['x-forwarded-for'] ||
+           request.headers['x-real-ip'] ||
+           request.headers['x-client-ip']
+         ));
+}
 
-  static async logMenuOrderChange(
-    changedByUserId: number,
-    pageCount: number,
-    changedByUsername?: string,
-    changedByRole?: string
-  ): Promise<void> {
-    await this.log({
-      action_type: 'menu_reordered',
-      entity_type: 'menu',
-      changed_by_user_id: changedByUserId,
-      changed_by_username: changedByUsername,
-      changed_by_role: changedByRole,
-      description: `Reordered menu items (${pageCount} pages affected)`,
-      metadata: { page_count: pageCount, action: 'reorder' }
-    });
+// Helper function to extract user data from session
+export function getUserDataFromSession(session: any): { userId?: number; username?: string; userRole?: string } {
+  return {
+    userId: session?.user?.id,
+    username: session?.user?.username,
+    userRole: session?.user?.role
+  };
+}
+
+// Export singleton instance
+let auditLoggerInstance: AuditLogger | null = null;
+
+export function getAuditLogger(pool: Pool): AuditLogger {
+  if (!auditLoggerInstance) {
+    auditLoggerInstance = new AuditLogger(pool);
   }
+  return auditLoggerInstance;
 }
