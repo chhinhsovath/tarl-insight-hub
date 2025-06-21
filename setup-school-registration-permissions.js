@@ -90,8 +90,9 @@ async function setupSchoolRegistrationPermissions() {
     }
     
     console.log('\n🎯 School Registration permissions setup completed!');
-    console.log('📍 Page URL: /school-registration');
-    console.log('🔗 Menu Category: Management');
+    console.log('📍 Page URL: /school-registration (PUBLIC ACCESS)');
+    console.log('🔗 Similar to training attendance, registration, and feedback');
+    console.log('👥 Accessible to school directors without login');
     
   } catch (error) {
     console.error('❌ Error setting up school registration permissions:', error.message);

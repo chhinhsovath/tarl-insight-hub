@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPool } from "@/lib/database-config";
 import { getAuditLogger } from "@/lib/audit-logger";
-import { cookies } from "next/headers";
 
 const pool = getPool();
 
@@ -9,27 +8,13 @@ const pool = getPool();
 async function handleEnhancedRegistration(client: any, request: NextRequest, body: any) {
   const { schoolId, schoolData } = body;
   
-  // Get session token from cookies
-  const cookieStore = await cookies();
-  const sessionToken = cookieStore.get('session-token')?.value;
-
-  if (!sessionToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Validate session
-  const sessionResult = await client.query(
-    `SELECT id, full_name, email, username, role, school_id, is_active
-     FROM tbl_tarl_users
-     WHERE session_token = $1 AND session_expires > NOW()`,
-    [sessionToken]
-  );
-
-  if (sessionResult.rows.length === 0) {
-    return NextResponse.json({ error: 'Invalid or expired session' }, { status: 401 });
-  }
-
-  const user = sessionResult.rows[0];
+  // For public registration, we don't require authentication
+  // Instead, we'll log it as a public registration
+  const user = {
+    id: null,
+    username: schoolData.directorName || 'Unknown Director',
+    role: 'public'
+  };
 
   // Create comprehensive registration table if it doesn't exist
   await client.query(`
@@ -108,7 +93,7 @@ async function handleEnhancedRegistration(client: any, request: NextRequest, bod
       )
       RETURNING id
     `, [
-      schoolId, user.id,
+      schoolId, user.id || null,
       schoolData.schoolType || null, schoolData.schoolLevel || null,
       schoolData.establishedYear ? parseInt(schoolData.establishedYear) : null,
       schoolData.totalClasses ? parseInt(schoolData.totalClasses) : null,
@@ -139,7 +124,7 @@ async function handleEnhancedRegistration(client: any, request: NextRequest, bod
     // Log the registration activity
     const auditLogger = getAuditLogger(pool);
     await auditLogger.logActivity({
-      userId: user.id,
+      userId: user.id || undefined,
       username: user.username,
       userRole: user.role,
       actionType: 'CREATE',
