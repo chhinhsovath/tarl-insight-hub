@@ -7,7 +7,7 @@ Before starting any work, please read `CLAUDE_CONTEXT.md` for comprehensive proj
 - Current tech stack and architecture decisions  
 - Recent font standardization (Hanuman for English/Khmer)
 - Completed training system (100% functional)
-- Database migration status (Digital Ocean PostgreSQL)
+- Database migration status (Digital Ocean PostgreSQL only - legacy Supabase/Neon removed)
 - Multi-language implementation details
 - Loading system standardization
 - Known issues and solutions
