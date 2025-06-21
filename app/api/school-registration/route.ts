@@ -1,8 +1,170 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPool } from "@/lib/database-config";
 import { getAuditLogger } from "@/lib/audit-logger";
+import { cookies } from "next/headers";
 
 const pool = getPool();
+
+// Enhanced registration handler for comprehensive school information
+async function handleEnhancedRegistration(client: any, request: NextRequest, body: any) {
+  const { schoolId, schoolData } = body;
+  
+  // Get session token from cookies
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get('session-token')?.value;
+
+  if (!sessionToken) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Validate session
+  const sessionResult = await client.query(
+    `SELECT id, full_name, email, username, role, school_id, is_active
+     FROM tbl_tarl_users
+     WHERE session_token = $1 AND session_expires > NOW()`,
+    [sessionToken]
+  );
+
+  if (sessionResult.rows.length === 0) {
+    return NextResponse.json({ error: 'Invalid or expired session' }, { status: 401 });
+  }
+
+  const user = sessionResult.rows[0];
+
+  // Create comprehensive registration table if it doesn't exist
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS tbl_tarl_school_registrations (
+      id SERIAL PRIMARY KEY,
+      school_id INTEGER,
+      registered_by INTEGER,
+      
+      -- Basic Information
+      school_type VARCHAR(50),
+      school_level VARCHAR(50),
+      established_year INTEGER,
+      total_classes INTEGER,
+      total_students INTEGER,
+      total_teachers INTEGER,
+      
+      -- Infrastructure
+      building_condition VARCHAR(50),
+      classroom_count INTEGER,
+      toilet_count INTEGER,
+      library_available BOOLEAN DEFAULT FALSE,
+      computer_lab_available BOOLEAN DEFAULT FALSE,
+      internet_available BOOLEAN DEFAULT FALSE,
+      electricity_available BOOLEAN DEFAULT FALSE,
+      water_source_available BOOLEAN DEFAULT FALSE,
+      
+      -- Director Information
+      director_name VARCHAR(255),
+      director_gender VARCHAR(10),
+      director_age INTEGER,
+      director_phone VARCHAR(50),
+      director_email VARCHAR(255),
+      director_education VARCHAR(100),
+      director_experience INTEGER,
+      
+      -- Contact & Location
+      school_phone VARCHAR(50),
+      school_email VARCHAR(255),
+      latitude DECIMAL(10, 8),
+      longitude DECIMAL(11, 8),
+      
+      -- Additional Information
+      challenges TEXT,
+      achievements TEXT,
+      support_needed TEXT,
+      notes TEXT,
+      
+      registration_date TIMESTAMP DEFAULT NOW(),
+      status VARCHAR(20) DEFAULT 'pending',
+      approved_by INTEGER,
+      approved_date TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
+  await client.query('BEGIN');
+
+  try {
+    // Insert comprehensive school registration data
+    const insertResult = await client.query(`
+      INSERT INTO tbl_tarl_school_registrations (
+        school_id, registered_by, school_type, school_level, established_year,
+        total_classes, total_students, total_teachers, building_condition,
+        classroom_count, toilet_count, library_available, computer_lab_available,
+        internet_available, electricity_available, water_source_available,
+        director_name, director_gender, director_age, director_phone,
+        director_email, director_education, director_experience,
+        school_phone, school_email, latitude, longitude,
+        challenges, achievements, support_needed, notes,
+        registration_date, status
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,
+        $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31,
+        NOW(), 'pending'
+      )
+      RETURNING id
+    `, [
+      schoolId, user.id,
+      schoolData.schoolType || null, schoolData.schoolLevel || null,
+      schoolData.establishedYear ? parseInt(schoolData.establishedYear) : null,
+      schoolData.totalClasses ? parseInt(schoolData.totalClasses) : null,
+      schoolData.totalStudents ? parseInt(schoolData.totalStudents) : null,
+      schoolData.totalTeachers ? parseInt(schoolData.totalTeachers) : null,
+      schoolData.buildingCondition || null,
+      schoolData.classroomCount ? parseInt(schoolData.classroomCount) : null,
+      schoolData.toiletCount ? parseInt(schoolData.toiletCount) : null,
+      schoolData.libraryAvailable === 'yes',
+      schoolData.computerLabAvailable === 'yes',
+      schoolData.internetAvailable === 'yes',
+      schoolData.electricityAvailable === 'yes',
+      schoolData.waterSourceAvailable === 'yes',
+      schoolData.directorName || null, schoolData.directorGender || null,
+      schoolData.directorAge ? parseInt(schoolData.directorAge) : null,
+      schoolData.directorPhone || null, schoolData.directorEmail || null,
+      schoolData.directorEducation || null,
+      schoolData.directorExperience ? parseInt(schoolData.directorExperience) : null,
+      schoolData.schoolPhone || null, schoolData.schoolEmail || null,
+      schoolData.latitude ? parseFloat(schoolData.latitude) : null,
+      schoolData.longitude ? parseFloat(schoolData.longitude) : null,
+      schoolData.challenges || null, schoolData.achievements || null,
+      schoolData.supportNeeded || null, schoolData.notes || null
+    ]);
+
+    const registrationId = insertResult.rows[0].id;
+
+    // Log the registration activity
+    const auditLogger = getAuditLogger(pool);
+    await auditLogger.logActivity({
+      userId: user.id,
+      username: user.username,
+      userRole: user.role,
+      actionType: 'CREATE',
+      tableName: 'tbl_tarl_school_registrations',
+      recordId: registrationId,
+      newData: { schoolId, ...schoolData },
+      changesSummary: `Comprehensive school registration submitted for school ID ${schoolId} by ${schoolData.directorName || 'Unknown Director'}`,
+      ipAddress: getClientIP(request),
+      userAgent: request.headers.get('user-agent') || undefined
+    });
+
+    await client.query('COMMIT');
+
+    return NextResponse.json({
+      success: true,
+      message: 'Comprehensive school registration submitted successfully',
+      registrationId: registrationId,
+      status: 'pending'
+    });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  }
+}
 
 function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
@@ -26,6 +188,16 @@ export async function POST(request: NextRequest) {
   
   try {
     const body = await request.json();
+    
+    // Handle both old and new API format
+    const isEnhancedForm = body.schoolId && body.schoolData;
+    
+    if (isEnhancedForm) {
+      // New enhanced form handling
+      return handleEnhancedRegistration(client, request, body);
+    }
+    
+    // Legacy form handling
     const {
       schoolName,
       schoolCode,
