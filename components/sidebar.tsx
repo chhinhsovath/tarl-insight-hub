@@ -254,12 +254,12 @@ export function Sidebar({ open = false, setOpen = () => {} }: SidebarProps = {})
   // Dynamic category labels based on language
   const categoryLabels: Record<string, string> = {
     overview: language === 'kh' ? 'ទិដ្ឋភាពទូទៅ' : 'Overview',
-    management: language === 'kh' ? 'ការគ្រប់គ្រង' : 'Management',
-    data: language === 'kh' ? 'ការប្រមូលទិន្នន័យ' : 'Data Collection',
-    analytics: language === 'kh' ? 'វិភាគ និងរបាយការណ៍' : 'Analytics & Reports',
-    learning: language === 'kh' ? 'ការបណ្តុះបណ្តាល និងការរៀនសូត្រ' : 'Training & Learning',
-    admin: language === 'kh' ? 'រដ្ឋបាល' : 'Administration',
-    other: language === 'kh' ? 'ផ្សេងៗ' : 'Other'
+    management: language === 'kh' ? 'ការគ្រប់គ្រងទូទៅ' : 'Management',
+    data: language === 'kh' ? 'ការប្រមូលនិងបញ្ចូលទិន្នន័យ' : 'Data Collection',
+    analytics: language === 'kh' ? 'ការវិភាគនិងរបាយការណ៍' : 'Analytics & Reports',
+    learning: language === 'kh' ? 'ការបណ្តុះបណ្តាលនិងការអប់រំ' : 'Training & Learning',
+    admin: language === 'kh' ? 'ការគ្រប់គ្រងប្រព័ន្ធ' : 'Administration',
+    other: language === 'kh' ? 'មុខងារផ្សេងៗ' : 'Other'
   };
 
   const toggleCategory = (category: string) => {

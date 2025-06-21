@@ -155,21 +155,21 @@ export const enTranslations: GlobalTranslations = {
 // Khmer translations
 export const khTranslations: GlobalTranslations = {
   // App
-  appTitle: 'ប្រព័ន្ធព័ត៌មាន TaRL',
-  appSubtitle: 'មជ្ឈមណ្ឌល',
+  appTitle: 'ប្រព័ន្ធគ្រប់គ្រង TaRL',
+  appSubtitle: 'មជ្ឈមណ្ឌលព័ត៌មាន',
   
   // Navigation
-  dashboard: 'ផ្ទាំងបញ្ជា',
-  schools: 'សាលារៀន',
-  students: 'សិស្ស',
+  dashboard: 'ផ្ទាំងគ្រប់គ្រង',
+  schools: 'សាលាសិក្សា',
+  students: 'សិស្សានុសិស្ស',
   users: 'អ្នកប្រើប្រាស់',
-  analytics: 'វិភាគទិន្នន័យ',
+  analytics: 'ការវិភាគទិន្នន័យ',
   reports: 'របាយការណ៍',
-  settings: 'ការកំណត់',
-  observations: 'ការសង្កេត',
-  progress: 'ការរីកចម្រើន',
-  training: 'ការបណ្តុះបណ្តាល',
-  visits: 'ការចុះទស្សនកិច្ច',
+  settings: 'ការកំណត់ប្រព័ន្ធ',
+  observations: 'ការតាមដានថ្នាក់រៀន',
+  progress: 'ការរីកចម្រើនសិស្ស',
+  training: 'ការបណ្តុះបណ្តាលគ្រូ',
+  visits: 'ការទស្សនកិច្ច',
   
   // Common actions
   add: 'បន្ថែម',
