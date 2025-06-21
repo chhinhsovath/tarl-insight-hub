@@ -30,73 +30,61 @@ export async function GET(request: NextRequest) {
 
     // Get dashboard statistics safely for all roles
     try {
-      // Get students count safely (this is the main data we have)
+      // Get real data from actual tables
+      const schoolsResult = await client.query(`
+        SELECT COUNT(*) as count FROM tbl_tarl_schools
+      `).catch(() => ({ rows: [{ count: 0 }] }));
+
       const studentsResult = await client.query(`
         SELECT COUNT(*) as count FROM tbl_tarl_tc_st_sch
       `).catch(() => ({ rows: [{ count: 0 }] }));
 
-      // Get training sessions count safely
-      const trainingResult = await client.query(`
-        SELECT COUNT(*) as count FROM tbl_tarl_training_sessions 
-        WHERE COALESCE(session_status, 'scheduled') = 'ongoing'
-      `).catch(() => ({ rows: [{ count: 0 }] }));
-
-      // Get users count safely
       const usersResult = await client.query(`
         SELECT COUNT(*) as count FROM tbl_tarl_users 
         WHERE COALESCE(is_active, true) = true
       `).catch(() => ({ rows: [{ count: 0 }] }));
 
-      // Basic stats that work for all roles
+      const teachersResult = await client.query(`
+        SELECT COUNT(*) as count FROM tbl_tarl_teachers
+      `).catch(() => ({ rows: [{ count: 0 }] }));
+
+      const classesResult = await client.query(`
+        SELECT COUNT(*) as count FROM tbl_tarl_classes 
+        WHERE COALESCE(is_deleted, false) = false
+      `).catch(() => ({ rows: [{ count: 0 }] }));
+
+      const trainingProgramsResult = await client.query(`
+        SELECT COUNT(*) as count FROM tbl_tarl_training_programs
+      `).catch(() => ({ rows: [{ count: 0 }] }));
+
+      const trainingSessionsResult = await client.query(`
+        SELECT COUNT(*) as count FROM tbl_tarl_training_sessions
+      `).catch(() => ({ rows: [{ count: 0 }] }));
+
+      const activeTrainingResult = await client.query(`
+        SELECT COUNT(*) as count FROM tbl_tarl_training_sessions 
+        WHERE COALESCE(session_status, 'scheduled') = 'ongoing'
+      `).catch(() => ({ rows: [{ count: 0 }] }));
+
+      const transcriptsResult = await client.query(`
+        SELECT COUNT(*) as count FROM tbl_tarl_transcripts 
+        WHERE COALESCE(is_deleted, false) = false
+      `).catch(() => ({ rows: [{ count: 0 }] }));
+
+      // Real stats from actual data
       const stats = {
-        totalSchools: 0, // Will be populated as schools register
+        totalSchools: parseInt(schoolsResult.rows[0].count) || 0,
         totalStudents: parseInt(studentsResult.rows[0].count) || 0,
         totalUsers: parseInt(usersResult.rows[0].count) || 0,
-        totalTeachers: 0, // Will be populated as teachers register
-        totalClasses: 0, // Will be populated as classes are created
-        upcomingTraining: 0,
-        activeTraining: parseInt(trainingResult.rows[0].count) || 0,
-        totalTranscripts: 0 // Will be populated as grades are entered
+        totalTeachers: parseInt(teachersResult.rows[0].count) || 0,
+        totalClasses: parseInt(classesResult.rows[0].count) || 0,
+        upcomingTraining: parseInt(trainingProgramsResult.rows[0].count) || 0,
+        activeTraining: parseInt(activeTrainingResult.rows[0].count) || 0,
+        totalTranscripts: parseInt(transcriptsResult.rows[0].count) || 0
       };
 
-      // Role-based adjustments
-      if (user.role === 'admin') {
-        // Admin can see system-wide stats
-        try {
-          const schoolsResult = await client.query(`
-            SELECT COUNT(*) as count FROM tbl_tarl_school_list 
-            WHERE COALESCE(registration_status, 'pending') = 'approved'
-          `).catch(() => ({ rows: [{ count: 0 }] }));
-
-          const teachersResult = await client.query(`
-            SELECT COUNT(*) as count FROM tbl_tarl_teachers 
-            WHERE COALESCE(status, 'pending') = 'approved'
-          `).catch(() => ({ rows: [{ count: 0 }] }));
-
-          const classesResult = await client.query(`
-            SELECT COUNT(*) as count FROM tbl_tarl_classes 
-            WHERE COALESCE(is_deleted, false) = false
-          `).catch(() => ({ rows: [{ count: 0 }] }));
-
-          const transcriptsResult = await client.query(`
-            SELECT COUNT(*) as count FROM tbl_tarl_transcripts 
-            WHERE COALESCE(is_deleted, false) = false
-          `).catch(() => ({ rows: [{ count: 0 }] }));
-
-          stats.totalSchools = parseInt(schoolsResult.rows[0].count) || 0;
-          stats.totalTeachers = parseInt(teachersResult.rows[0].count) || 0;
-          stats.totalClasses = parseInt(classesResult.rows[0].count) || 0;
-          stats.totalTranscripts = parseInt(transcriptsResult.rows[0].count) || 0;
-        } catch (error) {
-          console.error("Error getting admin-specific stats:", error);
-        }
-      } else if (user.role === 'director') {
-        // Director sees their school's stats
-        stats.totalSchools = 1; // Director manages one school
-      } else if (user.role === 'teacher') {
-        // Teacher sees their class stats
-        stats.totalSchools = 1; // Teacher works at one school
-      }
+      // Log the stats for debugging
+      console.log("Dashboard stats fetched:", stats);
 
       return NextResponse.json({
         success: true,
