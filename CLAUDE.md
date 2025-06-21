@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🚨 IMPORTANT: Read CLAUDE_CONTEXT.md First!
+Before starting any work, please read `CLAUDE_CONTEXT.md` for comprehensive project context, recent changes, and current state. This file contains essential information about:
+- Current tech stack and architecture decisions  
+- Recent font standardization (Hanuman for English/Khmer)
+- Completed training system (100% functional)
+- Database migration status (Digital Ocean PostgreSQL)
+- Multi-language implementation details
+- Loading system standardization
+- Known issues and solutions
+
 ## Development Commands
 
 ### Core Development
